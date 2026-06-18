@@ -177,32 +177,38 @@ function CameraSlot({
     <div style={{ marginBottom: '1rem' }}>
       <p className="field-label" style={{ marginBottom: '0.4rem' }}>{label}</p>
 
-      {/* always in DOM so videoRef is ready before setMode('camera') */}
+      {/* full-screen camera overlay — always in DOM so videoRef is ready */}
       <div style={{
-        position: 'relative', borderRadius: 'var(--radius)', overflow: 'hidden',
-        background: '#111', display: mode === 'camera' ? 'block' : 'none',
+        display: mode === 'camera' ? 'flex' : 'none',
+        position: 'fixed', inset: 0, zIndex: 1000,
+        flexDirection: 'column', background: '#000',
       }}>
         <video ref={videoRef} autoPlay playsInline muted
-          style={{ width: '100%', maxHeight: 300, objectFit: 'cover', display: 'block' }} />
+          style={{ flex: 1, width: '100%', objectFit: 'cover' }} />
         <div style={{
-          position: 'absolute', bottom: '0.75rem', left: 0, right: 0,
-          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.25rem',
+          padding: '1.25rem 1rem', background: 'rgba(0,0,0,0.6)',
         }}>
           {torchSupported && (
             <button type="button" onClick={toggleTorch} style={{
-              background: torchOn ? '#FFD600' : 'rgba(0,0,0,0.55)',
+              background: torchOn ? '#FFD600' : 'rgba(255,255,255,0.15)',
               color: torchOn ? '#000' : '#fff',
               border: 'none', borderRadius: 8,
-              padding: '0.5rem 1rem', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+              padding: '0.6rem 1.1rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
             }}>
               ⚡ {torchOn ? 'Flash on' : 'Flash off'}
             </button>
           )}
           <button type="button" onClick={snap} style={{
-            background: '#fff', border: '4px solid rgba(255,255,255,0.45)',
-            borderRadius: '50%', width: 64, height: 64, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem',
+            background: '#fff', border: '5px solid rgba(255,255,255,0.4)',
+            borderRadius: '50%', width: 72, height: 72, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem',
           }}>📷</button>
+          <button type="button" onClick={() => { stopStream(); setMode('idle'); }} style={{
+            background: 'rgba(255,255,255,0.15)', color: '#fff',
+            border: 'none', borderRadius: 8,
+            padding: '0.6rem 1.1rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
+          }}>✕ Cancel</button>
         </div>
       </div>
 
