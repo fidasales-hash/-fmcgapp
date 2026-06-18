@@ -21,9 +21,12 @@ async function ensureTable() {
       category    TEXT DEFAULT 'Other',
       notes       TEXT DEFAULT '',
       photo_url   TEXT NOT NULL,
+      photo_url_2 TEXT DEFAULT '',
       added_at    TEXT NOT NULL
     )
   `;
+  // Add photo_url_2 to existing tables that predate this column
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS photo_url_2 TEXT DEFAULT ''`;
 }
 
 export async function getAllProducts(): Promise<Product[]> {
@@ -38,6 +41,7 @@ export async function getAllProducts(): Promise<Product[]> {
     category: String(r.category ?? 'Other'),
     notes: String(r.notes ?? ''),
     photoUrl: String(r.photo_url),
+    photoUrl2: String(r.photo_url_2 ?? ''),
     addedAt: String(r.added_at),
   }));
 }
@@ -46,14 +50,15 @@ export async function insertProduct(p: Product) {
   await ensureTable();
   const db = getDb();
   await db`
-    INSERT INTO products (id, name, size, best_before, category, notes, photo_url, added_at)
-    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore}, ${p.category}, ${p.notes}, ${p.photoUrl}, ${p.addedAt})
+    INSERT INTO products (id, name, size, best_before, category, notes, photo_url, photo_url_2, added_at)
+    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore}, ${p.category}, ${p.notes}, ${p.photoUrl}, ${p.photoUrl2}, ${p.addedAt})
   `;
 }
 
-export async function deleteProduct(id: string): Promise<string | null> {
+export async function deleteProduct(id: string): Promise<{ photoUrl: string; photoUrl2: string } | null> {
   await ensureTable();
   const db = getDb();
-  const rows = await db`DELETE FROM products WHERE id = ${id} RETURNING photo_url`;
-  return rows[0] ? String(rows[0].photo_url) : null;
+  const rows = await db`DELETE FROM products WHERE id = ${id} RETURNING photo_url, photo_url_2`;
+  if (!rows[0]) return null;
+  return { photoUrl: String(rows[0].photo_url), photoUrl2: String(rows[0].photo_url_2 ?? '') };
 }

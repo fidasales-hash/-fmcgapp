@@ -6,5 +6,6 @@ export interface Product {
   category: string;
   notes: string;
   photoUrl: string;
+  photoUrl2: string;
   addedAt: string; // ISO
 }

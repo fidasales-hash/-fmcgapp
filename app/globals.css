@@ -122,6 +122,11 @@ body {
 .badge-expired { background: var(--red);   color: #fff; }
 
 .card-body { padding: 0.6rem 0.65rem 0.75rem; }
+.photo-dots { position: absolute; bottom: 0.35rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.3rem; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.5); }
+.dot-active { background: #fff; }
+.photo-placeholder-opt { height: 120px; font-size: 0.95rem; }
+
 .card-body h2 { font-size: 0.88rem; font-weight: 700; line-height: 1.25; margin-bottom: 0.2rem; }
 .card-body .size { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; }
 .card-body .best-before { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.35rem; }

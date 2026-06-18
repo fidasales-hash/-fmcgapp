@@ -6,6 +6,47 @@ function isExpired(bestBefore: string) {
   return new Date(bestBefore) < new Date(new Date().toDateString());
 }
 
+function ProductCard({ product }: { product: Product }) {
+  const [showSecond, setShowSecond] = useState(false);
+  const expired = isExpired(product.bestBefore);
+  const hasTwo = Boolean(product.photoUrl2);
+
+  return (
+    <div className={`card ${expired ? 'expired' : 'fresh'}`}>
+      <div
+        className="photo-wrap"
+        onClick={() => hasTwo && setShowSecond(s => !s)}
+        style={{ cursor: hasTwo ? 'pointer' : 'default' }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={showSecond && product.photoUrl2 ? product.photoUrl2 : product.photoUrl}
+          alt={product.name}
+          loading="lazy"
+        />
+        <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>
+          {expired ? 'Past Best Before' : 'In Date'}
+        </span>
+        {hasTwo && (
+          <div className="photo-dots">
+            <span className={`dot ${!showSecond ? 'dot-active' : ''}`} />
+            <span className={`dot ${showSecond ? 'dot-active' : ''}`} />
+          </div>
+        )}
+      </div>
+      <div className="card-body">
+        <h2>{product.name}</h2>
+        {product.size && <p className="size">{product.size}</p>}
+        <p className="best-before">
+          BB: {new Date(product.bestBefore + 'T00:00:00').toLocaleDateString('en-GB')}
+        </p>
+        <span className="cat-chip">{product.category}</span>
+        {product.notes && <p className="notes">{product.notes}</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,35 +108,12 @@ export default function Storefront() {
       </div>
 
       {loading && <p className="loading">Loading products…</p>}
-
       {!loading && filtered.length === 0 && (
-        <p className="empty">No products found. {products.length === 0 ? 'Staff can add products via the upload page.' : 'Try changing the filters.'}</p>
+        <p className="empty">{products.length === 0 ? 'No products yet — staff can add via the upload page.' : 'No products match the filters.'}</p>
       )}
 
       <div className="grid">
-        {filtered.map(product => {
-          const expired = isExpired(product.bestBefore);
-          return (
-            <div key={product.id} className={`card ${expired ? 'expired' : 'fresh'}`}>
-              <div className="photo-wrap">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={product.photoUrl} alt={product.name} loading="lazy" />
-                <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>
-                  {expired ? 'Past Best Before' : 'In Date'}
-                </span>
-              </div>
-              <div className="card-body">
-                <h2>{product.name}</h2>
-                {product.size && <p className="size">{product.size}</p>}
-                <p className="best-before">
-                  BB: {new Date(product.bestBefore + 'T00:00:00').toLocaleDateString('en-GB')}
-                </p>
-                <span className="cat-chip">{product.category}</span>
-                {product.notes && <p className="notes">{product.notes}</p>}
-              </div>
-            </div>
-          );
-        })}
+        {filtered.map(product => <ProductCard key={product.id} product={product} />)}
       </div>
     </>
   );

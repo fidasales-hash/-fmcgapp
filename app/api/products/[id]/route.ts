@@ -10,8 +10,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const photoUrl = await deleteProduct(id);
-    if (photoUrl) await del(photoUrl);
+    const result = await deleteProduct(id);
+    if (result) {
+      const urls = [result.photoUrl, result.photoUrl2].filter(Boolean);
+      if (urls.length) await del(urls);
+    }
     return NextResponse.json({ success: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
