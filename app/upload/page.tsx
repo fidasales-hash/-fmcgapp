@@ -91,7 +91,7 @@ function CameraSlot({
       if (caps.torch) {
         setTorchSupported(true);
         try {
-          await track.applyConstraints({ advanced: [{ torch: true }] } as MediaTrackConstraints);
+          await track.applyConstraints({ advanced: [{ torch: true }] } as unknown as MediaTrackConstraints);
           setTorchOn(true);
         } catch { /* torch unavailable on this device */ }
       }
@@ -125,7 +125,7 @@ function CameraSlot({
     if (!track) return;
     const next = !torchOn;
     try {
-      await track.applyConstraints({ advanced: [{ torch: next }] } as MediaTrackConstraints);
+      await track.applyConstraints({ advanced: [{ torch: next }] } as unknown as MediaTrackConstraints);
       setTorchOn(next);
     } catch { /* ignore */ }
   }
