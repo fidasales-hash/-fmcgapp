@@ -72,13 +72,13 @@ export default function AdminPage() {
 
               {isEditing ? (
                 <div className="edit-form">
-                  <input className="field" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Name" />
-                  <input className="field" value={editForm.size} onChange={e => setEditForm({ ...editForm, size: e.target.value })} placeholder="Size / weight" />
-                  <input className="field" type="date" value={editForm.bestBefore} onChange={e => setEditForm({ ...editForm, bestBefore: e.target.value })} />
-                  <select className="field" value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}>
-                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  <input className="field" value={editForm.name} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, name: v })); }} placeholder="Name" />
+                  <input className="field" value={editForm.size} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, size: v })); }} placeholder="Size / weight" />
+                  <input className="field" type="date" value={editForm.bestBefore} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, bestBefore: v })); }} />
+                  <select className="field" value={editForm.category} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, category: v })); }}>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  <textarea className="field" rows={2} value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} placeholder="Notes" />
+                  <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, notes: v })); }} placeholder="Notes" />
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="btn-primary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => saveEdit(product.id)} disabled={saving}>
                       {saving ? '…' : 'Save'}
