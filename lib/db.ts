@@ -28,6 +28,7 @@ async function ensureTable() {
   `;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS photo_url_2 TEXT DEFAULT ''`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0`;
+  await db`ALTER TABLE products ALTER COLUMN best_before DROP NOT NULL`;
 }
 
 export async function getAllProducts(): Promise<Product[]> {
@@ -38,7 +39,7 @@ export async function getAllProducts(): Promise<Product[]> {
     id: String(r.id),
     name: String(r.name),
     size: String(r.size ?? ''),
-    bestBefore: String(r.best_before).slice(0, 10),
+    bestBefore: r.best_before ? String(r.best_before).slice(0, 10) : '',
     category: String(r.category ?? 'Other'),
     notes: String(r.notes ?? ''),
     price: Number(r.price ?? 0),
@@ -53,7 +54,7 @@ export async function insertProduct(p: Product) {
   const db = getDb();
   await db`
     INSERT INTO products (id, name, size, best_before, category, notes, price, photo_url, photo_url_2, added_at)
-    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore}, ${p.category}, ${p.notes}, ${p.price}, ${p.photoUrl}, ${p.photoUrl2}, ${p.addedAt})
+    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.photoUrl}, ${p.photoUrl2}, ${p.addedAt})
   `;
 }
 
@@ -64,7 +65,7 @@ export async function updateProduct(id: string, u: Partial<Product>) {
     UPDATE products SET
       name        = ${u.name ?? ''},
       size        = ${u.size ?? ''},
-      best_before = ${u.bestBefore ?? ''},
+      best_before = ${u.bestBefore || null},
       category    = ${u.category ?? 'Other'},
       notes       = ${u.notes ?? ''},
       price       = ${u.price ?? 0}
