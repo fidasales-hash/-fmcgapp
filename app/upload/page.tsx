@@ -78,7 +78,7 @@ function CameraSlot({
   async function openCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 } },
+        video: { facingMode: 'environment', width: { ideal: 4096 }, height: { ideal: 3072 } },
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -101,23 +101,35 @@ function CameraSlot({
     }
   }
 
-  function snap() {
-    const video = videoRef.current;
-    if (!video) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d')!.drawImage(video, 0, 0);
+  async function snap() {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+
+    let blob: Blob | null = null;
+    try {
+      // ImageCapture shoots at full sensor resolution regardless of stream preview size
+      const ic = new (window as unknown as { ImageCapture: new (t: MediaStreamTrack) => { takePhoto(): Promise<Blob> } }).ImageCapture(track);
+      blob = await ic.takePhoto();
+    } catch {
+      // fallback: draw current video frame to canvas
+      const video = videoRef.current;
+      if (video) {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d')!.drawImage(video, 0, 0);
+        blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+      }
+    }
+
     stopStream();
-    canvas.toBlob(blob => {
-      if (!blob) return;
-      const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-      setCapturedFile(file);
-      setRotatedFile(null);
-      setPreview(URL.createObjectURL(file));
-      setMode('preview');
-      onFile(file);
-    }, 'image/jpeg', 0.92);
+    if (!blob) return;
+    const file = new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' });
+    setCapturedFile(file);
+    setRotatedFile(null);
+    setPreview(URL.createObjectURL(file));
+    setMode('preview');
+    onFile(file);
   }
 
   async function toggleTorch() {
