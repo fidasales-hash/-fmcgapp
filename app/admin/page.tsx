@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Product } from '@/lib/types';
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks', 'Dairy', 'Bakery', 'Frozen', 'Other'];
@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [claudeEnabled, setClaudeEnabled] = useState(true);
+  const dateRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(CLAUDE_KEY);
@@ -51,7 +52,7 @@ export default function AdminPage() {
   async function saveEdit(id: string) {
     setSaving(true);
     setSaveError('');
-    const payload = { ...editForm, price: parseFloat(editForm.price) || 0 };
+    const payload = { ...editForm, bestBefore: dateRef.current?.value ?? editForm.bestBefore, price: parseFloat(editForm.price) || 0 };
     const res = await fetch(`/api/products/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -129,7 +130,7 @@ export default function AdminPage() {
                 <div className="edit-form">
                   <input className="field" value={editForm.name} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, name: v })); }} placeholder="Name" />
                   <input className="field" value={editForm.size} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, size: v })); }} placeholder="Size / weight" />
-                  <input className="field" type="date" value={editForm.bestBefore} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, bestBefore: v })); }} />
+                  <input className="field" type="date" ref={dateRef} defaultValue={editForm.bestBefore} />
                   <select className="field" value={editForm.category} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, category: v })); }}>
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
