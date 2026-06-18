@@ -253,6 +253,7 @@ export default function UploadPage() {
   async function analyzePhoto(file: File) {
     if (localStorage.getItem('claudeApiEnabled') === 'false') return;
     setAnalyzingCount(c => c + 1);
+    setError('');
     try {
       const fd = new FormData();
       fd.append('photo', file);
@@ -265,8 +266,13 @@ export default function UploadPage() {
           bestBefore: data.bestBefore || prev.bestBefore,
           notes:      prev.notes,
         }));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(`Label reading failed: ${data.error ?? res.status} — fill in manually`);
       }
-    } catch { /* silently fail — staff can fill in manually */ }
+    } catch {
+      setError('Label reading failed — fill in manually');
+    }
     setAnalyzingCount(c => c - 1);
   }
 
