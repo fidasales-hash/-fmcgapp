@@ -10,6 +10,8 @@ function isExpired(bestBefore: string) {
 
 type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string };
 
+const CLAUDE_KEY = 'claudeApiEnabled';
+
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,12 +19,21 @@ export default function AdminPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '' });
   const [saving, setSaving] = useState(false);
+  const [claudeEnabled, setClaudeEnabled] = useState(true);
 
   useEffect(() => {
+    const stored = localStorage.getItem(CLAUDE_KEY);
+    if (stored !== null) setClaudeEnabled(stored !== 'false');
     fetch('/api/products')
       .then(r => r.json())
       .then(data => { setProducts(data); setLoading(false); });
   }, []);
+
+  function toggleClaude() {
+    const next = !claudeEnabled;
+    setClaudeEnabled(next);
+    localStorage.setItem(CLAUDE_KEY, String(next));
+  }
 
   function startEdit(p: Product) {
     setEditing(p.id);
@@ -56,6 +67,37 @@ export default function AdminPage() {
       <div className="admin-header">
         <h1>Manage Products</h1>
         <a href="/">← View Store</a>
+      </div>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0.75rem 1rem', marginBottom: '1rem',
+        background: claudeEnabled ? 'var(--surface, #f4f4f4)' : '#fff3cd',
+        borderRadius: 10, border: '1px solid',
+        borderColor: claudeEnabled ? 'var(--border, #ddd)' : '#ffc107',
+      }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Claude API Auto-fill</div>
+          <div style={{ fontSize: '0.8rem', color: '#666', marginTop: 2 }}>
+            {claudeEnabled ? 'On — product fields filled automatically from photos' : 'Off — staff enter details manually'}
+          </div>
+        </div>
+        <button
+          onClick={toggleClaude}
+          style={{
+            position: 'relative', width: 52, height: 28, borderRadius: 14,
+            border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
+            background: claudeEnabled ? 'var(--primary, #2563eb)' : '#ccc',
+            transition: 'background 0.2s',
+          }}
+          aria-label={claudeEnabled ? 'Disable Claude API auto-fill' : 'Enable Claude API auto-fill'}
+        >
+          <span style={{
+            position: 'absolute', top: 3, left: claudeEnabled ? 27 : 3,
+            width: 22, height: 22, borderRadius: '50%', background: '#fff',
+            transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+          }} />
+        </button>
       </div>
 
       {loading && <p className="loading">Loading…</p>}

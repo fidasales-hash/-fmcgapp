@@ -251,6 +251,7 @@ export default function UploadPage() {
   const [error, setError] = useState('');
 
   async function analyzePhoto(file: File) {
+    if (localStorage.getItem('claudeApiEnabled') === 'false') return;
     setAnalyzingCount(c => c + 1);
     try {
       const fd = new FormData();
