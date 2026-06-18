@@ -66,7 +66,8 @@ export default function AdminPage() {
         if (freshRes.ok) setProducts(await freshRes.json());
         setEditing(null);
       } else {
-        setSaveError('Save failed — try again');
+        const errData = await res.json().catch(() => ({}));
+        setSaveError(errData.error || `Save failed (${res.status})`);
       }
     } catch {
       setSaveError('Network error — try again');
