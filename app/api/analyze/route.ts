@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import sharp from 'sharp';
 
 export const runtime = 'nodejs';
 
@@ -12,18 +13,24 @@ export async function POST(req: NextRequest) {
     if (!photo) return NextResponse.json({ error: 'No photo' }, { status: 400 });
 
     const buffer = Buffer.from(await photo.arrayBuffer());
-    const base64 = buffer.toString('base64');
-    const mimeType = photo.type || 'image/jpeg';
+
+    // Resize to max 800px — Groq rejects large images
+    const resized = await sharp(buffer)
+      .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+
+    const base64 = resized.toString('base64');
 
     const response = await client.chat.completions.create({
-      model: 'llama-3.2-11b-vision-preview',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       max_tokens: 256,
       messages: [{
         role: 'user',
         content: [
           {
             type: 'image_url',
-            image_url: { url: `data:${mimeType};base64,${base64}` },
+            image_url: { url: `data:image/jpeg;base64,${base64}` },
           },
           {
             type: 'text',
