@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 
 const CARD = 900;
-const MAX = 700;
+const MAX = 840;
 
 async function removeBackground(input: Buffer): Promise<Buffer> {
   const apiKey = process.env.REMOVE_BG_API_KEY ?? '';
