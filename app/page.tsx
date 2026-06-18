@@ -118,6 +118,7 @@ export default function Storefront() {
           <button className="lightbox-close" onClick={() => setLightboxUrl(null)} aria-label="Close">✕</button>
         </div>
       )}
+      <div className="page-wrap">
       <header className="site-header">
         <HamburgerMenu />
         <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
@@ -152,6 +153,7 @@ export default function Storefront() {
 
       <div className="grid">
         {filtered.map(product => <ProductCard key={product.id} product={product} onExpand={setLightboxUrl} />)}
+      </div>
       </div>
     </>
   );
