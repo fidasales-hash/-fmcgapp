@@ -43,7 +43,9 @@ export default function AdminPage() {
 
   function startEdit(p: Product) {
     setEditing(p.id);
-    setEditForm({ name: p.name, size: p.size, bestBefore: p.bestBefore, category: p.category, notes: p.notes, price: String(p.price ?? 0) });
+    const d = new Date(p.bestBefore + 'T00:00:00');
+    const bb = isNaN(d.getTime()) ? '' : p.bestBefore;
+    setEditForm({ name: p.name, size: p.size, bestBefore: bb, category: p.category, notes: p.notes, price: String(p.price ?? 0) });
   }
 
   async function saveEdit(id: string) {
