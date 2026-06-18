@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [saveError, setSaveError] = useState('');
   const [claudeEnabled, setClaudeEnabled] = useState(true);
   const dateRef = useRef<HTMLInputElement>(null);
+  const bbValue = useRef('');
 
   useEffect(() => {
     const stored = localStorage.getItem(CLAUDE_KEY);
@@ -46,13 +47,14 @@ export default function AdminPage() {
     setEditing(p.id);
     const d = new Date(p.bestBefore + 'T00:00:00');
     const bb = isNaN(d.getTime()) ? '' : p.bestBefore;
+    bbValue.current = bb;
     setEditForm({ name: p.name, size: p.size, bestBefore: bb, category: p.category, notes: p.notes, price: String(p.price ?? 0) });
   }
 
   async function saveEdit(id: string) {
     setSaving(true);
     setSaveError('');
-    const payload = { ...editForm, bestBefore: dateRef.current?.value ?? editForm.bestBefore, price: parseFloat(editForm.price) || 0 };
+    const payload = { ...editForm, bestBefore: bbValue.current, price: parseFloat(editForm.price) || 0 };
     const res = await fetch(`/api/products/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -130,7 +132,7 @@ export default function AdminPage() {
                 <div className="edit-form">
                   <input className="field" value={editForm.name} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, name: v })); }} placeholder="Name" />
                   <input className="field" value={editForm.size} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, size: v })); }} placeholder="Size / weight" />
-                  <input className="field" type="date" ref={dateRef} defaultValue={editForm.bestBefore} />
+                  <input className="field" type="date" ref={dateRef} defaultValue={editForm.bestBefore} onChange={e => { bbValue.current = e.target.value; }} />
                   <select className="field" value={editForm.category} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, category: v })); }}>
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
