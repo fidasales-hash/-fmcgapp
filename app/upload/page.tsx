@@ -31,7 +31,7 @@ async function rotateCW(file: File): Promise<{ file: File; preview: string }> {
       canvas.width = img.height; canvas.height = img.width;
       const ctx = canvas.getContext('2d')!;
       ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate(Math.PI / 2);
+      ctx.rotate(-Math.PI / 2);
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
       URL.revokeObjectURL(url);
       canvas.toBlob(blob => {
@@ -231,7 +231,7 @@ function CameraSlot({
           <img src={preview} alt="preview" className="photo-preview"
             style={{ opacity: analyzing ? 0.65 : 1, transition: 'opacity 0.2s' }} />
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
-            <button type="button" className="btn-rotate" style={{ flex: 1, marginBottom: 0 }} onClick={rotate}>↻ Rotate</button>
+            <button type="button" className="btn-rotate" style={{ flex: 1, marginBottom: 0 }} onClick={rotate}>↺ Rotate Left</button>
             <button type="button" className="btn-rotate" style={{ flex: 1, marginBottom: 0 }} onClick={retake}>↺ Retake</button>
           </div>
         </>
