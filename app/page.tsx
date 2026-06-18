@@ -121,7 +121,7 @@ export default function Storefront() {
       <header className="site-header">
         <HamburgerMenu />
         <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
-        <p className="site-tagline">Great prices on surplus &amp; short-dated stock</p>
+
       </header>
 
       <div className="filters">
