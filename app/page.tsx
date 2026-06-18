@@ -37,7 +37,7 @@ export default function Storefront() {
   return (
     <>
       <header className="site-header">
-        <h1>Warehouse Clearance</h1>
+        <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
         <p>In-date &amp; past best-before stock at discounted prices</p>
         <nav className="header-nav">
           <a href="/upload">Staff Upload</a>
