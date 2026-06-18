@@ -345,20 +345,20 @@ export default function UploadPage() {
 
         <input
           type="text" placeholder="Product name *" value={form.name}
-          onChange={e => setForm({ ...form, name: e.target.value })}
+          onChange={e => { const v = e.target.value; setForm(f => ({ ...f, name: v })); }}
           required className="field" autoComplete="off"
           style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing}
         />
         <input
           type="text" placeholder="Size / weight  (e.g. 330ml, 500g)" value={form.size}
-          onChange={e => setForm({ ...form, size: e.target.value })}
+          onChange={e => { const v = e.target.value; setForm(f => ({ ...f, size: v })); }}
           className="field" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing}
         />
         <div className="field-wrap">
           <label className="field-label">Price (R) *</label>
           <input
             type="number" min="0" step="0.01" placeholder="0.00" value={form.price}
-            onChange={e => setForm({ ...form, price: e.target.value })}
+            onChange={e => { const v = e.target.value; setForm(f => ({ ...f, price: v })); }}
             required className="field" style={{ marginBottom: 0 }}
           />
         </div>
@@ -366,13 +366,13 @@ export default function UploadPage() {
           <label className="field-label">Best Before Date *</label>
           <input
             type="date" value={form.bestBefore}
-            onChange={e => setForm({ ...form, bestBefore: e.target.value })}
+            onChange={e => { const v = e.target.value; setForm(f => ({ ...f, bestBefore: v })); }}
             required className="field" style={{ marginBottom: 0 }}
           />
         </div>
         <textarea
           placeholder="Notes  (optional)" value={form.notes}
-          onChange={e => setForm({ ...form, notes: e.target.value })}
+          onChange={e => { const v = e.target.value; setForm(f => ({ ...f, notes: v })); }}
           className="field" rows={3}
         />
 
