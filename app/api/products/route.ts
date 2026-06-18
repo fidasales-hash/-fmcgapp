@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     const size = (formData.get('size') as string | null)?.trim() ?? '';
     const bestBefore = (formData.get('bestBefore') as string | null) ?? '';
     const notes = (formData.get('notes') as string | null)?.trim() ?? '';
+    const price = parseFloat((formData.get('price') as string | null) ?? '0') || 0;
 
     if (!photo) return NextResponse.json({ error: 'Photo required' }, { status: 400 });
     if (!name) return NextResponse.json({ error: 'Product name required' }, { status: 400 });
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     const product = {
       id, name, size, bestBefore,
       category: categorize(name),
-      notes, photoUrl, photoUrl2,
+      notes, price, photoUrl, photoUrl2,
       addedAt: new Date().toISOString(),
     };
 

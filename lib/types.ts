@@ -5,6 +5,7 @@ export interface Product {
   bestBefore: string; // YYYY-MM-DD
   category: string;
   notes: string;
+  price: number; // ZAR
   photoUrl: string;
   photoUrl2: string;
   addedAt: string; // ISO

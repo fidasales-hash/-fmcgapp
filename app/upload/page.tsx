@@ -243,7 +243,7 @@ function CameraSlot({
 export default function UploadPage() {
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
-  const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '' });
+  const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '', price: '' });
   const [analyzingCount, setAnalyzingCount] = useState(0);
   const analyzing = analyzingCount > 0;
   const [submitting, setSubmitting] = useState(false);
@@ -265,6 +265,7 @@ export default function UploadPage() {
           size:       fillEmptyOnly ? (prev.size || data.size) : (data.size || prev.size),
           bestBefore: prev.bestBefore,
           notes:      prev.notes,
+          price:      prev.price,
         }));
       } else {
         const data = await res.json().catch(() => ({}));
@@ -289,11 +290,12 @@ export default function UploadPage() {
       fd.append('size', form.size);
       fd.append('bestBefore', form.bestBefore);
       fd.append('notes', form.notes);
+      fd.append('price', form.price);
       const res = await fetch('/api/products', { method: 'POST', body: fd });
       if (res.ok) {
         setSuccess(true);
         setFile1(null); setFile2(null);
-        setForm({ name: '', size: '', bestBefore: '', notes: '' });
+        setForm({ name: '', size: '', bestBefore: '', notes: '', price: '' });
       } else {
         const data = await res.json();
         setError(data.error ?? 'Upload failed');
@@ -352,6 +354,14 @@ export default function UploadPage() {
           onChange={e => setForm({ ...form, size: e.target.value })}
           className="field" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing}
         />
+        <div className="field-wrap">
+          <label className="field-label">Price (R) *</label>
+          <input
+            type="number" min="0" step="0.01" placeholder="0.00" value={form.price}
+            onChange={e => setForm({ ...form, price: e.target.value })}
+            required className="field" style={{ marginBottom: 0 }}
+          />
+        </div>
         <div className="field-wrap">
           <label className="field-label">Best Before Date *</label>
           <input

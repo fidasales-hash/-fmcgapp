@@ -8,7 +8,7 @@ function isExpired(bestBefore: string) {
   return new Date(bestBefore) < new Date(new Date().toDateString());
 }
 
-type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string };
+type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string; price: string };
 
 const CLAUDE_KEY = 'claudeApiEnabled';
 
@@ -17,7 +17,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '' });
+  const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '', price: '' });
   const [saving, setSaving] = useState(false);
   const [claudeEnabled, setClaudeEnabled] = useState(true);
 
@@ -37,7 +37,7 @@ export default function AdminPage() {
 
   function startEdit(p: Product) {
     setEditing(p.id);
-    setEditForm({ name: p.name, size: p.size, bestBefore: p.bestBefore, category: p.category, notes: p.notes });
+    setEditForm({ name: p.name, size: p.size, bestBefore: p.bestBefore, category: p.category, notes: p.notes, price: String(p.price ?? 0) });
   }
 
   async function saveEdit(id: string) {
@@ -45,7 +45,7 @@ export default function AdminPage() {
     const res = await fetch(`/api/products/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editForm),
+      body: JSON.stringify({ ...editForm, price: parseFloat(editForm.price) || 0 }),
     });
     if (res.ok) {
       setProducts(prev => prev.map(p => p.id === id ? { ...p, ...editForm } : p));
@@ -120,6 +120,7 @@ export default function AdminPage() {
                   <select className="field" value={editForm.category} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, category: v })); }}>
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
+                  <input className="field" type="number" min="0" step="0.01" value={editForm.price} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, price: v })); }} placeholder="Price (R)" />
                   <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, notes: v })); }} placeholder="Notes" />
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="btn-primary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => saveEdit(product.id)} disabled={saving}>
@@ -140,6 +141,7 @@ export default function AdminPage() {
                     BB: {new Date(product.bestBefore + 'T00:00:00').toLocaleDateString('en-GB')}
                     {product.size ? ` · ${product.size}` : ''}
                     {' · '}{product.category}
+                    {' · '}<strong>R {Number(product.price ?? 0).toFixed(2)}</strong>
                   </div>
                   {product.notes && <div className="admin-notes">{product.notes}</div>}
                 </div>

@@ -40,6 +40,9 @@ function ProductCard({ product }: { product: Product }) {
         <p className="best-before">
           BB: {new Date(product.bestBefore + 'T00:00:00').toLocaleDateString('en-GB')}
         </p>
+        {product.price > 0 && (
+          <p className="price">R {Number(product.price).toFixed(2)}</p>
+        )}
         <span className="cat-chip">{product.category}</span>
         {product.notes && <p className="notes">{product.notes}</p>}
       </div>
