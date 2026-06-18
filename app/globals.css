@@ -26,23 +26,35 @@ body {
 
 /* ── Header ────────────────────────────────────── */
 .site-header {
-  background: #ffffff;
-  border-bottom: 1px solid var(--border);
-  padding: 1.25rem 1rem 1rem;
+  background: linear-gradient(150deg, #CC2020 0%, #8B1010 100%);
+  padding: 1.5rem 1rem 1.25rem;
   text-align: center;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.18);
 }
-.site-logo { width: 90px; height: 90px; margin-bottom: 0.5rem; }
-.site-header p { color: var(--muted); font-size: 0.88rem; margin-top: 0.2rem; }
-.header-nav { margin-top: 0.65rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+.site-logo {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 0.6rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.35), 0 6px 18px rgba(0,0,0,0.28);
+}
+.site-tagline {
+  color: rgba(255,255,255,0.88);
+  font-size: 0.88rem;
+  margin-top: 0.2rem;
+  letter-spacing: 0.2px;
+}
+.header-nav { margin-top: 0.85rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
 .header-nav a {
-  color: var(--primary);
+  color: rgba(255,255,255,0.85);
   text-decoration: none;
-  font-size: 0.8rem;
-  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  border: 1px solid rgba(255,255,255,0.35);
   border-radius: 20px;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 0.8rem;
+  transition: background 0.15s, color 0.15s;
 }
-.header-nav a:hover { background: var(--red-bg); }
+.header-nav a:hover { background: rgba(255,255,255,0.18); color: #fff; }
 
 /* ── Filters ───────────────────────────────────── */
 .filters {
@@ -360,6 +372,6 @@ body {
 .btn-delete:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 400px) {
-  .site-header h1 { font-size: 1.4rem; }
+  .site-logo { width: 82px; height: 82px; }
   .grid { gap: 0.5rem; padding: 0.5rem; }
 }
