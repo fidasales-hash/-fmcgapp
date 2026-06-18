@@ -50,6 +50,7 @@ export default function UploadPage() {
   const [rotated1, setRotated1] = useState<File | null>(null);
   const [rotated2, setRotated2] = useState<File | null>(null);
   const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '' });
+  const [analyzing, setAnalyzing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -57,11 +58,32 @@ export default function UploadPage() {
   const fileRef2 = useRef<HTMLInputElement>(null);
 
   function handlePhoto(n: 1 | 2) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
+    return async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
       if (n === 1) { setPreview1(URL.createObjectURL(file)); setRotated1(null); }
       else         { setPreview2(URL.createObjectURL(file)); setRotated2(null); }
+
+      if (n === 1) {
+        setAnalyzing(true);
+        try {
+          const fd = new FormData();
+          fd.append('photo', file);
+          const res = await fetch('/api/analyze', { method: 'POST', body: fd });
+          if (res.ok) {
+            const data = await res.json();
+            setForm(prev => ({
+              name:        data.name        || prev.name,
+              size:        data.size        || prev.size,
+              bestBefore:  data.bestBefore  || prev.bestBefore,
+              notes:       prev.notes,
+            }));
+          }
+        } catch {
+          // silently fail — staff can fill in manually
+        }
+        setAnalyzing(false);
+      }
     };
   }
 
@@ -151,21 +173,31 @@ export default function UploadPage() {
           <button type="button" className="btn-rotate" onClick={() => handleRotate(2)}>↻ Rotate</button>
         )}
 
+        {analyzing && (
+          <p style={{ fontSize: '0.85rem', color: 'var(--primary)', margin: '1rem 0 0.5rem', fontWeight: 600 }}>
+            ⏳ Reading product label…
+          </p>
+        )}
+
         <input
           type="text" placeholder="Product name *" value={form.name}
           onChange={e => setForm({ ...form, name: e.target.value })}
-          required className="field" autoComplete="off" style={{ marginTop: '1rem' }}
+          required className="field" autoComplete="off"
+          style={{ marginTop: analyzing ? '0' : '1rem', opacity: analyzing ? 0.6 : 1 }}
+          disabled={analyzing}
         />
         <input
           type="text" placeholder="Size / weight  (e.g. 330ml, 500g)" value={form.size}
-          onChange={e => setForm({ ...form, size: e.target.value })} className="field"
+          onChange={e => setForm({ ...form, size: e.target.value })}
+          className="field" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing}
         />
         <div className="field-wrap">
           <label className="field-label">Best Before Date *</label>
           <input
             type="date" value={form.bestBefore}
             onChange={e => setForm({ ...form, bestBefore: e.target.value })}
-            required className="field" style={{ marginBottom: 0 }}
+            required className="field" style={{ marginBottom: 0, opacity: analyzing ? 0.6 : 1 }}
+            disabled={analyzing}
           />
         </div>
         <textarea
@@ -175,7 +207,7 @@ export default function UploadPage() {
         />
 
         {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={submitting} className="btn-primary">
+        <button type="submit" disabled={submitting || analyzing} className="btn-primary">
           {submitting ? 'Processing & uploading…' : 'Add to Store'}
         </button>
         <a href="/" className="btn-secondary" style={{ marginTop: '0.75rem' }}>← Back to Store</a>
