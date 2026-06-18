@@ -45,11 +45,12 @@ export async function processProductImage(input: Buffer): Promise<Buffer> {
     create: {
       width: CARD,
       height: CARD,
-      channels: 3,
-      background: { r: 255, g: 255, b: 255 },
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
     },
   })
     .composite([{ input: layer, gravity: 'centre' }])
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
     .jpeg({ quality: 85 })
     .toBuffer();
 }
