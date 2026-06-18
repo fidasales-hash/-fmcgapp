@@ -77,7 +77,7 @@ export default function AdminPage() {
         borderColor: claudeEnabled ? 'var(--border, #ddd)' : '#ffc107',
       }}>
         <div>
-          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Gemini API Auto-fill</div>
+          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Groq AI Auto-fill</div>
           <div style={{ fontSize: '0.8rem', color: '#666', marginTop: 2 }}>
             {claudeEnabled ? 'On — product fields filled automatically from photos' : 'Off — staff enter details manually'}
           </div>
