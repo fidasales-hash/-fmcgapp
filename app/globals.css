@@ -167,15 +167,14 @@ body {
 .card-body .size { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; }
 .card-body .best-before { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem; }
 .card-body .price { font-size: 0.92rem; font-weight: 800; color: var(--primary); margin-bottom: 0.3rem; }
-.cat-chip {
-  display: inline-block;
-  font-size: 0.68rem;
-  padding: 0.1rem 0.45rem;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  color: var(--primary);
-  font-weight: 600;
-  margin-bottom: 0.25rem;
+.cat-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 0.1rem;
 }
 .card-body .notes { font-size: 0.72rem; color: #888; margin-top: 0.2rem; font-style: italic; }
 
