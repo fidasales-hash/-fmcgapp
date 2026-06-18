@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 
-async function clientCompressImage(file: File): Promise<File> {
+async function compressImage(file: File): Promise<File> {
   return new Promise(resolve => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -15,10 +15,30 @@ async function clientCompressImage(file: File): Promise<File> {
       const canvas = document.createElement('canvas');
       canvas.width = width; canvas.height = height;
       canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob => resolve(new File([blob!], 'photo.jpg', { type: 'image/jpeg' })), 'image/jpeg', 0.82);
+    };
+    img.src = url;
+  });
+}
+
+async function rotateCW(file: File): Promise<{ file: File; preview: string }> {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.height;
+      canvas.height = img.width;
+      const ctx = canvas.getContext('2d')!;
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      URL.revokeObjectURL(url);
       canvas.toBlob(blob => {
-        URL.revokeObjectURL(url);
-        resolve(new File([blob!], 'photo.jpg', { type: 'image/jpeg' }));
-      }, 'image/jpeg', 0.82);
+        const rotated = new File([blob!], 'photo.jpg', { type: 'image/jpeg' });
+        resolve({ file: rotated, preview: URL.createObjectURL(rotated) });
+      }, 'image/jpeg', 0.92);
     };
     img.src = url;
   });
@@ -27,6 +47,8 @@ async function clientCompressImage(file: File): Promise<File> {
 export default function UploadPage() {
   const [preview1, setPreview1] = useState<string | null>(null);
   const [preview2, setPreview2] = useState<string | null>(null);
+  const [rotated1, setRotated1] = useState<File | null>(null);
+  const [rotated2, setRotated2] = useState<File | null>(null);
   const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -38,23 +60,33 @@ export default function UploadPage() {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const setter = n === 1 ? setPreview1 : setPreview2;
-      setter(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file); });
+      if (n === 1) { setPreview1(URL.createObjectURL(file)); setRotated1(null); }
+      else         { setPreview2(URL.createObjectURL(file)); setRotated2(null); }
     };
+  }
+
+  async function handleRotate(n: 1 | 2) {
+    const current = n === 1
+      ? (rotated1 ?? fileRef1.current?.files?.[0])
+      : (rotated2 ?? fileRef2.current?.files?.[0]);
+    if (!current) return;
+    const { file, preview } = await rotateCW(current);
+    if (n === 1) { setRotated1(file); setPreview1(prev => { if (prev) URL.revokeObjectURL(prev); return preview; }); }
+    else         { setRotated2(file); setPreview2(prev => { if (prev) URL.revokeObjectURL(prev); return preview; }); }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    const file1 = fileRef1.current?.files?.[0];
+    const file1 = rotated1 ?? fileRef1.current?.files?.[0];
     if (!file1) { setError('Please take or select a photo'); return; }
     setSubmitting(true);
 
     try {
       const fd = new FormData();
-      fd.append('photo', await clientCompressImage(file1));
-      const file2 = fileRef2.current?.files?.[0];
-      if (file2) fd.append('photo2', await clientCompressImage(file2));
+      fd.append('photo', await compressImage(file1));
+      const file2 = rotated2 ?? fileRef2.current?.files?.[0];
+      if (file2) fd.append('photo2', await compressImage(file2));
       fd.append('name', form.name);
       fd.append('size', form.size);
       fd.append('bestBefore', form.bestBefore);
@@ -65,6 +97,7 @@ export default function UploadPage() {
       if (res.ok) {
         setSuccess(true);
         setPreview1(null); setPreview2(null);
+        setRotated1(null); setRotated2(null);
         setForm({ name: '', size: '', bestBefore: '', notes: '' });
         if (fileRef1.current) fileRef1.current.value = '';
         if (fileRef2.current) fileRef2.current.value = '';
@@ -102,8 +135,11 @@ export default function UploadPage() {
             : <div className="photo-placeholder">📷 Tap to snap front photo</div>
           }
         </label>
+        {preview1 && (
+          <button type="button" className="btn-rotate" onClick={() => handleRotate(1)}>↻ Rotate</button>
+        )}
 
-        <p className="field-label" style={{ marginBottom: '0.4rem', marginTop: '0.75rem' }}>Photo 2 — back / side (optional)</p>
+        <p className="field-label" style={{ marginBottom: '0.4rem', marginTop: '1rem' }}>Photo 2 — back / side (optional)</p>
         <label className="photo-label">
           <input ref={fileRef2} type="file" accept="image/*" capture="environment" onChange={handlePhoto(2)} />
           {preview2
@@ -111,16 +147,18 @@ export default function UploadPage() {
             : <div className="photo-placeholder photo-placeholder-opt">📷 Tap to snap second photo</div>
           }
         </label>
+        {preview2 && (
+          <button type="button" className="btn-rotate" onClick={() => handleRotate(2)}>↻ Rotate</button>
+        )}
 
         <input
           type="text" placeholder="Product name *" value={form.name}
           onChange={e => setForm({ ...form, name: e.target.value })}
-          required className="field" autoComplete="off"
+          required className="field" autoComplete="off" style={{ marginTop: '1rem' }}
         />
         <input
           type="text" placeholder="Size / weight  (e.g. 330ml, 500g)" value={form.size}
-          onChange={e => setForm({ ...form, size: e.target.value })}
-          className="field"
+          onChange={e => setForm({ ...form, size: e.target.value })} className="field"
         />
         <div className="field-wrap">
           <label className="field-label">Best Before Date *</label>
@@ -131,13 +169,12 @@ export default function UploadPage() {
           />
         </div>
         <textarea
-          placeholder="Notes  (optional — e.g. slight dent in packaging)"
-          value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+          placeholder="Notes  (optional)" value={form.notes}
+          onChange={e => setForm({ ...form, notes: e.target.value })}
           className="field" rows={3}
         />
 
         {error && <p className="error">{error}</p>}
-
         <button type="submit" disabled={submitting} className="btn-primary">
           {submitting ? 'Processing & uploading…' : 'Add to Store'}
         </button>

@@ -55,6 +55,20 @@ export async function insertProduct(p: Product) {
   `;
 }
 
+export async function updateProduct(id: string, u: Partial<Product>) {
+  await ensureTable();
+  const db = getDb();
+  await db`
+    UPDATE products SET
+      name        = ${u.name ?? ''},
+      size        = ${u.size ?? ''},
+      best_before = ${u.bestBefore ?? ''},
+      category    = ${u.category ?? 'Other'},
+      notes       = ${u.notes ?? ''}
+    WHERE id = ${id}
+  `;
+}
+
 export async function deleteProduct(id: string): Promise<{ photoUrl: string; photoUrl2: string } | null> {
   await ensureTable();
   const db = getDb();

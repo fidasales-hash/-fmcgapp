@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@vercel/blob';
-import { deleteProduct } from '@/lib/db';
+import { deleteProduct, updateProduct } from '@/lib/db';
 
 export const runtime = 'nodejs';
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    await updateProduct(id, body);
+    return NextResponse.json({ success: true });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
 
 export async function DELETE(
   req: NextRequest,
