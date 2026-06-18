@@ -1,5 +1,8 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { categorize } from '@/lib/categorize';
+
+const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks', 'Dairy', 'Bakery', 'Frozen', 'Other'];
 
 async function compressImage(file: File): Promise<File> {
   return new Promise(resolve => {
@@ -243,7 +246,7 @@ function CameraSlot({
 export default function UploadPage() {
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
-  const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '', price: '' });
+  const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '', price: '', category: 'Other' });
   const [analyzingCount, setAnalyzingCount] = useState(0);
   const analyzing = analyzingCount > 0;
   const [submitting, setSubmitting] = useState(false);
@@ -260,13 +263,17 @@ export default function UploadPage() {
       const res = await fetch('/api/analyze', { method: 'POST', body: fd });
       if (res.ok) {
         const data = await res.json();
-        setForm(prev => ({
-          name:       fillEmptyOnly ? (prev.name || data.name) : (data.name || prev.name),
-          size:       fillEmptyOnly ? (prev.size || data.size) : (data.size || prev.size),
-          bestBefore: prev.bestBefore,
-          notes:      prev.notes,
-          price:      prev.price,
-        }));
+        setForm(prev => {
+          const name = fillEmptyOnly ? (prev.name || data.name) : (data.name || prev.name);
+          return {
+            name,
+            size:       fillEmptyOnly ? (prev.size || data.size) : (data.size || prev.size),
+            bestBefore: prev.bestBefore,
+            notes:      prev.notes,
+            price:      prev.price,
+            category:   name && prev.category === 'Other' ? categorize(name) : prev.category,
+          };
+        });
       } else {
         const data = await res.json().catch(() => ({}));
         setError(`Label reading failed: ${data.error ?? res.status} — fill in manually`);
@@ -292,11 +299,12 @@ export default function UploadPage() {
       fd.append('bestBefore', form.bestBefore);
       fd.append('notes', form.notes);
       fd.append('price', form.price);
+      fd.append('category', form.category);
       const res = await fetch('/api/products', { method: 'POST', body: fd });
       if (res.ok) {
         setSuccess(true);
         setFile1(null); setFile2(null);
-        setForm({ name: '', size: '', bestBefore: '', notes: '', price: '' });
+        setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', category: 'Other' });
       } else {
         const data = await res.json();
         setError(data.error ?? 'Upload failed');
@@ -355,6 +363,12 @@ export default function UploadPage() {
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, size: v })); }}
           className="field" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing}
         />
+        <div className="field-wrap">
+          <label className="field-label">Category</label>
+          <select className="field" style={{ marginBottom: 0, appearance: 'auto' }} value={form.category} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, category: v })); }}>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
         <div className="field-wrap">
           <label className="field-label">Price (R) *</label>
           <input
