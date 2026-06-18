@@ -261,9 +261,9 @@ export default function UploadPage() {
       if (res.ok) {
         const data = await res.json();
         setForm(prev => ({
-          name:       data.name       || prev.name,
-          size:       data.size       || prev.size,
-          bestBefore: data.bestBefore || prev.bestBefore,
+          name:       data.name || prev.name,
+          size:       data.size || prev.size,
+          bestBefore: prev.bestBefore,
           notes:      prev.notes,
         }));
       } else {
@@ -357,8 +357,7 @@ export default function UploadPage() {
           <input
             type="date" value={form.bestBefore}
             onChange={e => setForm({ ...form, bestBefore: e.target.value })}
-            required className="field" style={{ marginBottom: 0, opacity: analyzing ? 0.6 : 1 }}
-            disabled={analyzing}
+            required className="field" style={{ marginBottom: 0 }}
           />
         </div>
         <textarea
