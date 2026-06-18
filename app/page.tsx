@@ -6,32 +6,20 @@ function isExpired(bestBefore: string) {
   return new Date(bestBefore) < new Date(new Date().toDateString());
 }
 
-function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
-  return (
-    <div className="lightbox-backdrop" onClick={onClose}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} className="lightbox-img" onClick={e => e.stopPropagation()} />
-      <button className="lightbox-close" onClick={onClose} aria-label="Close">✕</button>
-    </div>
-  );
+function formatBB(bestBefore: string) {
+  const d = new Date(bestBefore + 'T00:00:00');
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, onExpand }: { product: Product; onExpand: (url: string) => void }) {
   const [showSecond, setShowSecond] = useState(false);
-  const [lightbox, setLightbox] = useState(false);
   const expired = isExpired(product.bestBefore);
   const hasTwo = Boolean(product.photoUrl2);
   const activeUrl = showSecond && product.photoUrl2 ? product.photoUrl2 : product.photoUrl;
 
   return (
     <div className={`card ${expired ? 'expired' : 'fresh'}`}>
-      {lightbox && <Lightbox src={activeUrl} alt={product.name} onClose={() => setLightbox(false)} />}
-      <div className="photo-wrap" style={{ cursor: 'pointer' }} onClick={() => setLightbox(true)}>
+      <div className="photo-wrap" style={{ cursor: 'pointer' }} onClick={() => onExpand(activeUrl)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={activeUrl} alt={product.name} loading="lazy" />
         <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>
@@ -48,9 +36,7 @@ function ProductCard({ product }: { product: Product }) {
         <span className="cat-label">{product.category}</span>
         <h2>{product.name}</h2>
         {product.size && <p className="size">{product.size}</p>}
-        <p className="best-before">
-          Best Before: {product.bestBefore ? new Date(product.bestBefore + 'T00:00:00').toLocaleDateString('en-GB') : '—'}
-        </p>
+        <p className="best-before">Best Before: {formatBB(product.bestBefore)}</p>
         {product.price > 0 && (
           <p className="price">R {Number(product.price).toFixed(2)}</p>
         )}
@@ -87,6 +73,14 @@ export default function Storefront() {
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('All');
   const [status, setStatus] = useState('All');
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const handler = (e: KeyboardEvent) => e.key === 'Escape' && setLightboxUrl(null);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxUrl]);
 
   const fetchProducts = useCallback(async () => {
     const res = await fetch('/api/products');
@@ -112,6 +106,13 @@ export default function Storefront() {
 
   return (
     <>
+      {lightboxUrl && (
+        <div className="lightbox-backdrop" onClick={() => setLightboxUrl(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lightboxUrl} alt="" className="lightbox-img" onClick={e => e.stopPropagation()} />
+          <button className="lightbox-close" onClick={() => setLightboxUrl(null)} aria-label="Close">✕</button>
+        </div>
+      )}
       <header className="site-header">
         <HamburgerMenu />
         <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
@@ -145,7 +146,7 @@ export default function Storefront() {
       )}
 
       <div className="grid">
-        {filtered.map(product => <ProductCard key={product.id} product={product} />)}
+        {filtered.map(product => <ProductCard key={product.id} product={product} onExpand={setLightboxUrl} />)}
       </div>
     </>
   );
