@@ -30,6 +30,7 @@ body {
   padding: 1.5rem 1rem 1.25rem;
   text-align: center;
   box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+  position: relative;
 }
 .site-logo {
   width: 100px;
@@ -44,17 +45,40 @@ body {
   margin-top: 0.2rem;
   letter-spacing: 0.2px;
 }
-.header-nav { margin-top: 0.85rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
-.header-nav a {
-  color: rgba(255,255,255,0.85);
-  text-decoration: none;
-  font-size: 0.78rem;
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 20px;
-  padding: 0.25rem 0.8rem;
-  transition: background 0.15s, color 0.15s;
+.hamburger-wrap { position: absolute; top: 1rem; right: 1rem; z-index: 100; }
+.hamburger-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+  display: flex; flex-direction: column; gap: 5px;
 }
-.header-nav a:hover { background: rgba(255,255,255,0.18); color: #fff; }
+.hb-bar {
+  display: block; width: 22px; height: 2px;
+  background: #fff; border-radius: 2px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.hb-bar.open:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hb-bar.open:nth-child(2) { opacity: 0; }
+.hb-bar.open:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.hamburger-backdrop { position: fixed; inset: 0; z-index: 98; }
+.hamburger-menu {
+  position: absolute; top: calc(100% + 0.5rem); right: 0;
+  background: #fff; border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+  border: 1px solid var(--border);
+  min-width: 160px; overflow: hidden; z-index: 99;
+  display: flex; flex-direction: column;
+}
+.hamburger-menu a {
+  padding: 0.75rem 1.1rem;
+  color: var(--text); text-decoration: none;
+  font-size: 0.92rem; font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.hamburger-menu a:last-child { border-bottom: none; }
+.hamburger-menu a:hover { background: var(--red-bg); color: var(--primary); }
 
 /* ── Filters ───────────────────────────────────── */
 .filters {

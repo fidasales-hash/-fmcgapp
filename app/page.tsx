@@ -47,6 +47,28 @@ function ProductCard({ product }: { product: Product }) {
   );
 }
 
+function HamburgerMenu() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="hamburger-wrap">
+      <button className="hamburger-btn" onClick={() => setOpen(o => !o)} aria-label="Menu">
+        <span className={`hb-bar${open ? ' open' : ''}`} />
+        <span className={`hb-bar${open ? ' open' : ''}`} />
+        <span className={`hb-bar${open ? ' open' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <div className="hamburger-backdrop" onClick={() => setOpen(false)} />
+          <nav className="hamburger-menu">
+            <a href="/upload" onClick={() => setOpen(false)}>Staff Upload</a>
+            <a href="/admin" onClick={() => setOpen(false)}>Admin</a>
+          </nav>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,12 +100,9 @@ export default function Storefront() {
   return (
     <>
       <header className="site-header">
+        <HamburgerMenu />
         <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
         <p className="site-tagline">Great prices on surplus &amp; short-dated stock</p>
-        <nav className="header-nav">
-          <a href="/upload">Staff Upload</a>
-          <a href="/admin">Admin</a>
-        </nav>
       </header>
 
       <div className="filters">
