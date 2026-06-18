@@ -48,7 +48,7 @@ export default function AdminPage() {
       body: JSON.stringify({ ...editForm, price: parseFloat(editForm.price) || 0 }),
     });
     if (res.ok) {
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, ...editForm } : p));
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, ...editForm, price: parseFloat(editForm.price) || 0 } : p));
       setEditing(null);
     }
     setSaving(false);
