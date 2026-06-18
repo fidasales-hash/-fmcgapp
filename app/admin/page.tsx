@@ -54,18 +54,22 @@ export default function AdminPage() {
   async function saveEdit(id: string) {
     setSaving(true);
     setSaveError('');
-    const payload = { ...editForm, bestBefore: bbValue.current, price: parseFloat(editForm.price) || 0 };
-    const res = await fetch(`/api/products/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      const fresh = await fetch('/api/products').then(r => r.json());
-      setProducts(fresh);
-      setEditing(null);
-    } else {
-      setSaveError('Save failed — try again');
+    try {
+      const payload = { ...editForm, bestBefore: bbValue.current, price: parseFloat(editForm.price) || 0 };
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const freshRes = await fetch('/api/products');
+        if (freshRes.ok) setProducts(await freshRes.json());
+        setEditing(null);
+      } else {
+        setSaveError('Save failed — try again');
+      }
+    } catch {
+      setSaveError('Network error — try again');
     }
     setSaving(false);
   }
