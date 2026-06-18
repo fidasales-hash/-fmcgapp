@@ -250,7 +250,7 @@ export default function UploadPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  async function analyzePhoto(file: File) {
+  async function analyzePhoto(file: File, fillEmptyOnly = false) {
     if (localStorage.getItem('claudeApiEnabled') === 'false') return;
     setAnalyzingCount(c => c + 1);
     setError('');
@@ -261,8 +261,8 @@ export default function UploadPage() {
       if (res.ok) {
         const data = await res.json();
         setForm(prev => ({
-          name:       data.name || prev.name,
-          size:       data.size || prev.size,
+          name:       fillEmptyOnly ? (prev.name || data.name) : (data.name || prev.name),
+          size:       fillEmptyOnly ? (prev.size || data.size) : (data.size || prev.size),
           bestBefore: prev.bestBefore,
           notes:      prev.notes,
         }));
@@ -332,7 +332,7 @@ export default function UploadPage() {
           tapLabel="Tap to open camera"
           compact
           analyzing={analyzing}
-          onFile={file => { setFile2(file); analyzePhoto(file); }}
+          onFile={file => { setFile2(file); analyzePhoto(file, true); }}
         />
 
         {analyzing && (
