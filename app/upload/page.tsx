@@ -281,6 +281,7 @@ export default function UploadPage() {
     e.preventDefault();
     setError('');
     if (!file1) { setError('Please take a photo first'); return; }
+    if (!form.bestBefore) { setError('Please select a best before date'); return; }
     setSubmitting(true);
     try {
       const fd = new FormData();

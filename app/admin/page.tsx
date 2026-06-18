@@ -138,7 +138,7 @@ export default function AdminPage() {
                     {expired ? 'Past BB' : 'In Date'}
                   </span>
                   <div className="admin-meta">
-                    BB: {new Date(product.bestBefore + 'T00:00:00').toLocaleDateString('en-GB')}
+                    BB: {product.bestBefore ? new Date(product.bestBefore + 'T00:00:00').toLocaleDateString('en-GB') : '—'}
                     {product.size ? ` · ${product.size}` : ''}
                     {' · '}{product.category}
                     {' · '}<strong>R {Number(product.price ?? 0).toFixed(2)}</strong>
