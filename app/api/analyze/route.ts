@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const runtime = 'nodejs';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,33 +14,22 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await photo.arrayBuffer());
     const base64 = buffer.toString('base64');
-    const mediaType = (photo.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp';
+    const mimeType = (photo.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp';
 
-    const response = await client.messages.create({
-      model: 'claude-opus-4-8',
-      max_tokens: 256,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: base64 },
-          },
-          {
-            type: 'text',
-            text: `Look at this product packaging. Extract:
+    const result = await model.generateContent([
+      {
+        inlineData: { mimeType, data: base64 },
+      },
+      `Look at this product packaging. Extract:
 1. Product name: brand name + product type (e.g. "Heinz Baked Beans")
 2. Size/weight: quantity shown on pack (e.g. "400g", "330ml", "6 x 250ml")
 3. Best before date: convert to YYYY-MM-DD. If only month/year shown (e.g. "09/2025"), use last day of that month ("2025-09-30"). Leave empty string if not visible.
 
 Return ONLY valid JSON with no extra text:
 {"name":"...","size":"...","bestBefore":""}`,
-          },
-        ],
-      }],
-    });
+    ]);
 
-    const text = (response.content[0] as { type: 'text'; text: string }).text;
+    const text = result.response.text();
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return NextResponse.json({ name: '', size: '', bestBefore: '' });
     return NextResponse.json(JSON.parse(match[0]));
