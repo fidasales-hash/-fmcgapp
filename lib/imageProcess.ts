@@ -29,7 +29,7 @@ export async function processProductImage(input: Buffer): Promise<Buffer> {
     const noBg = await removeBackground(input);
     layer = await sharp(noBg)
       .rotate()
-      .resize(MAX, MAX, { fit: 'inside', withoutEnlargement: true })
+      .resize(MAX, MAX, { fit: 'inside' })
       .toBuffer();
   } catch {
     // Fallback if Remove.bg fails: use original photo flattened to white
