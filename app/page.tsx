@@ -6,29 +6,39 @@ function isExpired(bestBefore: string) {
   return new Date(bestBefore) < new Date(new Date().toDateString());
 }
 
+function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+  return (
+    <div className="lightbox-backdrop" onClick={onClose}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} className="lightbox-img" onClick={e => e.stopPropagation()} />
+      <button className="lightbox-close" onClick={onClose} aria-label="Close">✕</button>
+    </div>
+  );
+}
+
 function ProductCard({ product }: { product: Product }) {
   const [showSecond, setShowSecond] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
   const expired = isExpired(product.bestBefore);
   const hasTwo = Boolean(product.photoUrl2);
+  const activeUrl = showSecond && product.photoUrl2 ? product.photoUrl2 : product.photoUrl;
 
   return (
     <div className={`card ${expired ? 'expired' : 'fresh'}`}>
-      <div
-        className="photo-wrap"
-        onClick={() => hasTwo && setShowSecond(s => !s)}
-        style={{ cursor: hasTwo ? 'pointer' : 'default' }}
-      >
+      {lightbox && <Lightbox src={activeUrl} alt={product.name} onClose={() => setLightbox(false)} />}
+      <div className="photo-wrap" style={{ cursor: 'pointer' }} onClick={() => setLightbox(true)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={showSecond && product.photoUrl2 ? product.photoUrl2 : product.photoUrl}
-          alt={product.name}
-          loading="lazy"
-        />
+        <img src={activeUrl} alt={product.name} loading="lazy" />
         <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>
           {expired ? 'Past Best Before' : 'In Date'}
         </span>
         {hasTwo && (
-          <div className="photo-dots">
+          <div className="photo-dots" onClick={e => { e.stopPropagation(); setShowSecond(s => !s); }}>
             <span className={`dot ${!showSecond ? 'dot-active' : ''}`} />
             <span className={`dot ${showSecond ? 'dot-active' : ''}`} />
           </div>
