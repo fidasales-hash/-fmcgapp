@@ -6,8 +6,6 @@ import { getAllProducts, insertProduct } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
-const PIN = process.env.UPLOAD_PIN ?? '';
-
 export async function GET() {
   try {
     const products = await getAllProducts();
@@ -18,11 +16,6 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get('authorization');
-  if (!PIN || auth !== `Bearer ${PIN}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
     const formData = await req.formData();
     const photo = formData.get('photo') as File | null;
