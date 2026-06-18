@@ -24,6 +24,7 @@ export default function AdminPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '', price: '' });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [claudeEnabled, setClaudeEnabled] = useState(true);
 
   useEffect(() => {
@@ -47,14 +48,19 @@ export default function AdminPage() {
 
   async function saveEdit(id: string) {
     setSaving(true);
+    setSaveError('');
+    const payload = { ...editForm, price: parseFloat(editForm.price) || 0 };
     const res = await fetch(`/api/products/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...editForm, price: parseFloat(editForm.price) || 0 }),
+      body: JSON.stringify(payload),
     });
     if (res.ok) {
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, ...editForm, price: parseFloat(editForm.price) || 0 } : p));
+      const fresh = await fetch('/api/products').then(r => r.json());
+      setProducts(fresh);
       setEditing(null);
+    } else {
+      setSaveError('Save failed — try again');
     }
     setSaving(false);
   }
@@ -127,11 +133,12 @@ export default function AdminPage() {
                   </select>
                   <input className="field" type="number" min="0" step="0.01" value={editForm.price} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, price: v })); }} placeholder="Price (R)" />
                   <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, notes: v })); }} placeholder="Notes" />
+                  {saveError && <p className="error">{saveError}</p>}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="btn-primary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => saveEdit(product.id)} disabled={saving}>
                       {saving ? '…' : 'Save'}
                     </button>
-                    <button className="btn-secondary" style={{ flex: 1, padding: '0.5rem', marginTop: 0 }} onClick={() => setEditing(null)}>
+                    <button className="btn-secondary" style={{ flex: 1, padding: '0.5rem', marginTop: 0 }} onClick={() => { setEditing(null); setSaveError(''); }}>
                       Cancel
                     </button>
                   </div>
