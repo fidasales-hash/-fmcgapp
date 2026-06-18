@@ -38,7 +38,7 @@ function ProductCard({ product }: { product: Product }) {
         <h2>{product.name}</h2>
         {product.size && <p className="size">{product.size}</p>}
         <p className="best-before">
-          BB: {new Date(product.bestBefore + 'T00:00:00').toLocaleDateString('en-GB')}
+          Best Before: {new Date(product.bestBefore + 'T00:00:00').toLocaleDateString('en-GB')}
         </p>
         {product.price > 0 && (
           <p className="price">R {Number(product.price).toFixed(2)}</p>
