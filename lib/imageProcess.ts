@@ -8,7 +8,7 @@ async function removeBackground(input: Buffer): Promise<Buffer> {
   if (!apiKey) throw new Error('REMOVE_BG_API_KEY not set');
 
   const form = new FormData();
-  form.append('image_file', new Blob([input], { type: 'image/jpeg' }), 'photo.jpg');
+  form.append('image_file', new Blob([new Uint8Array(input)], { type: 'image/jpeg' }), 'photo.jpg');
   form.append('size', 'auto');
 
   const res = await fetch('https://api.remove.bg/v1.0/removebg', {
