@@ -376,6 +376,13 @@ export default function UploadPage() {
             required className="field" style={{ marginBottom: 0 }}
           />
         </div>
+        <div className="field-wrap">
+          <label className="field-label">Best Before</label>
+          <input
+            type="date" className="field" value={form.bestBefore} style={{ marginBottom: 0 }}
+            onChange={e => { const v = e.target.value; setForm(f => ({ ...f, bestBefore: v })); }}
+          />
+        </div>
         <textarea
           placeholder="Notes  (optional)" value={form.notes}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, notes: v })); }}
