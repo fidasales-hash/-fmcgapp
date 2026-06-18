@@ -64,26 +64,24 @@ export default function UploadPage() {
       if (n === 1) { setPreview1(URL.createObjectURL(file)); setRotated1(null); }
       else         { setPreview2(URL.createObjectURL(file)); setRotated2(null); }
 
-      if (n === 1) {
-        setAnalyzing(true);
-        try {
-          const fd = new FormData();
-          fd.append('photo', file);
-          const res = await fetch('/api/analyze', { method: 'POST', body: fd });
-          if (res.ok) {
-            const data = await res.json();
-            setForm(prev => ({
-              name:        data.name        || prev.name,
-              size:        data.size        || prev.size,
-              bestBefore:  data.bestBefore  || prev.bestBefore,
-              notes:       prev.notes,
-            }));
-          }
-        } catch {
-          // silently fail — staff can fill in manually
+      setAnalyzing(true);
+      try {
+        const fd = new FormData();
+        fd.append('photo', file);
+        const res = await fetch('/api/analyze', { method: 'POST', body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          setForm(prev => ({
+            name:        data.name        || prev.name,
+            size:        data.size        || prev.size,
+            bestBefore:  data.bestBefore  || prev.bestBefore,
+            notes:       prev.notes,
+          }));
         }
-        setAnalyzing(false);
+      } catch {
+        // silently fail — staff can fill in manually
       }
+      setAnalyzing(false);
     };
   }
 
