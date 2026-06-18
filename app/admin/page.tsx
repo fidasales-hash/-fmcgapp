@@ -77,7 +77,7 @@ export default function AdminPage() {
         borderColor: claudeEnabled ? 'var(--border, #ddd)' : '#ffc107',
       }}>
         <div>
-          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Claude API Auto-fill</div>
+          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Gemini API Auto-fill</div>
           <div style={{ fontSize: '0.8rem', color: '#666', marginTop: 2 }}>
             {claudeEnabled ? 'On — product fields filled automatically from photos' : 'Off — staff enter details manually'}
           </div>
@@ -90,7 +90,7 @@ export default function AdminPage() {
             background: claudeEnabled ? 'var(--primary, #2563eb)' : '#ccc',
             transition: 'background 0.2s',
           }}
-          aria-label={claudeEnabled ? 'Disable Claude API auto-fill' : 'Enable Claude API auto-fill'}
+          aria-label={claudeEnabled ? 'Disable Gemini API auto-fill' : 'Enable Gemini API auto-fill'}
         >
           <span style={{
             position: 'absolute', top: 3, left: claudeEnabled ? 27 : 3,
