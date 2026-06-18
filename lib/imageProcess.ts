@@ -30,6 +30,7 @@ export async function processProductImage(input: Buffer): Promise<Buffer> {
     layer = await sharp(noBg)
       .rotate()
       .resize(MAX, MAX, { fit: 'inside' })
+      .sharpen({ sigma: 1.2 })
       .toBuffer();
   } catch {
     // Fallback if Remove.bg fails: use original photo flattened to white
@@ -37,6 +38,7 @@ export async function processProductImage(input: Buffer): Promise<Buffer> {
       .rotate()
       .flatten({ background: { r: 255, g: 255, b: 255 } })
       .resize(MAX, MAX, { fit: 'inside', withoutEnlargement: true })
+      .sharpen({ sigma: 1.2 })
       .toBuffer();
   }
 
@@ -51,6 +53,6 @@ export async function processProductImage(input: Buffer): Promise<Buffer> {
   })
     .composite([{ input: layer, gravity: 'centre' }])
     .flatten({ background: { r: 255, g: 255, b: 255 } })
-    .jpeg({ quality: 85 })
+    .jpeg({ quality: 92 })
     .toBuffer();
 }
