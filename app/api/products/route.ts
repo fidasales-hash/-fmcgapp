@@ -29,7 +29,6 @@ export async function POST(req: NextRequest) {
 
     if (!photo) return NextResponse.json({ error: 'Photo required' }, { status: 400 });
     if (!name) return NextResponse.json({ error: 'Product name required' }, { status: 400 });
-    if (!bestBefore) return NextResponse.json({ error: 'Best before date required' }, { status: 400 });
 
     const id = Date.now().toString();
 

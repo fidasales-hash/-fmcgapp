@@ -288,7 +288,6 @@ export default function UploadPage() {
     e.preventDefault();
     setError('');
     if (!file1) { setError('Please take a photo first'); return; }
-    if (!form.bestBefore) { setError('Please select a best before date'); return; }
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -374,14 +373,6 @@ export default function UploadPage() {
           <input
             type="number" min="0" step="0.01" placeholder="0.00" value={form.price}
             onChange={e => { const v = e.target.value; setForm(f => ({ ...f, price: v })); }}
-            required className="field" style={{ marginBottom: 0 }}
-          />
-        </div>
-        <div className="field-wrap">
-          <label className="field-label">Best Before Date *</label>
-          <input
-            type="date" value={form.bestBefore}
-            onChange={e => { const v = e.target.value; setForm(f => ({ ...f, bestBefore: v })); }}
             required className="field" style={{ marginBottom: 0 }}
           />
         </div>

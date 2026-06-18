@@ -5,7 +5,12 @@ import type { Product } from '@/lib/types';
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks', 'Dairy', 'Bakery', 'Frozen', 'Other'];
 
 function isExpired(bestBefore: string) {
-  return new Date(bestBefore) < new Date(new Date().toDateString());
+  if (!bestBefore) return false;
+  const d = new Date(bestBefore + 'T00:00:00');
+  if (isNaN(d.getTime())) return true; // malformed/AI-generated date → assume expired
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d < today;
 }
 
 type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string; price: string };
