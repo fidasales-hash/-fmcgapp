@@ -39,7 +39,13 @@ export async function getAllProducts(): Promise<Product[]> {
     id: String(r.id),
     name: String(r.name),
     size: String(r.size ?? ''),
-    bestBefore: r.best_before ? String(r.best_before).slice(0, 10) : '',
+    bestBefore: (() => {
+      const v = r.best_before;
+      if (!v) return '';
+      if (v instanceof Date) return v.toISOString().slice(0, 10);
+      const s = String(v);
+      return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : '';
+    })(),
     category: String(r.category ?? 'Other'),
     notes: String(r.notes ?? ''),
     price: Number(r.price ?? 0),
