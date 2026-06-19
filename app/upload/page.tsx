@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { categorize } from '@/lib/categorize';
 
-const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks', 'Dairy', 'Bakery', 'Frozen', 'Other'];
+const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks', 'Confectionery', 'Dairy', 'Bakery', 'Frozen', 'Cereals & Breakfast', 'Condiments & Sauces', 'Cooking & Baking', 'Cleaning & Household', 'Other'];
 
 async function compressImage(file: File): Promise<File> {
   return new Promise(resolve => {

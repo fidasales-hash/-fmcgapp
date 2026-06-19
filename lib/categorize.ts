@@ -1,10 +1,15 @@
 const RULES: [string, string[]][] = [
-  ['Drinks',        ['water','juice','cola','soda','beer','wine','lager','cider','tea','coffee','squash','cordial','energy','fizzy','drink','smoothie','milkshake']],
-  ['Tinned & Canned',['tin','tinned','can','canned','beans','soup','tomatoes','tuna','sardine','chickpea','lentil','chopped','passata']],
-  ['Snacks',        ['crisp','chip','biscuit','cracker','chocolate','sweet','candy','popcorn','nut','pretzel','bar','wafer','flapjack']],
-  ['Dairy',         ['milk','cheese','yogurt','yoghurt','butter','cream','cheddar','mozzarella','feta','brie']],
-  ['Bakery',        ['bread','loaf','roll','bun','muffin','cake','pastry','croissant','bagel','wrap','pitta','scone']],
-  ['Frozen',        ['frozen','ice cream','pizza','burger','fish finger','nugget','chips frozen']],
+  ['Drinks',             ['water','juice','cola','soda','beer','wine','lager','cider','tea','coffee','squash','cordial','energy','fizzy','drink','smoothie','milkshake','cooldrink']],
+  ['Tinned & Canned',   ['tin','tinned','can','canned','beans','soup','tomatoes','tuna','sardine','chickpea','lentil','chopped','passata','pilchard']],
+  ['Confectionery',     ['chocolate','sweet','candy','gummy','jelly bean','lollipop','toffee','fudge','mint','marshmallow','nougat','truffle']],
+  ['Snacks',            ['crisp','chip','biscuit','cracker','popcorn','nut','pretzel','bar','wafer','flapjack','rice cake','snack']],
+  ['Dairy',             ['milk','cheese','yogurt','yoghurt','butter','cream','cheddar','mozzarella','feta','brie','custard']],
+  ['Bakery',            ['bread','loaf','roll','bun','muffin','cake','pastry','croissant','bagel','wrap','pitta','scone','doughnut']],
+  ['Frozen',            ['frozen','ice cream','pizza','burger','fish finger','nugget','ice lolly']],
+  ['Cereals & Breakfast',['cereal','oat','muesli','granola','porridge','cornflake','weetabix','bran','pancake mix']],
+  ['Condiments & Sauces',['sauce','ketchup','mayo','mayonnaise','mustard','vinegar','dressing','relish','pickle','chutney','marinade','peri','sriracha','soy','Worcester']],
+  ['Cooking & Baking',  ['flour','sugar','oil','salt','baking powder','yeast','spice','herb','stock','seasoning','paste','extract','vanilla']],
+  ['Cleaning & Household',['detergent','cleaner','bleach','fabric','washing','dishwash','polish','sanitizer','disinfectant','toilet','wipe','spray','softener']],
 ];
 
 export function categorize(name: string): string {
