@@ -46,6 +46,10 @@ body {
   align-items: center;
   position: relative;
 }
+@keyframes wordmark-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
 .site-wordmark {
   flex: 1;
   color: #fff;
@@ -55,6 +59,12 @@ body {
   gap: 2px;
   white-space: nowrap;
   line-height: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  animation: wordmark-pulse 2.5s ease-in-out infinite;
 }
 .site-wordmark-super {
   font-size: 11px;
@@ -106,7 +116,6 @@ body {
     bottom: 0;
     flex: none;
     justify-content: center;
-    pointer-events: none;
   }
   .header-search {
     margin-left: auto;

@@ -445,10 +445,7 @@ export default function Storefront() {
             </svg>
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
-          <span className="site-wordmark"><span className="site-wordmark-super">CLEARANCE</span><span className="site-wordmark-main">SHOP</span></span>
-          <button className="cart-btn" onClick={() => setInfoOpen(true)} aria-label="Store info">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          </button>
+          <button className="site-wordmark" onClick={() => setInfoOpen(o => !o)} aria-label="Store info"><span className="site-wordmark-super">CLEARANCE</span><span className="site-wordmark-main">SHOP</span></button>
           <div className="header-search">
             <input
               ref={searchRef}
