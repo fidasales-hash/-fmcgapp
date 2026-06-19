@@ -233,6 +233,7 @@ export default function Storefront() {
       )}
 
       <div className="page-wrap">
+        <div className="top-bar">
         <header className="site-header">
           <button className="cart-btn" onClick={() => setCartOpen(true)} aria-label="Open order">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -275,6 +276,8 @@ export default function Storefront() {
             <option value="expiry">Expiry: Soonest</option>
           </select>
         </div>
+
+        </div>{/* end .top-bar */}
 
         <div className="body-layout">
           <aside className="sidebar">
