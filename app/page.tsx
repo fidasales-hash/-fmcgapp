@@ -154,8 +154,8 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
       : 'Collection',
     '',
     ...cart.map((i, idx) => [
-      `${idx + 1}. ${i.product.name}${i.product.size ? ` (${i.product.size})` : ''}`,
-      `   ${i.qty} x R${i.product.price.toFixed(2)} = *R${(i.product.price * i.qty).toFixed(2)}*`,
+      `*${idx + 1}. ${i.product.name}${i.product.size ? ` (${i.product.size})` : ''}*`,
+      `${i.qty} x R${i.product.price.toFixed(2)} = R${(i.product.price * i.qty).toFixed(2)}`,
     ].join('\n')),
     '',
     `*TOTAL: R${total.toFixed(2)}*`,
