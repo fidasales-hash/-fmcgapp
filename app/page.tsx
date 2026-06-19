@@ -123,6 +123,20 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
   const [details, setDetails] = useState<CustomerDetails>({
     name: '', phone: '', fulfillment: 'collection', address: '', notes: '',
   });
+  const detailsLoaded = useRef(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('cs_details');
+      if (saved) setDetails(JSON.parse(saved));
+    } catch {}
+    detailsLoaded.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!detailsLoaded.current) return;
+    localStorage.setItem('cs_details', JSON.stringify(details));
+  }, [details]);
 
   const total = cart.reduce((sum, i) => sum + i.product.price * i.qty, 0);
 
@@ -194,7 +208,7 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
               rel="noreferrer"
               className="btn-whatsapp"
               style={{ opacity: canSubmit ? 1 : 0.45, pointerEvents: canSubmit ? 'auto' : 'none' }}
-              onClick={() => { if (canSubmit) { onClear(); onClose(); } }}
+              onClick={() => { if (canSubmit) { localStorage.removeItem('cs_details'); onClear(); onClose(); } }}
             >
               Send Order via WhatsApp
             </a>
@@ -263,6 +277,20 @@ export default function Storefront() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const cartLoaded = useRef(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('cs_cart');
+      if (saved) setCart(JSON.parse(saved));
+    } catch {}
+    cartLoaded.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!cartLoaded.current) return;
+    localStorage.setItem('cs_cart', JSON.stringify(cart));
+  }, [cart]);
 
   useEffect(() => {
     if (!lightboxUrl) return;
