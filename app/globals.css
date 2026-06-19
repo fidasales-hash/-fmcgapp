@@ -285,12 +285,12 @@ body {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0,0,0,0.45);
-  color: #fff;
+  background: rgba(255,255,255,0.72);
+  color: #333;
   border: none;
   border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   font-size: 1.1rem;
   line-height: 1;
   display: flex;
@@ -298,6 +298,7 @@ body {
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
 }
 .photo-placeholder-opt { height: 120px; font-size: 0.95rem; }
 
