@@ -25,8 +25,6 @@ body {
 }
 
 .page-wrap {
-  max-width: 1400px;
-  margin: 0 auto;
   background: var(--bg);
   min-height: 100vh;
 }
