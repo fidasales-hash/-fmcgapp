@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Product } from '@/lib/types';
 
 const WHATSAPP_NUMBER = '27615807797';
@@ -147,7 +147,7 @@ export default function Storefront() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!lightboxUrl) return;
@@ -157,7 +157,9 @@ export default function Storefront() {
   }, [lightboxUrl]);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 80);
+    const onScroll = () => {
+      headerRef.current?.classList.toggle('scrolled', window.scrollY > 80);
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -235,7 +237,7 @@ export default function Storefront() {
       )}
 
       <div className="page-wrap">
-        <header className={`site-header${scrolled ? ' scrolled' : ''}`}>
+        <header className="site-header" ref={headerRef}>
           <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
           <span className="site-wordmark">CLEARANCE SHOP</span>
           <button className="cart-btn" onClick={() => setCartOpen(true)} aria-label="Open order">
