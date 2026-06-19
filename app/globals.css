@@ -32,19 +32,23 @@ body {
 /* ── Header ────────────────────────────────────── */
 .site-header {
   background: linear-gradient(150deg, #CC2020 0%, #8B1010 100%);
-  padding: 0.6rem 1rem;
-  text-align: center;
+  padding: 0.6rem 0.75rem;
   box-shadow: 0 3px 12px rgba(0,0,0,0.18);
   position: sticky;
   top: 0;
   z-index: 50;
+  display: flex;
+  align-items: center;
 }
 .site-wordmark {
+  flex: 1;
+  text-align: center;
   color: #fff;
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.5px;
 }
+.header-spacer { flex: 0 0 46px; }
 
 /* ── Mobile filter bar ─────────────────────────── */
 .mobile-filters {
@@ -213,9 +217,7 @@ body {
 
 /* ── Cart button (header) ──────────────────────── */
 .cart-btn {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
+  flex-shrink: 0;
   background: rgba(255,255,255,0.15);
   border: 1px solid rgba(255,255,255,0.3);
   border-radius: 8px;
@@ -224,10 +226,6 @@ body {
   color: #fff;
   display: flex;
   align-items: center;
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 100;
 }
 .cart-btn:hover { background: rgba(255,255,255,0.25); }
 .cart-badge {

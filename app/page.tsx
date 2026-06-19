@@ -230,7 +230,6 @@ export default function Storefront() {
 
       <div className="page-wrap">
         <header className="site-header">
-          <span className="site-wordmark">CLEARANCE SHOP</span>
           <button className="cart-btn" onClick={() => setCartOpen(true)} aria-label="Open order">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
@@ -238,6 +237,8 @@ export default function Storefront() {
             </svg>
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
+          <span className="site-wordmark">CLEARANCE SHOP</span>
+          <div className="header-spacer" />
         </header>
 
         <div className="mobile-filters">
