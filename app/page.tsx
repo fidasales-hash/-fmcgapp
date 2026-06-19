@@ -78,6 +78,7 @@ export default function Storefront() {
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('All');
   const [status, setStatus] = useState('All');
+  const [sort, setSort] = useState('newest');
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,13 +102,24 @@ export default function Storefront() {
 
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category))).sort()];
 
-  const filtered = products.filter(p => {
-    const expired = isExpired(p.bestBefore);
-    return (
-      (category === 'All' || p.category === category) &&
-      (status === 'All' || (status === 'In Date' && !expired) || (status === 'Past Best Before' && expired))
-    );
-  });
+  const filtered = products
+    .filter(p => {
+      const expired = isExpired(p.bestBefore);
+      return (
+        (category === 'All' || p.category === category) &&
+        (status === 'All' || (status === 'In Date' && !expired) || (status === 'Past Best Before' && expired))
+      );
+    })
+    .sort((a, b) => {
+      if (sort === 'price-asc') return a.price - b.price;
+      if (sort === 'price-desc') return b.price - a.price;
+      if (sort === 'expiry') {
+        const da = a.bestBefore ? new Date(a.bestBefore).getTime() : Infinity;
+        const db = b.bestBefore ? new Date(b.bestBefore).getTime() : Infinity;
+        return da - db;
+      }
+      return b.id - a.id; // newest
+    });
 
   return (
     <>
@@ -144,6 +156,14 @@ export default function Storefront() {
                 onClick={() => setStatus(s)}
               >
                 {s}
+              </button>
+            ))}
+          </div>
+          <div className="sidebar-section">
+            <p className="sidebar-label">Sort</p>
+            {([['newest', 'Newest'], ['price-asc', 'Price: Low→High'], ['price-desc', 'Price: High→Low'], ['expiry', 'Expiry: Soonest']] as const).map(([val, label]) => (
+              <button key={val} className={`sidebar-chip${sort === val ? ' active' : ''}`} onClick={() => setSort(val)}>
+                {label}
               </button>
             ))}
           </div>
