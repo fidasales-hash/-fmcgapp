@@ -44,9 +44,20 @@ body {
   flex: 1;
   text-align: center;
   color: #fff;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.site-wordmark-pill {
+  background: #fff;
+  color: #CC2020;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
 }
 .search-row {
   max-height: 0;
