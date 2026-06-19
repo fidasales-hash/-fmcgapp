@@ -305,7 +305,7 @@ body {
 .card-body h2 { font-size: 0.88rem; font-weight: 700; line-height: 1.25; margin-bottom: 0.2rem; }
 .card-body .size { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; }
 .card-body .best-before { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem; }
-.card-body .price { font-size: 0.92rem; font-weight: 800; color: var(--primary); margin-bottom: 0.3rem; }
+.card-body .price { font-size: 1.2rem; font-weight: 900; color: var(--primary); margin-bottom: 0.3rem; letter-spacing: -0.5px; }
 .cat-label {
   display: block;
   font-size: 0.65rem;
