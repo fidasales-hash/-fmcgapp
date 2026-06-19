@@ -9,7 +9,7 @@ const STORE_INFO = {
   address: 'Park Crescent, Glenhazel, Johannesburg, Gauteng',
   hours:   'Mon–Fri 9am–5pm',
   payment: 'EFT · Cash · Yoco',
-  phone:   '+27 061 580 7797',
+  phone:   '+27 61 580 7797',
   returns: 'Hassle-free returns, always. If it\'s damaged or unfit to eat, we collect for free.',
 };
 
