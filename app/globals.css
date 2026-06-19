@@ -35,8 +35,23 @@ body {
   padding: 1.5rem 1rem 1.25rem;
   text-align: center;
   box-shadow: 0 3px 12px rgba(0,0,0,0.18);
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: padding 0.2s;
 }
+.site-header.scrolled {
+  padding: 0.6rem 1rem;
+}
+.site-header.scrolled .site-logo { display: none; }
+.site-wordmark {
+  display: none;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.site-header.scrolled .site-wordmark { display: block; }
 .site-logo {
   width: 100px;
   height: 100px;
@@ -58,6 +73,9 @@ body {
   padding: 0.6rem 0.75rem;
   background: #fff;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 52px;
+  z-index: 49;
 }
 .mobile-select {
   flex: 1;
@@ -119,8 +137,8 @@ body {
     border-bottom: none;
     border-right: 1px solid var(--border);
     position: sticky;
-    top: 0;
-    height: 100vh;
+    top: 52px;
+    height: calc(100vh - 52px);
     overflow-y: auto;
     padding: 1rem 0.75rem;
     gap: 1.25rem;

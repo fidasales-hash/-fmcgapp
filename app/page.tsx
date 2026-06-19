@@ -147,6 +147,7 @@ export default function Storefront() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     if (!lightboxUrl) return;
@@ -154,6 +155,12 @@ export default function Storefront() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [lightboxUrl]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 80);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     const res = await fetch('/api/products');
@@ -228,8 +235,9 @@ export default function Storefront() {
       )}
 
       <div className="page-wrap">
-        <header className="site-header">
+        <header className={`site-header${scrolled ? ' scrolled' : ''}`}>
           <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
+          <span className="site-wordmark">CLEARANCE SHOP</span>
           <button className="cart-btn" onClick={() => setCartOpen(true)} aria-label="Open order">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
