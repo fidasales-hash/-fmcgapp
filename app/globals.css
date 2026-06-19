@@ -47,16 +47,17 @@ body {
   position: relative;
 }
 @keyframes arrow-bounce {
-  0%, 100% { transform: translateY(0); opacity: 0.7; }
-  50%       { transform: translateY(4px); opacity: 1; }
+  0%, 100% { transform: translateX(0);   opacity: 0.6; }
+  50%       { transform: translateX(4px); opacity: 1;   }
 }
 .site-wordmark {
   flex: 1;
   color: #fff;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 6px;
   white-space: nowrap;
   line-height: 1;
   background: none;
@@ -65,10 +66,15 @@ body {
   padding: 0;
   font-family: inherit;
 }
+.site-wordmark-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
 .wordmark-arrow {
   animation: arrow-bounce 1.4s ease-in-out infinite;
-  display: block;
-  margin-top: 1px;
+  flex-shrink: 0;
 }
 .site-wordmark-super {
   font-size: 11px;

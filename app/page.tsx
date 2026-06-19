@@ -446,11 +446,13 @@ export default function Storefront() {
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
           <button className="site-wordmark" onClick={() => setInfoOpen(o => !o)} aria-label="Store info">
-            <span className="site-wordmark-super">CLEARANCE</span>
-            <span className="site-wordmark-main">SHOP</span>
-            <svg className="wordmark-arrow" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1 1l6 6 6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg className="wordmark-arrow" width="8" height="14" viewBox="0 0 8 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1l6 6-6 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
+            <span className="site-wordmark-text">
+              <span className="site-wordmark-super">CLEARANCE</span>
+              <span className="site-wordmark-main">SHOP</span>
+            </span>
           </button>
           <div className="header-search">
             <input
