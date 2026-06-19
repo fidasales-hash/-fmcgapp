@@ -44,23 +44,56 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   onUpdateQty: (id: string, qty: number) => void;
 }) {
   const [showSecond, setShowSecond] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const didSwipe = useRef(false);
+
   const expired = isExpired(product.bestBefore);
   const hasTwo = Boolean(product.photoUrl2);
   const activeUrl = showSecond && product.photoUrl2 ? product.photoUrl2 : product.photoUrl;
 
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+    didSwipe.current = false;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (!hasTwo || touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(deltaX) > 40) {
+      didSwipe.current = true;
+      setShowSecond(deltaX < 0);
+    }
+    touchStartX.current = null;
+  }
+
+  function handlePhotoClick() {
+    if (didSwipe.current) { didSwipe.current = false; return; }
+    onExpand(activeUrl);
+  }
+
   return (
     <div className={`card ${expired ? 'expired' : 'fresh'}`}>
-      <div className="photo-wrap" style={{ cursor: 'pointer' }} onClick={() => onExpand(activeUrl)}>
+      <div
+        className="photo-wrap"
+        style={{ cursor: 'pointer' }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onClick={handlePhotoClick}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={activeUrl} alt={product.name} loading="lazy" />
         <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>
           {expired ? 'Past Best Before' : 'In Date'}
         </span>
         {hasTwo && (
-          <div className="photo-dots" onClick={e => { e.stopPropagation(); setShowSecond(s => !s); }}>
-            <span className={`dot ${!showSecond ? 'dot-active' : ''}`} />
-            <span className={`dot ${showSecond ? 'dot-active' : ''}`} />
-          </div>
+          <button
+            className="photo-arrow"
+            style={{ [showSecond ? 'left' : 'right']: '0.4rem' }}
+            onClick={e => { e.stopPropagation(); setShowSecond(s => !s); }}
+            aria-label={showSecond ? 'Previous photo' : 'Next photo'}
+          >
+            {showSecond ? '‹' : '›'}
+          </button>
         )}
       </div>
       <div className="card-body">
