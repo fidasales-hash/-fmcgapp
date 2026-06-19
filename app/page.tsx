@@ -20,22 +20,17 @@ function formatBB(bestBefore: string) {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
 }
 
-function ProductCard({ product, onExpand, onAddToCart }: {
+function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   product: Product;
   onExpand: (url: string) => void;
   onAddToCart: (product: Product) => void;
+  cartQty: number;
+  onUpdateQty: (id: string, qty: number) => void;
 }) {
   const [showSecond, setShowSecond] = useState(false);
-  const [added, setAdded] = useState(false);
   const expired = isExpired(product.bestBefore);
   const hasTwo = Boolean(product.photoUrl2);
   const activeUrl = showSecond && product.photoUrl2 ? product.photoUrl2 : product.photoUrl;
-
-  function handleAdd() {
-    onAddToCart(product);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1200);
-  }
 
   return (
     <div className={`card ${expired ? 'expired' : 'fresh'}`}>
@@ -61,9 +56,15 @@ function ProductCard({ product, onExpand, onAddToCart }: {
           <p className="price">R {Number(product.price).toFixed(2)}</p>
         )}
         {product.notes && <p className="notes">{product.notes}</p>}
-        <button className={`btn-add-cart${added ? ' added' : ''}`} onClick={handleAdd}>
-          {added ? '✓ Added' : '+ Add to Order'}
-        </button>
+        {cartQty === 0 ? (
+          <button className="btn-add-cart" onClick={() => onAddToCart(product)}>+ Add to Order</button>
+        ) : (
+          <div className="card-stepper">
+            <button onClick={() => onUpdateQty(product.id, cartQty - 1)}>−</button>
+            <span>{cartQty}</span>
+            <button onClick={() => onUpdateQty(product.id, cartQty + 1)}>+</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -292,7 +293,14 @@ export default function Storefront() {
             )}
             <div className="grid">
               {filtered.map(product => (
-                <ProductCard key={product.id} product={product} onExpand={setLightboxUrl} onAddToCart={addToCart} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onExpand={setLightboxUrl}
+                  onAddToCart={addToCart}
+                  cartQty={cart.find(i => i.product.id === product.id)?.qty ?? 0}
+                  onUpdateQty={updateQty}
+                />
               ))}
             </div>
           </main>
