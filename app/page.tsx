@@ -404,10 +404,10 @@ export default function Storefront() {
 
         <div className="mobile-filters">
           <select className="mobile-select" value={category} onChange={e => setCategory(e.target.value)}>
-            {categories.map(c => <option key={c} value={c}>{c === 'All' ? 'Category' : c}</option>)}
+            {categories.map(c => <option key={c} value={c}>{c === 'All' ? 'All Categories' : c}</option>)}
           </select>
           <select className="mobile-select" value={status} onChange={e => setStatus(e.target.value)}>
-            {(['All', 'In Date', 'Past Best Before'] as const).map(s => <option key={s} value={s}>{s === 'All' ? 'Date' : s}</option>)}
+            {(['All', 'In Date', 'Past Best Before'] as const).map(s => <option key={s} value={s}>{s === 'All' ? 'All Dates' : s}</option>)}
           </select>
           <select className="mobile-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="newest">Newest</option>
