@@ -346,17 +346,17 @@ body {
 .btn-add-cart {
   margin-top: 0.5rem;
   width: 100%;
-  padding: 0.4rem 0.5rem;
-  font-size: 0.78rem;
+  padding: 0.5rem 0.5rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  border: 1.5px solid var(--primary);
-  border-radius: 7px;
-  background: #fff;
-  color: var(--primary);
+  border: none;
+  border-radius: 20px;
+  background: var(--green);
+  color: #fff;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s;
 }
-.btn-add-cart:hover { background: var(--primary); color: #fff; }
+.btn-add-cart:hover { background: #1b5e20; }
 .card-stepper {
   margin-top: 0.5rem;
   display: flex;
