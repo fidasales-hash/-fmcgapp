@@ -242,7 +242,7 @@ export default function Storefront() {
             </svg>
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
-          <span className="site-wordmark">CLEARANCE <span className="site-wordmark-pill">SHOP</span></span>
+          <span className="site-wordmark"><span className="site-wordmark-super">CLEARANCE</span><span className="site-wordmark-main">SHOP</span></span>
           <div className="header-search">
             <input
               ref={searchRef}
