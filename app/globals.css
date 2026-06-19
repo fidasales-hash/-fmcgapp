@@ -112,6 +112,7 @@ body {
 @media (min-width: 640px) {
   .body-layout { flex-direction: row; align-items: flex-start; }
   .sidebar {
+    display: flex;
     width: 180px;
     flex-shrink: 0;
     flex-direction: column;
