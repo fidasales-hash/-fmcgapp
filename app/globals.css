@@ -85,19 +85,65 @@ body {
 .hamburger-menu a:last-child { border-bottom: none; }
 .hamburger-menu a:hover { background: var(--red-bg); color: var(--primary); }
 
-/* ── Filters ───────────────────────────────────── */
-.filters {
+/* ── Layout ────────────────────────────────────── */
+.body-layout {
+  display: flex;
+  align-items: flex-start;
+}
+.sidebar {
+  width: 100%;
   padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   background: #fff;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
-.filter-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.main-content { flex: 1; min-width: 0; }
+.sidebar-section { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+.sidebar-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  margin-right: 0.2rem;
+}
+.sidebar-chip {
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.sidebar-chip:hover { border-color: var(--primary); color: var(--primary); }
+.sidebar-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+.sidebar-chip.green.active { background: var(--green); border-color: var(--green); }
+.sidebar-chip.red.active { background: var(--red); border-color: var(--red); }
+
+@media (min-width: 640px) {
+  .body-layout { flex-direction: row; align-items: flex-start; }
+  .sidebar {
+    width: 180px;
+    flex-shrink: 0;
+    flex-direction: column;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 1rem 0.75rem;
+    gap: 1.25rem;
+  }
+  .sidebar-section { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
+  .sidebar-chip { width: 100%; text-align: left; border-radius: 8px; }
+}
 .chip {
   padding: 0.3rem 0.75rem;
   border-radius: 20px;

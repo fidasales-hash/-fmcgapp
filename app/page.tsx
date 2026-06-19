@@ -125,34 +125,39 @@ export default function Storefront() {
 
       </header>
 
-      <div className="filters">
-        <div className="filter-row">
-          {categories.map(c => (
-            <button key={c} className={`chip${category === c ? ' active' : ''}`} onClick={() => setCategory(c)}>
-              {c}
-            </button>
-          ))}
-        </div>
-        <div className="filter-row">
-          {(['All', 'In Date', 'Past Best Before'] as const).map(s => (
-            <button
-              key={s}
-              className={`chip${status === s ? ' active' + (s === 'In Date' ? ' green' : s === 'Past Best Before' ? ' red' : '') : ''}`}
-              onClick={() => setStatus(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
+      <div className="body-layout">
+        <aside className="sidebar">
+          <div className="sidebar-section">
+            <p className="sidebar-label">Category</p>
+            {categories.map(c => (
+              <button key={c} className={`sidebar-chip${category === c ? ' active' : ''}`} onClick={() => setCategory(c)}>
+                {c}
+              </button>
+            ))}
+          </div>
+          <div className="sidebar-section">
+            <p className="sidebar-label">Status</p>
+            {(['All', 'In Date', 'Past Best Before'] as const).map(s => (
+              <button
+                key={s}
+                className={`sidebar-chip${status === s ? ' active' + (s === 'In Date' ? ' green' : s === 'Past Best Before' ? ' red' : '') : ''}`}
+                onClick={() => setStatus(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </aside>
 
-      {loading && <p className="loading">Loading products…</p>}
-      {!loading && filtered.length === 0 && (
-        <p className="empty">{products.length === 0 ? 'No products yet — staff can add via the upload page.' : 'No products match the filters.'}</p>
-      )}
-
-      <div className="grid">
-        {filtered.map(product => <ProductCard key={product.id} product={product} onExpand={setLightboxUrl} />)}
+        <main className="main-content">
+          {loading && <p className="loading">Loading products…</p>}
+          {!loading && filtered.length === 0 && (
+            <p className="empty">{products.length === 0 ? 'No products yet — staff can add via the upload page.' : 'No products match the filters.'}</p>
+          )}
+          <div className="grid">
+            {filtered.map(product => <ProductCard key={product.id} product={product} onExpand={setLightboxUrl} />)}
+          </div>
+        </main>
       </div>
       </div>
     </>
