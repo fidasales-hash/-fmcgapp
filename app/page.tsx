@@ -4,6 +4,65 @@ import type { Product } from '@/lib/types';
 
 const WHATSAPP_NUMBER = '27615807797';
 
+const STORE_INFO = {
+  name:    'Clearance Shop',
+  address: '14 Main Road, Claremont, Cape Town',
+  hours:   'Mon–Fri 9am–5pm · Sat 9am–1pm',
+  payment: 'EFT · Cash · SnapScan · Yoco',
+};
+
+function StoreInfoDrawer({ onClose }: { onClose: () => void }) {
+  return (
+    <>
+      <div className="cart-backdrop" onClick={onClose} />
+      <div className="cart-drawer">
+        <div className="cart-drawer-header">
+          <h2>Store Info</h2>
+          <button className="cart-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <div className="store-info-body">
+          <div className="store-info-row">
+            <span className="store-info-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+            <div>
+              <p className="store-info-label">Collection Address</p>
+              <p className="store-info-value">{STORE_INFO.address}</p>
+            </div>
+          </div>
+          <div className="store-info-row">
+            <span className="store-info-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <div>
+              <p className="store-info-label">Hours</p>
+              <p className="store-info-value">{STORE_INFO.hours}</p>
+            </div>
+          </div>
+          <div className="store-info-row">
+            <span className="store-info-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            </span>
+            <div>
+              <p className="store-info-label">Payment Methods</p>
+              <p className="store-info-value">{STORE_INFO.payment}</p>
+            </div>
+          </div>
+          <a
+            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-whatsapp"
+            style={{ marginTop: '1rem' }}
+          >
+            Chat with us on WhatsApp
+          </a>
+        </div>
+      </div>
+    </>
+  );
+}
+
 type CartItem = { product: Product; qty: number };
 
 function isExpired(bestBefore: string) {
@@ -274,6 +333,7 @@ export default function Storefront() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -363,6 +423,8 @@ export default function Storefront() {
         </div>
       )}
 
+      {infoOpen && <StoreInfoDrawer onClose={() => setInfoOpen(false)} />}
+
       {cartOpen && (
         <CartDrawer
           cart={cart}
@@ -384,6 +446,9 @@ export default function Storefront() {
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
           <span className="site-wordmark"><span className="site-wordmark-super">CLEARANCE</span><span className="site-wordmark-main">SHOP</span></span>
+          <button className="cart-btn" onClick={() => setInfoOpen(true)} aria-label="Store info">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </button>
           <div className="header-search">
             <input
               ref={searchRef}
