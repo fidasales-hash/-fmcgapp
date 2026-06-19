@@ -6,9 +6,9 @@ const WHATSAPP_NUMBER = '27615807797';
 
 const STORE_INFO = {
   name:    'Clearance Shop',
-  address: '14 Main Road, Claremont, Cape Town',
-  hours:   'Mon–Fri 9am–5pm · Sat 9am–1pm',
-  payment: 'EFT · Cash · SnapScan · Yoco',
+  address: 'Park Crescent, Glenhazel, Johannesburg, Gauteng',
+  hours:   'Mon–Fri 9am–5pm',
+  payment: 'EFT · Cash · Yoco',
 };
 
 function StoreInfoDrawer({ onClose }: { onClose: () => void }) {
