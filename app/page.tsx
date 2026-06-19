@@ -139,10 +139,10 @@ export default function Storefront() {
 
       <div className="mobile-filters">
         <select className="mobile-select" value={category} onChange={e => setCategory(e.target.value)}>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          {categories.map(c => <option key={c} value={c}>{c === 'All' ? 'Category' : c}</option>)}
         </select>
         <select className="mobile-select" value={status} onChange={e => setStatus(e.target.value)}>
-          {(['All', 'In Date', 'Past Best Before'] as const).map(s => <option key={s} value={s}>{s}</option>)}
+          {(['All', 'In Date', 'Past Best Before'] as const).map(s => <option key={s} value={s}>{s === 'All' ? 'Date' : s}</option>)}
         </select>
         <select className="mobile-select" value={sort} onChange={e => setSort(e.target.value)}>
           <option value="newest">Newest</option>
@@ -158,7 +158,7 @@ export default function Storefront() {
             <p className="sidebar-label">Category</p>
             {categories.map(c => (
               <button key={c} className={`sidebar-chip${category === c ? ' active' : ''}`} onClick={() => setCategory(c)}>
-                {c}
+                {c === 'All' ? 'Category' : c}
               </button>
             ))}
           </div>
@@ -170,7 +170,7 @@ export default function Storefront() {
                 className={`sidebar-chip${status === s ? ' active' + (s === 'In Date' ? ' green' : s === 'Past Best Before' ? ' red' : '') : ''}`}
                 onClick={() => setStatus(s)}
               >
-                {s}
+                {s === 'All' ? 'Date' : s}
               </button>
             ))}
           </div>
