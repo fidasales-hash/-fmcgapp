@@ -241,32 +241,25 @@ export default function Storefront() {
             </svg>
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
-
           <span className="site-wordmark">CLEARANCE SHOP</span>
-
-          <div className={`header-right${searchOpen ? ' open' : ''}`}>
-            {searchOpen ? (
-              <>
-                <input
-                  ref={searchRef}
-                  className="header-search"
-                  type="search"
-                  placeholder="Search…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  autoFocus
-                />
-                <button className="cart-btn" onClick={() => { setSearchOpen(false); setSearch(''); }} aria-label="Close search">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              </>
-            ) : (
-              <button className="cart-btn" onClick={() => { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 50); }} aria-label="Search">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              </button>
-            )}
-          </div>
+          <button className="cart-btn" onClick={() => { setSearchOpen(o => !o); if (!searchOpen) setTimeout(() => searchRef.current?.focus(), 50); if (searchOpen) setSearch(''); }} aria-label="Search">
+            {searchOpen
+              ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            }
+          </button>
         </header>
+
+        <div className={`search-row${searchOpen ? ' open' : ''}`}>
+          <input
+            ref={searchRef}
+            className="search-row-input"
+            type="search"
+            placeholder="Search products…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
 
         <div className="mobile-filters">
           <select className="mobile-select" value={category} onChange={e => setCategory(e.target.value)}>
