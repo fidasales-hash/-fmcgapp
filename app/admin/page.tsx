@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Product } from '@/lib/types';
 
-const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks', 'Confectionery', 'Dairy', 'Bakery', 'Frozen', 'Cereals & Breakfast', 'Condiments & Sauces', 'Cooking & Baking', 'Cleaning & Household', 'Personal Care', 'Health & Pharmacy', 'Baby & Toddler', 'Laundry', 'Pet', 'Electronics', 'Other'];
+const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks', 'Confectionery', 'Bakery', 'Cereals & Breakfast', 'Condiments & Sauces', 'Cooking & Baking', 'Cleaning & Household', 'Personal Care', 'Health & Pharmacy', 'Baby & Toddler', 'Laundry', 'Pet', 'Electronics', 'Other'];
 
 function isExpired(bestBefore: string) {
   if (!bestBefore) return false;
