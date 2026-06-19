@@ -47,8 +47,18 @@ body {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  min-width: 0;
 }
-.header-spacer { flex: 0 0 46px; }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  transition: flex 0.2s;
+}
+.header-right.open { flex: 1; }
 .header-search {
   flex: 1;
   background: rgba(255,255,255,0.2);
@@ -58,7 +68,7 @@ body {
   color: #fff;
   font-size: 1rem;
   outline: none;
-  margin: 0 0.5rem;
+  min-width: 0;
 }
 .header-search::placeholder { color: rgba(255,255,255,0.65); }
 .header-search:focus { background: rgba(255,255,255,0.25); }
