@@ -55,11 +55,14 @@ body {
   white-space: nowrap;
 }
 .site-wordmark-pill {
+  display: inline-flex;
+  align-items: center;
   background: #fff;
   color: #CC2020;
   font-size: 14px;
   font-weight: 800;
-  padding: 2px 10px;
+  padding: 0 10px;
+  height: 22px;
   border-radius: 20px;
   letter-spacing: 0.5px;
   vertical-align: middle;
