@@ -15,6 +15,7 @@ const RULES: [string, string[]][] = [
   ['Baby & Toddler',     ['baby','infant','toddler','nappy','diaper','formula','dummy','rusk','teething']],
   ['Laundry',            ['washing powder','laundry','fabric softener','stain remover','wool wash','rinse aid']],
   ['Pet',                ['dog','cat','pet','kibble','pedigree','whiskas','treats','bird seed','fish food']],
+  ['Electronics',        ['headphone','earphone','cable','charger','adapter','plug','battery','bulb','lamp','speaker','remote','mouse','keyboard','usb','hdmi','torch','fan','kettle','toaster','iron','blender']],
 ];
 
 export function categorize(name: string): string {
