@@ -2,10 +2,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Product } from '@/lib/types';
 
+const WHATSAPP_NUMBER = '27615807797';
+
+type CartItem = { product: Product; qty: number };
+
 function isExpired(bestBefore: string) {
   if (!bestBefore) return false;
   const d = new Date(bestBefore + 'T00:00:00');
-  if (isNaN(d.getTime())) return true; // malformed/AI-generated date → assume expired
+  if (isNaN(d.getTime())) return true;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return d < today;
@@ -16,11 +20,22 @@ function formatBB(bestBefore: string) {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
 }
 
-function ProductCard({ product, onExpand }: { product: Product; onExpand: (url: string) => void }) {
+function ProductCard({ product, onExpand, onAddToCart }: {
+  product: Product;
+  onExpand: (url: string) => void;
+  onAddToCart: (product: Product) => void;
+}) {
   const [showSecond, setShowSecond] = useState(false);
+  const [added, setAdded] = useState(false);
   const expired = isExpired(product.bestBefore);
   const hasTwo = Boolean(product.photoUrl2);
   const activeUrl = showSecond && product.photoUrl2 ? product.photoUrl2 : product.photoUrl;
+
+  function handleAdd() {
+    onAddToCart(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1200);
+  }
 
   return (
     <div className={`card ${expired ? 'expired' : 'fresh'}`}>
@@ -46,8 +61,78 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: (url: 
           <p className="price">R {Number(product.price).toFixed(2)}</p>
         )}
         {product.notes && <p className="notes">{product.notes}</p>}
+        <button className={`btn-add-cart${added ? ' added' : ''}`} onClick={handleAdd}>
+          {added ? '✓ Added' : '+ Add to Order'}
+        </button>
       </div>
     </div>
+  );
+}
+
+function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
+  cart: CartItem[];
+  onClose: () => void;
+  onUpdateQty: (id: string, qty: number) => void;
+  onRemove: (id: string) => void;
+  onClear: () => void;
+}) {
+  const total = cart.reduce((sum, i) => sum + i.product.price * i.qty, 0);
+
+  const message = [
+    'Hi, I\'d like to order the following from Clearance Shop:',
+    '',
+    ...cart.map(i => `• ${i.product.name}${i.product.size ? ` (${i.product.size})` : ''} x${i.qty} — R${(i.product.price * i.qty).toFixed(2)}`),
+    '',
+    `Total: R${total.toFixed(2)}`,
+    '',
+    'Please confirm availability.',
+  ].join('\n');
+
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+  return (
+    <>
+      <div className="cart-backdrop" onClick={onClose} />
+      <div className="cart-drawer">
+        <div className="cart-drawer-header">
+          <h2>Your Order</h2>
+          <button className="cart-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+
+        {cart.length === 0 ? (
+          <p className="cart-empty">No items added yet.</p>
+        ) : (
+          <>
+            <div className="cart-items">
+              {cart.map(({ product, qty }) => (
+                <div key={product.id} className="cart-item">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={product.photoUrl} alt={product.name} className="cart-item-img" />
+                  <div className="cart-item-info">
+                    <p className="cart-item-name">{product.name}</p>
+                    {product.size && <p className="cart-item-size">{product.size}</p>}
+                    <p className="cart-item-price">R {(product.price * qty).toFixed(2)}</p>
+                  </div>
+                  <div className="cart-item-qty">
+                    <button onClick={() => onUpdateQty(product.id, qty - 1)}>−</button>
+                    <span>{qty}</span>
+                    <button onClick={() => onUpdateQty(product.id, qty + 1)}>+</button>
+                  </div>
+                  <button className="cart-item-remove" onClick={() => onRemove(product.id)} aria-label="Remove">✕</button>
+                </div>
+              ))}
+            </div>
+            <div className="cart-footer">
+              <p className="cart-total">Total: <strong>R {total.toFixed(2)}</strong></p>
+              <a href={waUrl} target="_blank" rel="noreferrer" className="btn-whatsapp">
+                Order via WhatsApp
+              </a>
+              <button className="btn-clear-cart" onClick={onClear}>Clear order</button>
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -80,6 +165,8 @@ export default function Storefront() {
   const [status, setStatus] = useState('All');
   const [sort, setSort] = useState('newest');
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     if (!lightboxUrl) return;
@@ -100,6 +187,25 @@ export default function Storefront() {
     return () => window.removeEventListener('focus', fetchProducts);
   }, [fetchProducts]);
 
+  function addToCart(product: Product) {
+    setCart(prev => {
+      const existing = prev.find(i => i.product.id === product.id);
+      if (existing) return prev.map(i => i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { product, qty: 1 }];
+    });
+  }
+
+  function updateQty(id: string, qty: number) {
+    if (qty < 1) return setCart(prev => prev.filter(i => i.product.id !== id));
+    setCart(prev => prev.map(i => i.product.id === id ? { ...i, qty } : i));
+  }
+
+  function removeFromCart(id: string) {
+    setCart(prev => prev.filter(i => i.product.id !== id));
+  }
+
+  const cartCount = cart.reduce((sum, i) => sum + i.qty, 0);
+
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category))).sort()];
 
   const filtered = products
@@ -118,7 +224,7 @@ export default function Storefront() {
         const db = b.bestBefore ? new Date(b.bestBefore).getTime() : Infinity;
         return da - db;
       }
-      return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(); // newest
+      return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
     });
 
   return (
@@ -130,70 +236,89 @@ export default function Storefront() {
           <button className="lightbox-close" onClick={() => setLightboxUrl(null)} aria-label="Close">✕</button>
         </div>
       )}
+
+      {cartOpen && (
+        <CartDrawer
+          cart={cart}
+          onClose={() => setCartOpen(false)}
+          onUpdateQty={updateQty}
+          onRemove={removeFromCart}
+          onClear={() => setCart([])}
+        />
+      )}
+
       <div className="page-wrap">
-      <header className="site-header">
-        <HamburgerMenu />
-        <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
+        <header className="site-header">
+          <HamburgerMenu />
+          <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
+          <button className="cart-btn" onClick={() => setCartOpen(true)} aria-label="Open order">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+          </button>
+        </header>
 
-      </header>
+        <div className="mobile-filters">
+          <select className="mobile-select" value={category} onChange={e => setCategory(e.target.value)}>
+            {categories.map(c => <option key={c} value={c}>{c === 'All' ? 'Category' : c}</option>)}
+          </select>
+          <select className="mobile-select" value={status} onChange={e => setStatus(e.target.value)}>
+            {(['All', 'In Date', 'Past Best Before'] as const).map(s => <option key={s} value={s}>{s === 'All' ? 'Date' : s}</option>)}
+          </select>
+          <select className="mobile-select" value={sort} onChange={e => setSort(e.target.value)}>
+            <option value="newest">Newest</option>
+            <option value="price-asc">Price: Low→High</option>
+            <option value="price-desc">Price: High→Low</option>
+            <option value="expiry">Expiry: Soonest</option>
+          </select>
+        </div>
 
-      <div className="mobile-filters">
-        <select className="mobile-select" value={category} onChange={e => setCategory(e.target.value)}>
-          {categories.map(c => <option key={c} value={c}>{c === 'All' ? 'Category' : c}</option>)}
-        </select>
-        <select className="mobile-select" value={status} onChange={e => setStatus(e.target.value)}>
-          {(['All', 'In Date', 'Past Best Before'] as const).map(s => <option key={s} value={s}>{s === 'All' ? 'Date' : s}</option>)}
-        </select>
-        <select className="mobile-select" value={sort} onChange={e => setSort(e.target.value)}>
-          <option value="newest">Newest</option>
-          <option value="price-asc">Price: Low→High</option>
-          <option value="price-desc">Price: High→Low</option>
-          <option value="expiry">Expiry: Soonest</option>
-        </select>
-      </div>
+        <div className="body-layout">
+          <aside className="sidebar">
+            <div className="sidebar-section">
+              <p className="sidebar-label">Category</p>
+              {categories.map(c => (
+                <button key={c} className={`sidebar-chip${category === c ? ' active' : ''}`} onClick={() => setCategory(c)}>
+                  {c === 'All' ? 'Category' : c}
+                </button>
+              ))}
+            </div>
+            <div className="sidebar-section">
+              <p className="sidebar-label">Status</p>
+              {(['All', 'In Date', 'Past Best Before'] as const).map(s => (
+                <button
+                  key={s}
+                  className={`sidebar-chip${status === s ? ' active' + (s === 'In Date' ? ' green' : s === 'Past Best Before' ? ' red' : '') : ''}`}
+                  onClick={() => setStatus(s)}
+                >
+                  {s === 'All' ? 'Date' : s}
+                </button>
+              ))}
+            </div>
+            <div className="sidebar-section">
+              <p className="sidebar-label">Sort</p>
+              {([['newest', 'Newest'], ['price-asc', 'Price: Low→High'], ['price-desc', 'Price: High→Low'], ['expiry', 'Expiry: Soonest']] as const).map(([val, label]) => (
+                <button key={val} className={`sidebar-chip${sort === val ? ' active' : ''}`} onClick={() => setSort(val)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </aside>
 
-      <div className="body-layout">
-        <aside className="sidebar">
-          <div className="sidebar-section">
-            <p className="sidebar-label">Category</p>
-            {categories.map(c => (
-              <button key={c} className={`sidebar-chip${category === c ? ' active' : ''}`} onClick={() => setCategory(c)}>
-                {c === 'All' ? 'Category' : c}
-              </button>
-            ))}
-          </div>
-          <div className="sidebar-section">
-            <p className="sidebar-label">Status</p>
-            {(['All', 'In Date', 'Past Best Before'] as const).map(s => (
-              <button
-                key={s}
-                className={`sidebar-chip${status === s ? ' active' + (s === 'In Date' ? ' green' : s === 'Past Best Before' ? ' red' : '') : ''}`}
-                onClick={() => setStatus(s)}
-              >
-                {s === 'All' ? 'Date' : s}
-              </button>
-            ))}
-          </div>
-          <div className="sidebar-section">
-            <p className="sidebar-label">Sort</p>
-            {([['newest', 'Newest'], ['price-asc', 'Price: Low→High'], ['price-desc', 'Price: High→Low'], ['expiry', 'Expiry: Soonest']] as const).map(([val, label]) => (
-              <button key={val} className={`sidebar-chip${sort === val ? ' active' : ''}`} onClick={() => setSort(val)}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <main className="main-content">
-          {loading && <p className="loading">Loading products…</p>}
-          {!loading && filtered.length === 0 && (
-            <p className="empty">{products.length === 0 ? 'No products yet — staff can add via the upload page.' : 'No products match the filters.'}</p>
-          )}
-          <div className="grid">
-            {filtered.map(product => <ProductCard key={product.id} product={product} onExpand={setLightboxUrl} />)}
-          </div>
-        </main>
-      </div>
+          <main className="main-content">
+            {loading && <p className="loading">Loading products…</p>}
+            {!loading && filtered.length === 0 && (
+              <p className="empty">{products.length === 0 ? 'No products yet — staff can add via the upload page.' : 'No products match the filters.'}</p>
+            )}
+            <div className="grid">
+              {filtered.map(product => (
+                <ProductCard key={product.id} product={product} onExpand={setLightboxUrl} onAddToCart={addToCart} />
+              ))}
+            </div>
+          </main>
+        </div>
       </div>
     </>
   );
