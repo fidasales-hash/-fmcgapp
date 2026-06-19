@@ -32,38 +32,18 @@ body {
 /* ── Header ────────────────────────────────────── */
 .site-header {
   background: linear-gradient(150deg, #CC2020 0%, #8B1010 100%);
-  padding: 1.5rem 1rem 1.25rem;
+  padding: 0.6rem 1rem;
   text-align: center;
   box-shadow: 0 3px 12px rgba(0,0,0,0.18);
   position: sticky;
   top: 0;
   z-index: 50;
-  transition: padding 0.2s;
 }
-.site-header.scrolled {
-  padding: 0.6rem 1rem;
-}
-.site-header.scrolled .site-logo { display: none; }
 .site-wordmark {
-  display: none;
   color: #fff;
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.5px;
-}
-.site-header.scrolled .site-wordmark { display: block; }
-.site-logo {
-  width: 100px;
-  height: 100px;
-  margin-bottom: 0.6rem;
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(255,255,255,0.35), 0 6px 18px rgba(0,0,0,0.28);
-}
-.site-tagline {
-  color: rgba(255,255,255,0.88);
-  font-size: 0.88rem;
-  margin-top: 0.2rem;
-  letter-spacing: 0.2px;
 }
 
 /* ── Mobile filter bar ─────────────────────────── */
