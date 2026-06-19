@@ -17,6 +17,27 @@ type EditForm = { name: string; size: string; bestBefore: string; category: stri
 
 const CLAUDE_KEY = 'claudeApiEnabled';
 
+function exportCSV(products: Product[]) {
+  const headers = ['Name', 'Size', 'Category', 'Best Before', 'Status', 'Price (R)', 'Added'];
+  const rows = products.map(p => {
+    const d = new Date((p.bestBefore ?? '') + 'T00:00:00');
+    const bb = isNaN(d.getTime()) ? '' : p.bestBefore;
+    const status = isExpired(p.bestBefore) ? 'Past Best Before' : 'In Date';
+    const added = new Date(p.addedAt).toLocaleDateString('en-GB');
+    return [p.name, p.size, p.category, bb, status, Number(p.price).toFixed(2), added];
+  });
+  const csv = [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `clearanceshop-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +108,16 @@ export default function AdminPage() {
     <main className="admin-page">
       <div className="admin-header">
         <h1>Manage Products</h1>
-        <a href="/">← View Store</a>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            onClick={() => exportCSV(products)}
+            disabled={products.length === 0}
+            style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.4rem 0.8rem', borderRadius: 7, border: '1.5px solid var(--border)', background: '#fff', color: 'var(--text)', cursor: 'pointer' }}
+          >
+            Export CSV
+          </button>
+          <a href="/">← View Store</a>
+        </div>
       </div>
 
       <div style={{

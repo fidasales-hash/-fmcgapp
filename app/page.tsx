@@ -20,6 +20,22 @@ function formatBB(bestBefore: string) {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
 }
 
+function SkeletonCard() {
+  return (
+    <div className="skeleton-card">
+      <div className="skeleton-block skeleton-photo" />
+      <div className="skeleton-body">
+        <div className="skeleton-block" style={{ height: 10, width: '40%' }} />
+        <div className="skeleton-block" style={{ height: 14, width: '85%' }} />
+        <div className="skeleton-block" style={{ height: 11, width: '55%' }} />
+        <div className="skeleton-block" style={{ height: 11, width: '60%' }} />
+        <div className="skeleton-block" style={{ height: 16, width: '35%' }} />
+        <div className="skeleton-block" style={{ height: 32, width: '100%', borderRadius: 7, marginTop: 4 }} />
+      </div>
+    </div>
+  );
+}
+
 function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   product: Product;
   onExpand: (url: string) => void;
@@ -70,6 +86,14 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   );
 }
 
+type CustomerDetails = {
+  name: string;
+  phone: string;
+  fulfillment: 'collection' | 'delivery';
+  address: string;
+  notes: string;
+};
+
 function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
   cart: CartItem[];
   onClose: () => void;
@@ -77,19 +101,90 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
   onRemove: (id: string) => void;
   onClear: () => void;
 }) {
+  const [step, setStep] = useState<'cart' | 'details'>('cart');
+  const [details, setDetails] = useState<CustomerDetails>({
+    name: '', phone: '', fulfillment: 'collection', address: '', notes: '',
+  });
+
   const total = cart.reduce((sum, i) => sum + i.product.price * i.qty, 0);
 
+  const canSubmit = details.name.trim() && details.phone.trim() &&
+    (details.fulfillment === 'collection' || details.address.trim());
+
   const message = [
-    'Hi, I\'d like to order the following from Clearance Shop:',
+    '*New Order — Clearance Shop*',
     '',
-    ...cart.map(i => `• ${i.product.name}${i.product.size ? ` (${i.product.size})` : ''} x${i.qty} — R${(i.product.price * i.qty).toFixed(2)}`),
+    `Name: ${details.name}`,
+    `Phone: ${details.phone}`,
+    details.fulfillment === 'delivery'
+      ? `Delivery: ${details.address}${details.notes ? `\nNotes: ${details.notes}` : ''}`
+      : 'Collection',
     '',
-    `Total: R${total.toFixed(2)}`,
+    ...cart.map((i, idx) => [
+      `${idx + 1}. ${i.product.name}${i.product.size ? ` (${i.product.size})` : ''}`,
+      `   ${i.qty} x R${i.product.price.toFixed(2)} = *R${(i.product.price * i.qty).toFixed(2)}*`,
+    ].join('\n')),
     '',
-    'Please confirm availability.',
+    `*TOTAL: R${total.toFixed(2)}*`,
   ].join('\n');
 
   const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+  const set = (field: keyof CustomerDetails) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setDetails(d => ({ ...d, [field]: e.target.value }));
+
+  if (step === 'details') {
+    return (
+      <>
+        <div className="cart-backdrop" onClick={onClose} />
+        <div className="cart-drawer">
+          <div className="cart-drawer-header">
+            <button className="cart-close" onClick={() => setStep('cart')} aria-label="Back" style={{ fontSize: '0.9rem' }}>← Back</button>
+            <h2>Your Details</h2>
+            <button className="cart-close" onClick={onClose} aria-label="Close">✕</button>
+          </div>
+
+          <div className="checkout-form">
+            <input className="field" placeholder="Full name *" value={details.name} onChange={set('name')} />
+            <input className="field" placeholder="Phone number *" type="tel" value={details.phone} onChange={set('phone')} />
+
+            <div className="fulfillment-toggle">
+              {(['collection', 'delivery'] as const).map(f => (
+                <button
+                  key={f}
+                  className={`fulfillment-btn${details.fulfillment === f ? ' active' : ''}`}
+                  onClick={() => setDetails(d => ({ ...d, fulfillment: f }))}
+                >
+                  {f === 'collection' ? 'Collection' : 'Delivery'}
+                </button>
+              ))}
+            </div>
+
+            {details.fulfillment === 'delivery' && (
+              <>
+                <input className="field" placeholder="Street address *" value={details.address} onChange={set('address')} />
+                <input className="field" placeholder="Notes — suburb, gate code, landmark" value={details.notes} onChange={set('notes')} />
+              </>
+            )}
+          </div>
+
+          <div className="cart-footer">
+            <p className="cart-total">Total: <strong>R {total.toFixed(2)}</strong></p>
+            <a
+              href={canSubmit ? waUrl : undefined}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-whatsapp"
+              style={{ opacity: canSubmit ? 1 : 0.45, pointerEvents: canSubmit ? 'auto' : 'none' }}
+              onClick={() => { if (canSubmit) { onClear(); onClose(); } }}
+            >
+              Send Order via WhatsApp
+            </a>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -125,9 +220,9 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
             </div>
             <div className="cart-footer">
               <p className="cart-total">Total: <strong>R {total.toFixed(2)}</strong></p>
-              <a href={waUrl} target="_blank" rel="noreferrer" className="btn-whatsapp">
-                Order via WhatsApp
-              </a>
+              <button className="btn-whatsapp" onClick={() => setStep('details')}>
+                Checkout
+              </button>
               <button className="btn-clear-cart" onClick={onClear}>Clear order</button>
             </div>
           </>
@@ -311,11 +406,11 @@ export default function Storefront() {
           </aside>
 
           <main className="main-content">
-            {loading && <p className="loading">Loading products…</p>}
             {!loading && filtered.length === 0 && (
               <p className="empty">{products.length === 0 ? 'No products yet — staff can add via the upload page.' : 'No products match the filters.'}</p>
             )}
             <div className="grid">
+              {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
               {filtered.map(product => (
                 <ProductCard
                   key={product.id}
