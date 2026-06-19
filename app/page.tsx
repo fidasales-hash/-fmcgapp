@@ -85,10 +85,10 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
         <span className="cat-label">{product.category}</span>
         <h2>{product.name}</h2>
         {product.size && <p className="size">{product.size}</p>}
-        <p className="best-before">Best Before: {formatBB(product.bestBefore)}</p>
         {product.price > 0 && (
           <p className="price">R {Number(product.price).toFixed(2)}</p>
         )}
+        <p className="best-before">Best Before: {formatBB(product.bestBefore)}</p>
         {product.notes && <p className="notes">{product.notes}</p>}
         {cartQty === 0 ? (
           <button className="btn-add-cart" onClick={() => onAddToCart(product)}>+ Add to Order</button>
