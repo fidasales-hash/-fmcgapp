@@ -118,7 +118,7 @@ export default function Storefront() {
         const db = b.bestBefore ? new Date(b.bestBefore).getTime() : Infinity;
         return da - db;
       }
-      return b.id - a.id; // newest
+      return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(); // newest
     });
 
   return (
