@@ -136,27 +136,6 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
   );
 }
 
-function HamburgerMenu() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="hamburger-wrap">
-      <button className="hamburger-btn" onClick={() => setOpen(o => !o)} aria-label="Menu">
-        <span className={`hb-bar${open ? ' open' : ''}`} />
-        <span className={`hb-bar${open ? ' open' : ''}`} />
-        <span className={`hb-bar${open ? ' open' : ''}`} />
-      </button>
-      {open && (
-        <>
-          <div className="hamburger-backdrop" onClick={() => setOpen(false)} />
-          <nav className="hamburger-menu">
-            <a href="/upload" onClick={() => setOpen(false)}>Staff Upload</a>
-            <a href="/admin" onClick={() => setOpen(false)}>Admin</a>
-          </nav>
-        </>
-      )}
-    </div>
-  );
-}
 
 export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -249,7 +228,6 @@ export default function Storefront() {
 
       <div className="page-wrap">
         <header className="site-header">
-          <HamburgerMenu />
           <img src="/logo.svg" alt="Clearance Shop" className="site-logo" />
           <button className="cart-btn" onClick={() => setCartOpen(true)} aria-label="Open order">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
