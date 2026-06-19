@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Warehouse Clearance',
+  title: 'Clearance Shop',
   description: 'Discounted FMCG stock — in-date and past best-before products at great prices',
+  icons: { icon: '/logo.svg' },
 };
 
 export const viewport: Viewport = {
