@@ -501,8 +501,8 @@ body {
   text-transform: capitalize;
 }
 .fulfillment-btn.active {
-  border-color: var(--primary);
-  background: var(--primary);
+  border-color: #1a1a1a;
+  background: #1a1a1a;
   color: #fff;
 }
 
