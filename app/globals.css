@@ -263,7 +263,7 @@ body {
   margin-top: 0.5rem;
   display: flex;
   align-items: center;
-  border: 1.5px solid var(--primary);
+  border: 1.5px solid var(--green);
   border-radius: 7px;
   overflow: hidden;
 }
@@ -272,19 +272,19 @@ body {
   padding: 0.4rem 0;
   font-size: 1rem;
   font-weight: 700;
-  background: var(--primary);
+  background: var(--green);
   color: #fff;
   border: none;
   cursor: pointer;
   transition: background 0.15s;
 }
-.card-stepper button:hover { background: var(--primary-dark); }
+.card-stepper button:hover { background: #1b5e20; }
 .card-stepper span {
   flex: 1;
   text-align: center;
   font-size: 0.88rem;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--green);
 }
 
 /* ── Cart drawer ────────────────────────────────── */
