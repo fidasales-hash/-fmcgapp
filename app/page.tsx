@@ -425,7 +425,7 @@ export default function Storefront() {
               <p className="sidebar-label">Category</p>
               {categories.map(c => (
                 <button key={c} className={`sidebar-chip${category === c ? ' active' : ''}`} onClick={() => setCategory(c)}>
-                  {c === 'All' ? 'Category' : c}
+                  {c === 'All' ? 'All' : c}
                 </button>
               ))}
             </div>
@@ -437,7 +437,7 @@ export default function Storefront() {
                   className={`sidebar-chip${status === s ? ' active' + (s === 'In Date' ? ' green' : s === 'Past Best Before' ? ' red' : '') : ''}`}
                   onClick={() => setStatus(s)}
                 >
-                  {s === 'All' ? 'Date' : s}
+                  {s === 'All' ? 'All Dates' : s}
                 </button>
               ))}
             </div>
