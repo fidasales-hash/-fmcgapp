@@ -20,21 +20,6 @@ function formatBB(bestBefore: string) {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
 }
 
-function SkeletonCard() {
-  return (
-    <div className="skeleton-card">
-      <div className="skeleton-block skeleton-photo" />
-      <div className="skeleton-body">
-        <div className="skeleton-block" style={{ height: 10, width: '40%' }} />
-        <div className="skeleton-block" style={{ height: 14, width: '85%' }} />
-        <div className="skeleton-block" style={{ height: 11, width: '55%' }} />
-        <div className="skeleton-block" style={{ height: 11, width: '60%' }} />
-        <div className="skeleton-block" style={{ height: 16, width: '35%' }} />
-        <div className="skeleton-block" style={{ height: 32, width: '100%', borderRadius: 7, marginTop: 4 }} />
-      </div>
-    </div>
-  );
-}
 
 function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   product: Product;
@@ -439,11 +424,11 @@ export default function Storefront() {
           </aside>
 
           <main className="main-content">
+            {loading && <p className="loading">Loading products…</p>}
             {!loading && filtered.length === 0 && (
               <p className="empty">{products.length === 0 ? 'No products yet — staff can add via the upload page.' : 'No products match the filters.'}</p>
             )}
             <div className="grid">
-              {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
               {filtered.map(product => (
                 <ProductCard
                   key={product.id}

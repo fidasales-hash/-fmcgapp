@@ -472,35 +472,6 @@ body {
   transition: background 0.15s;
 }
 .btn-whatsapp:hover { background: #1ebe5d; }
-/* ── Skeleton loading ───────────────────────────── */
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
-}
-.skeleton-block {
-  background: linear-gradient(90deg, #ebebeb 25%, #d6d6d6 50%, #ebebeb 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-  border-radius: 4px;
-}
-.skeleton-card {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  border: 2px solid var(--border);
-}
-.skeleton-photo {
-  aspect-ratio: 1;
-  width: 100%;
-}
-.skeleton-body {
-  padding: 0.6rem 0.65rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
 /* ── Checkout form ──────────────────────────────── */
 .checkout-form {
   flex: 1;
