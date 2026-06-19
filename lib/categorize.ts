@@ -9,7 +9,12 @@ const RULES: [string, string[]][] = [
   ['Cereals & Breakfast',['cereal','oat','muesli','granola','porridge','cornflake','weetabix','bran','pancake mix']],
   ['Condiments & Sauces',['sauce','ketchup','mayo','mayonnaise','mustard','vinegar','dressing','relish','pickle','chutney','marinade','peri','sriracha','soy','Worcester']],
   ['Cooking & Baking',  ['flour','sugar','oil','salt','baking powder','yeast','spice','herb','stock','seasoning','paste','extract','vanilla']],
-  ['Cleaning & Household',['detergent','cleaner','bleach','fabric','washing','dishwash','polish','sanitizer','disinfectant','toilet','wipe','spray','softener']],
+  ['Cleaning & Household',['cleaner','bleach','dishwash','polish','sanitizer','disinfectant','toilet','bin bag','air freshener','candle','tissue','paper towel']],
+  ['Personal Care',      ['shampoo','conditioner','body wash','soap','deodorant','antiperspirant','toothpaste','toothbrush','moisturiser','lotion','sunscreen','razor','shaving','skincare','face wash','lip balm']],
+  ['Health & Pharmacy',  ['vitamin','supplement','tablet','capsule','pain relief','ibuprofen','paracetamol','cold','flu','first aid','bandage','antiseptic','lozenge','probiotic']],
+  ['Baby & Toddler',     ['baby','infant','toddler','nappy','diaper','formula','dummy','rusk','teething']],
+  ['Laundry',            ['washing powder','laundry','fabric softener','stain remover','wool wash','rinse aid']],
+  ['Pet',                ['dog','cat','pet','kibble','pedigree','whiskas','treats','bird seed','fish food']],
 ];
 
 export function categorize(name: string): string {
