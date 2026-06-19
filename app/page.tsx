@@ -137,6 +137,21 @@ export default function Storefront() {
 
       </header>
 
+      <div className="mobile-filters">
+        <select className="mobile-select" value={category} onChange={e => setCategory(e.target.value)}>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select className="mobile-select" value={status} onChange={e => setStatus(e.target.value)}>
+          {(['All', 'In Date', 'Past Best Before'] as const).map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select className="mobile-select" value={sort} onChange={e => setSort(e.target.value)}>
+          <option value="newest">Newest</option>
+          <option value="price-asc">Price: Low→High</option>
+          <option value="price-desc">Price: High→Low</option>
+          <option value="expiry">Expiry: Soonest</option>
+        </select>
+      </div>
+
       <div className="body-layout">
         <aside className="sidebar">
           <div className="sidebar-section">
