@@ -44,6 +44,7 @@ body {
   box-shadow: 0 3px 12px rgba(0,0,0,0.18);
   display: flex;
   align-items: center;
+  position: relative;
 }
 .site-wordmark {
   flex: 1;
@@ -67,23 +68,74 @@ body {
   letter-spacing: 0.5px;
   vertical-align: middle;
 }
-.search-row {
+.header-search {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Mobile: input drops down below header as an overlay */
+.header-search-input {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 49;
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  outline: none;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--text);
   max-height: 0;
   overflow: hidden;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-  transition: max-height 0.2s ease;
+  padding: 0 1rem;
+  transition: max-height 0.2s ease, padding 0.2s ease;
 }
-.search-row.open { max-height: 60px; }
-.search-row-input {
-  display: block;
-  width: 100%;
-  padding: 0.6rem 1rem;
-  font-size: 1rem;
-  border: none;
-  outline: none;
-  color: var(--text);
-  background: transparent;
+.header-search-input.open {
+  max-height: 52px;
+  padding: 0.65rem 1rem;
+}
+
+/* Desktop: input slides in inline, wordmark stays absolutely centred */
+@media (min-width: 640px) {
+  .site-wordmark {
+    position: absolute;
+    left: 0;
+    right: 0;
+    flex: none;
+    pointer-events: none;
+  }
+  .header-search {
+    margin-left: auto;
+    gap: 0.5rem;
+  }
+  .header-search-input {
+    position: static;
+    top: auto;
+    left: auto;
+    right: auto;
+    z-index: auto;
+    max-height: none;
+    overflow: hidden;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    width: 0;
+    opacity: 0;
+    padding: 0;
+    transition: width 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
+    font-size: 0.9rem;
+  }
+  .header-search-input.open {
+    max-height: none;
+    width: 220px;
+    opacity: 1;
+    padding: 0.4rem 0.75rem;
+  }
+  .header-search-input::placeholder { color: rgba(255,255,255,0.6); }
 }
 
 /* ── Mobile filter bar ─────────────────────────── */
