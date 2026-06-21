@@ -1,9 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
   <circle cx="100" cy="100" r="100" fill="#CC2020"/>
-  <text x="100" y="88" text-anchor="middle" fill="white"
-    font-family="Arial, Helvetica, sans-serif"
-    font-size="20" font-weight="600" letter-spacing="2">CLEARANCE</text>
-  <text x="100" y="142" text-anchor="middle" fill="white"
-    font-family="Arial, Helvetica, sans-serif"
-    font-size="60" font-weight="900" letter-spacing="0">SHOP</text>
+  <text x="100" y="123" text-anchor="middle" fill="white"
+    font-family="Arial Black, Arial, Helvetica, sans-serif"
+    font-size="88" font-weight="900" letter-spacing="-2">CS</text>
 </svg>
