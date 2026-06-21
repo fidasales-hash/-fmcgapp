@@ -465,15 +465,12 @@ export default function Storefront() {
             </svg>
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
-          <button className="site-wordmark" onClick={() => setInfoOpen(o => !o)} aria-label="Store info">
-            <svg className="wordmark-arrow" width="8" height="14" viewBox="0 0 8 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1 1l6 6-6 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <div className="site-wordmark">
             <span className="site-wordmark-text">
               <span className="site-wordmark-super">CLEARANCE</span>
               <span className="site-wordmark-main">SHOP</span>
             </span>
-          </button>
+          </div>
           <div className="header-search">
             <input
               ref={searchRef}
@@ -562,6 +559,12 @@ export default function Storefront() {
             </div>
           </main>
         </div>
+
+        <button className="info-footer" onClick={() => setInfoOpen(o => !o)} aria-label="Store info">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Hours · Location · Returns</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
       </div>
     </>
   );
