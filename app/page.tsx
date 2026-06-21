@@ -497,13 +497,15 @@ export default function Storefront() {
             {categories.map(c => <option key={c} value={c}>{c === 'All' ? 'All' : c}</option>)}
           </select>
           <select className="mobile-select" value={status} onChange={e => setStatus(e.target.value)}>
-            {(['All', 'In Date', 'Past Best Before'] as const).map(s => <option key={s} value={s}>{s === 'All' ? 'All' : s}</option>)}
+            <option value="All">All</option>
+            <option value="In Date">In Date</option>
+            <option value="Past Best Before">Past BB</option>
           </select>
           <select className="mobile-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="newest">Newest</option>
-            <option value="price-asc">Price: Low→High</option>
-            <option value="price-desc">Price: High→Low</option>
-            <option value="expiry">Expiry: Soonest</option>
+            <option value="price-asc">Low→High</option>
+            <option value="price-desc">High→Low</option>
+            <option value="expiry">Expiry</option>
           </select>
         </div>
 
