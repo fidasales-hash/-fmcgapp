@@ -287,7 +287,7 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
               rel="noreferrer"
               className="btn-whatsapp"
               style={{ opacity: canSubmit ? 1 : 0.45, pointerEvents: canSubmit ? 'auto' : 'none' }}
-              onClick={() => { if (canSubmit) { localStorage.removeItem('cs_details'); onClear(); onClose(); } }}
+              onClick={() => { if (canSubmit) { onClear(); onClose(); } }}
             >
               Send Order via WhatsApp
             </a>
