@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 
-const CARD = 900;
-const MAX = 840;
+const CARD = 1200;
+const MAX = 1100;
 
 async function removeBackground(input: Buffer): Promise<Buffer> {
   const apiKey = process.env.REMOVE_BG_API_KEY ?? '';
@@ -53,6 +53,6 @@ export async function processProductImage(input: Buffer): Promise<Buffer> {
   })
     .composite([{ input: layer, gravity: 'centre' }])
     .flatten({ background: { r: 255, g: 255, b: 255 } })
-    .jpeg({ quality: 92 })
+    .jpeg({ quality: 95 })
     .toBuffer();
 }
