@@ -265,13 +265,14 @@ export default function UploadPage() {
         const data = await res.json();
         setForm(prev => {
           const name = fillEmptyOnly ? (prev.name || data.name) : (data.name || prev.name);
+          const aiCategory = CATEGORIES.includes(data.category) ? data.category : (name ? categorize(name) : '');
           return {
             name,
             size:       fillEmptyOnly ? (prev.size || data.size) : (data.size || prev.size),
             bestBefore: prev.bestBefore,
             notes:      prev.notes,
             price:      prev.price,
-            category:   name && prev.category === 'Other' ? categorize(name) : prev.category,
+            category:   prev.category === 'Other' && aiCategory ? aiCategory : prev.category,
           };
         });
       } else {
