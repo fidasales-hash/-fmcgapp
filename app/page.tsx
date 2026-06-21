@@ -165,7 +165,15 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
         <h2>{product.name}</h2>
         {product.size && <p className="size">{product.size}</p>}
         {product.price > 0 && (
-          <p className="price">R {Number(product.price).toFixed(2)}</p>
+          <div className="price-wrap">
+            {product.marketPrice > product.price && (
+              <span className="market-price">R {Number(product.marketPrice).toFixed(2)}</span>
+            )}
+            <p className="price">R {Number(product.price).toFixed(2)}</p>
+            {product.marketPrice > product.price && (
+              <span className="savings-badge">{Math.round((1 - product.price / product.marketPrice) * 100)}% off</span>
+            )}
+          </div>
         )}
         <p className="best-before">Best Before: {formatBB(product.bestBefore)}</p>
         {product.notes && <p className="notes">{product.notes}</p>}

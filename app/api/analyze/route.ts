@@ -51,7 +51,30 @@ Return ONLY valid JSON with no extra text:
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return NextResponse.json({ name: '', size: '' });
     const { name = '', size = '', category = '' } = JSON.parse(match[0]);
-    return NextResponse.json({ name, size, category });
+
+    // Search Tavily for retail market price
+    let marketPrice = 0;
+    if (name && process.env.TAVILY_API_KEY) {
+      try {
+        const query = `${name}${size ? ' ' + size : ''} price South Africa`;
+        const tvRes = await fetch('https://api.tavily.com/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: process.env.TAVILY_API_KEY, query, search_depth: 'basic', max_results: 5 }),
+        });
+        const tvData = await tvRes.json();
+        const content = (tvData.results ?? []).map((r: { content: string }) => r.content).join(' ');
+        const prices = [...content.matchAll(/R\s*(\d+(?:[.,]\d{1,2})?)/gi)]
+          .map(m => parseFloat(m[1].replace(',', '.')))
+          .filter(p => p >= 1 && p < 10000);
+        if (prices.length) {
+          prices.sort((a, b) => a - b);
+          marketPrice = prices[Math.floor(prices.length / 2)];
+        }
+      } catch { /* Tavily unavailable — marketPrice stays 0 */ }
+    }
+
+    return NextResponse.json({ name, size, category, marketPrice });
   } catch (e) {
     console.error('analyze error:', e);
     return NextResponse.json({ error: String(e) }, { status: 500 });

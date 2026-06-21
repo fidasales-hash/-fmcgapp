@@ -13,7 +13,7 @@ function isExpired(bestBefore: string) {
   return d < today;
 }
 
-type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string; price: string };
+type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string; price: string; marketPrice: string };
 
 const CLAUDE_KEY = 'claudeApiEnabled';
 
@@ -43,7 +43,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '', price: '' });
+  const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '', price: '', marketPrice: '' });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [claudeEnabled, setClaudeEnabled] = useState(true);
@@ -69,14 +69,14 @@ export default function AdminPage() {
     const d = new Date(p.bestBefore + 'T00:00:00');
     const bb = isNaN(d.getTime()) ? '' : p.bestBefore;
     bbValue.current = bb;
-    setEditForm({ name: p.name, size: p.size, bestBefore: bb, category: p.category, notes: p.notes, price: String(p.price ?? 0) });
+    setEditForm({ name: p.name, size: p.size, bestBefore: bb, category: p.category, notes: p.notes, price: String(p.price ?? 0), marketPrice: String(p.marketPrice ?? 0) });
   }
 
   async function saveEdit(id: string) {
     setSaving(true);
     setSaveError('');
     try {
-      const payload = { ...editForm, bestBefore: bbValue.current, price: parseFloat(editForm.price) || 0 };
+      const payload = { ...editForm, bestBefore: bbValue.current, price: parseFloat(editForm.price) || 0, marketPrice: parseFloat(editForm.marketPrice) || 0 };
       const res = await fetch(`/api/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -172,6 +172,7 @@ export default function AdminPage() {
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                   <input className="field" type="number" min="0" step="0.01" value={editForm.price} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, price: v })); }} placeholder="Price (R)" />
+                  <input className="field" type="number" min="0" step="0.01" value={editForm.marketPrice} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, marketPrice: v })); }} placeholder="Market Price (R)" />
                   <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, notes: v })); }} placeholder="Notes" />
                   {saveError && <p className="error">{saveError}</p>}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>

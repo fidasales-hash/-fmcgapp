@@ -246,7 +246,7 @@ function CameraSlot({
 export default function UploadPage() {
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
-  const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '', price: '', category: 'Other' });
+  const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
   const [analyzingCount, setAnalyzingCount] = useState(0);
   const analyzing = analyzingCount > 0;
   const [submitting, setSubmitting] = useState(false);
@@ -268,11 +268,12 @@ export default function UploadPage() {
           const aiCategory = CATEGORIES.includes(data.category) ? data.category : (name ? categorize(name) : '');
           return {
             name,
-            size:       fillEmptyOnly ? (prev.size || data.size) : (data.size || prev.size),
-            bestBefore: prev.bestBefore,
-            notes:      prev.notes,
-            price:      prev.price,
-            category:   prev.category === 'Other' && aiCategory ? aiCategory : prev.category,
+            size:        fillEmptyOnly ? (prev.size || data.size) : (data.size || prev.size),
+            bestBefore:  prev.bestBefore,
+            notes:       prev.notes,
+            price:       prev.price,
+            marketPrice: prev.marketPrice || (data.marketPrice ? String(data.marketPrice) : ''),
+            category:    prev.category === 'Other' && aiCategory ? aiCategory : prev.category,
           };
         });
       } else {
@@ -299,12 +300,13 @@ export default function UploadPage() {
       fd.append('bestBefore', form.bestBefore);
       fd.append('notes', form.notes);
       fd.append('price', form.price);
+      fd.append('marketPrice', form.marketPrice);
       fd.append('category', form.category);
       const res = await fetch('/api/products', { method: 'POST', body: fd });
       if (res.ok) {
         setSuccess(true);
         setFile1(null); setFile2(null);
-        setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', category: 'Other' });
+        setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
       } else {
         const data = await res.json();
         setError(data.error ?? 'Upload failed');
@@ -375,6 +377,17 @@ export default function UploadPage() {
             type="number" min="0" step="0.01" placeholder="0.00" value={form.price}
             onChange={e => { const v = e.target.value; setForm(f => ({ ...f, price: v })); }}
             required className="field" style={{ marginBottom: 0 }}
+          />
+        </div>
+        <div className="field-wrap">
+          <label className="field-label">
+            Market Price (R)
+            {form.marketPrice ? <span style={{ marginLeft: '0.4rem', fontSize: '0.72rem', color: 'var(--green)', fontWeight: 600 }}>● found online</span> : <span style={{ marginLeft: '0.4rem', fontSize: '0.72rem', color: 'var(--muted)' }}>optional</span>}
+          </label>
+          <input
+            type="number" min="0" step="0.01" placeholder="0.00" value={form.marketPrice}
+            onChange={e => { const v = e.target.value; setForm(f => ({ ...f, marketPrice: v })); }}
+            className="field" style={{ marginBottom: 0 }}
           />
         </div>
         <div className="field-wrap">

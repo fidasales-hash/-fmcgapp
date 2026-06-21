@@ -28,6 +28,7 @@ async function ensureTable() {
   `;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS photo_url_2 TEXT DEFAULT ''`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0`;
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS market_price NUMERIC DEFAULT 0`;
   await db`ALTER TABLE products ALTER COLUMN best_before DROP NOT NULL`;
 }
 
@@ -49,6 +50,7 @@ export async function getAllProducts(): Promise<Product[]> {
     category: String(r.category ?? 'Other'),
     notes: String(r.notes ?? ''),
     price: Number(r.price ?? 0),
+    marketPrice: Number(r.market_price ?? 0),
     photoUrl: String(r.photo_url),
     photoUrl2: String(r.photo_url_2 ?? ''),
     addedAt: String(r.added_at),
@@ -59,8 +61,8 @@ export async function insertProduct(p: Product) {
   await ensureTable();
   const db = getDb();
   await db`
-    INSERT INTO products (id, name, size, best_before, category, notes, price, photo_url, photo_url_2, added_at)
-    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.photoUrl}, ${p.photoUrl2}, ${p.addedAt})
+    INSERT INTO products (id, name, size, best_before, category, notes, price, market_price, photo_url, photo_url_2, added_at)
+    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.marketPrice ?? 0}, ${p.photoUrl}, ${p.photoUrl2}, ${p.addedAt})
   `;
 }
 
@@ -69,12 +71,13 @@ export async function updateProduct(id: string, u: Partial<Product>) {
   const db = getDb();
   await db`
     UPDATE products SET
-      name        = ${u.name ?? ''},
-      size        = ${u.size ?? ''},
-      best_before = ${u.bestBefore || null},
-      category    = ${u.category ?? 'Other'},
-      notes       = ${u.notes ?? ''},
-      price       = ${u.price ?? 0}
+      name         = ${u.name ?? ''},
+      size         = ${u.size ?? ''},
+      best_before  = ${u.bestBefore || null},
+      category     = ${u.category ?? 'Other'},
+      notes        = ${u.notes ?? ''},
+      price        = ${u.price ?? 0},
+      market_price = ${u.marketPrice ?? 0}
     WHERE id = ${id}
   `;
 }
