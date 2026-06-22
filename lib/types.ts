@@ -9,5 +9,6 @@ export interface Product {
   marketPrice: number; // ZAR normal retail price
   photoUrl: string;
   photoUrl2: string;
+  photoUrl3: string;
   addedAt: string; // ISO
 }

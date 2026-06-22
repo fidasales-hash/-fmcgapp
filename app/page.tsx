@@ -107,13 +107,13 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   cartQty: number;
   onUpdateQty: (id: string, qty: number) => void;
 }) {
-  const [showSecond, setShowSecond] = useState(false);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const didSwipe = useRef(false);
 
   const expired = isExpired(product.bestBefore);
-  const hasTwo = Boolean(product.photoUrl2);
-  const activeUrl = showSecond && product.photoUrl2 ? product.photoUrl2 : product.photoUrl;
+  const photos = [product.photoUrl, product.photoUrl2, product.photoUrl3].filter(Boolean) as string[];
+  const activeUrl = photos[photoIndex] ?? product.photoUrl;
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -121,11 +121,11 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
-    if (!hasTwo || touchStartX.current === null) return;
+    if (photos.length < 2 || touchStartX.current === null) return;
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(deltaX) > 40) {
       didSwipe.current = true;
-      setShowSecond(deltaX < 0);
+      setPhotoIndex(i => deltaX < 0 ? Math.min(i + 1, photos.length - 1) : Math.max(i - 1, 0));
     }
     touchStartX.current = null;
   }
@@ -149,15 +149,24 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
         <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>
           {expired ? 'Past Best Before' : 'In Date'}
         </span>
-        {hasTwo && (
-          <button
-            className="photo-arrow"
-            style={{ [showSecond ? 'left' : 'right']: '0.4rem' }}
-            onClick={e => { e.stopPropagation(); setShowSecond(s => !s); }}
-            aria-label={showSecond ? 'Previous photo' : 'Next photo'}
-          >
-            {showSecond ? '‹' : '›'}
-          </button>
+        {photos.length > 1 && (
+          <>
+            {photoIndex > 0 && (
+              <button className="photo-arrow" style={{ left: '0.4rem' }}
+                onClick={e => { e.stopPropagation(); setPhotoIndex(i => i - 1); }}
+                aria-label="Previous photo">‹</button>
+            )}
+            {photoIndex < photos.length - 1 && (
+              <button className="photo-arrow" style={{ right: '0.4rem' }}
+                onClick={e => { e.stopPropagation(); setPhotoIndex(i => i + 1); }}
+                aria-label="Next photo">›</button>
+            )}
+            <div style={{ position: 'absolute', bottom: '0.4rem', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '0.3rem', pointerEvents: 'none' }}>
+              {photos.map((_, i) => (
+                <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === photoIndex ? '#fff' : 'rgba(255,255,255,0.45)' }} />
+              ))}
+            </div>
+          </>
         )}
       </div>
       <div className="card-body">

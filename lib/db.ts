@@ -27,6 +27,7 @@ async function ensureTable() {
     )
   `;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS photo_url_2 TEXT DEFAULT ''`;
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS photo_url_3 TEXT DEFAULT ''`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS market_price NUMERIC DEFAULT 0`;
   await db`ALTER TABLE products ALTER COLUMN best_before DROP NOT NULL`;
@@ -53,6 +54,7 @@ export async function getAllProducts(): Promise<Product[]> {
     marketPrice: Number(r.market_price ?? 0),
     photoUrl: String(r.photo_url),
     photoUrl2: String(r.photo_url_2 ?? ''),
+    photoUrl3: String(r.photo_url_3 ?? ''),
     addedAt: String(r.added_at),
   }));
 }
@@ -61,8 +63,8 @@ export async function insertProduct(p: Product) {
   await ensureTable();
   const db = getDb();
   await db`
-    INSERT INTO products (id, name, size, best_before, category, notes, price, market_price, photo_url, photo_url_2, added_at)
-    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.marketPrice ?? 0}, ${p.photoUrl}, ${p.photoUrl2}, ${p.addedAt})
+    INSERT INTO products (id, name, size, best_before, category, notes, price, market_price, photo_url, photo_url_2, photo_url_3, added_at)
+    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.marketPrice ?? 0}, ${p.photoUrl}, ${p.photoUrl2}, ${p.photoUrl3 ?? ''}, ${p.addedAt})
   `;
 }
 
@@ -82,10 +84,10 @@ export async function updateProduct(id: string, u: Partial<Product>) {
   `;
 }
 
-export async function deleteProduct(id: string): Promise<{ photoUrl: string; photoUrl2: string } | null> {
+export async function deleteProduct(id: string): Promise<{ photoUrl: string; photoUrl2: string; photoUrl3: string } | null> {
   await ensureTable();
   const db = getDb();
-  const rows = await db`DELETE FROM products WHERE id = ${id} RETURNING photo_url, photo_url_2`;
+  const rows = await db`DELETE FROM products WHERE id = ${id} RETURNING photo_url, photo_url_2, photo_url_3`;
   if (!rows[0]) return null;
-  return { photoUrl: String(rows[0].photo_url), photoUrl2: String(rows[0].photo_url_2 ?? '') };
+  return { photoUrl: String(rows[0].photo_url), photoUrl2: String(rows[0].photo_url_2 ?? ''), photoUrl3: String(rows[0].photo_url_3 ?? '') };
 }

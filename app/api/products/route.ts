@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const photo = formData.get('photo') as File | null;
     const photo2 = formData.get('photo2') as File | null;
+    const photo3 = formData.get('photo3') as File | null;
     const name = (formData.get('name') as string | null)?.trim() ?? '';
     const size = (formData.get('size') as string | null)?.trim() ?? '';
     const bestBefore = (formData.get('bestBefore') as string | null) ?? '';
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
 
     const photo1Url = (formData.get('photo1Url') as string | null) ?? '';
     const photo2Url = (formData.get('photo2Url') as string | null) ?? '';
+    const photo3Url = (formData.get('photo3Url') as string | null) ?? '';
 
     if (!photo && !photo1Url) return NextResponse.json({ error: 'Photo required' }, { status: 400 });
     if (!name) return NextResponse.json({ error: 'Product name required' }, { status: 400 });
@@ -78,10 +80,29 @@ export async function POST(req: NextRequest) {
       photoUrl2 = url;
     }
 
+    // Process photo 3 (optional)
+    let photoUrl3 = '';
+    if (photo3Url) {
+      const r = await fetch(photo3Url);
+      if (r.ok) {
+        const processed3 = await processWebImage(Buffer.from(await r.arrayBuffer()));
+        const { url } = await put(`products/${id}_3.jpg`, processed3, {
+          access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,
+        });
+        photoUrl3 = url;
+      }
+    } else if (photo3 && photo3.size > 0) {
+      const processed3 = await processProductImage(Buffer.from(await photo3.arrayBuffer()));
+      const { url } = await put(`products/${id}_3.jpg`, processed3, {
+        access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,
+      });
+      photoUrl3 = url;
+    }
+
     const product = {
       id, name, size, bestBefore,
       category,
-      notes, price, marketPrice, photoUrl, photoUrl2,
+      notes, price, marketPrice, photoUrl, photoUrl2, photoUrl3,
       addedAt: new Date().toISOString(),
     };
 

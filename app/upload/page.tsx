@@ -208,6 +208,7 @@ function ImagePicker({ label, images, selected, onSelect, loading }: {
 export default function UploadPage() {
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
+  const [file3, setFile3] = useState<File | null>(null);
   const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
   const [analyzingCount, setAnalyzingCount] = useState(0);
   const analyzing = analyzingCount > 0;
@@ -222,6 +223,7 @@ export default function UploadPage() {
   const [backImages, setBackImages] = useState<string[]>([]);
   const [selectedFront, setSelectedFront] = useState<string | null>(null);
   const [selectedBack, setSelectedBack] = useState<string | null>(null);
+  const [selectedThird, setSelectedThird] = useState<string | null>(null);
   const [imagesLoading, setImagesLoading] = useState(false);
 
   const [scanning, setScanning] = useState(false);
@@ -369,6 +371,8 @@ export default function UploadPage() {
       else if (file1) { fd.append('photo', await compressImage(file1)); }
       if (selectedBack) { fd.append('photo2Url', selectedBack); }
       else if (file2) { fd.append('photo2', await compressImage(file2)); }
+      if (selectedThird) { fd.append('photo3Url', selectedThird); }
+      else if (file3) { fd.append('photo3', await compressImage(file3)); }
       fd.append('name', form.name);
       fd.append('size', form.size);
       fd.append('bestBefore', form.bestBefore);
@@ -379,10 +383,10 @@ export default function UploadPage() {
       const res = await fetch('/api/products', { method: 'POST', body: fd });
       if (res.ok) {
         setSuccess(true);
-        setFile1(null); setFile2(null);
+        setFile1(null); setFile2(null); setFile3(null);
         setBarcode(''); setBarcodeStatus('idle');
         setFrontImages([]); setBackImages([]);
-        setSelectedFront(null); setSelectedBack(null);
+        setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
         setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
       } else {
         const data = await res.json();
@@ -467,6 +471,13 @@ export default function UploadPage() {
           compact
           analyzing={analyzing}
           onFile={file => { setFile2(file); analyzePhoto(file, true); }}
+        />
+        <CameraSlot
+          label="Photo 3 — extra view (optional)"
+          tapLabel="Tap to open camera"
+          compact
+          analyzing={analyzing}
+          onFile={file => setFile3(file)}
         />
 
         {analyzing && (
