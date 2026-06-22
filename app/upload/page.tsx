@@ -446,7 +446,7 @@ export default function UploadPage() {
             className="btn-primary" style={{ width: '100%', marginBottom: 0 }}>
             {barcodeLoading ? '…' : 'Look Up'}
           </button>
-          {barcodeStatus === 'found' && <p style={{ color: 'var(--green)', fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 600 }}>✓ Product found</p>}
+          {barcodeStatus === 'found' && <p style={{ color: 'var(--green)', fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 600 }}>✓ {form.name || 'Product found'}{form.size ? ` — ${form.size}` : ''}</p>}
           {barcodeStatus === 'notfound' && <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>Not found — fill in manually or take photos below</p>}
         </div>
 
