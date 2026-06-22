@@ -46,10 +46,9 @@ const CATEGORY_MAP: { terms: string[]; category: string }[] = [
 function toMetric(size: string): string {
   if (!size) return size;
   size = size.replace(/-/g, ' ');
-  // fl oz → ml
-  size = size.replace(/(\d+(?:\.\d+)?)\s*fl\.?\s*oz/gi, (_, n) => `${Math.round(parseFloat(n) * 29.574)}ml`);
-  // oz → g (weight)
-  size = size.replace(/(\d+(?:\.\d+)?)\s*oz/gi, (_, n) => `${Math.round(parseFloat(n) * 28.35)}g`);
+  // strip fl oz and oz — US units, unreliable for SA market
+  size = size.replace(/\d+(?:\.\d+)?\s*fl\.?\s*oz/gi, '').trim();
+  size = size.replace(/\d+(?:\.\d+)?\s*oz/gi, '').trim();
   // lb / lbs → g or kg
   size = size.replace(/(\d+(?:\.\d+)?)\s*lbs?/gi, (_, n) => {
     const g = Math.round(parseFloat(n) * 453.592);
@@ -63,7 +62,7 @@ function toMetric(size: string): string {
 }
 
 function extractSizeFromTitle(title: string): string {
-  const m = title.match(/(\d+(?:\.\d+)?)[\s-]*(fl\.?\s*oz|oz|ml|cl|dl|l\b|g\b|kg|lbs?|gal|qt|pints?)/i);
+  const m = title.match(/(\d+(?:\.\d+)?)[\s-]*(ml|cl|dl|l\b|g\b|kg|lbs?|gal|qt|pints?)/i);
   return m ? toMetric(m[0].trim()) : '';
 }
 
