@@ -32,6 +32,11 @@ function toMetric(size: string): string {
   return size;
 }
 
+function extractSizeFromTitle(title: string): string {
+  const m = title.match(/(\d+(?:\.\d+)?)\s*(fl\.?\s*oz|oz|ml|cl|dl|l\b|g\b|kg|lb s?|lbs?|gal|qt|pint s?|pints?)/i);
+  return m ? toMetric(m[0].trim()) : '';
+}
+
 function mapCategory(upcCategory: string): string {
   const c = upcCategory.toLowerCase();
   for (const { terms, category } of CATEGORY_MAP) {
@@ -75,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     if (item) {
       name = item.title ?? '';
-      size = toMetric(item.size ?? '');
+      size = toMetric(item.size ?? '') || extractSizeFromTitle(item.title ?? '');
       category = item.category ? mapCategory(item.category) : 'Other';
 
       const lowestPrice = typeof item.lowest_recorded_price === 'number' ? item.lowest_recorded_price : 0;
