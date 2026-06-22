@@ -173,6 +173,7 @@ export async function POST(req: NextRequest) {
     const size = off?.size || upc?.size || '';
     const category = (off?.category && off.category !== 'Other' ? off.category : upc?.category) ?? 'Other';
 
+    const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
     const upcImages = upc?.images ?? [];
     const frontImages = off?.frontImage ? [off.frontImage] : upcImages.length ? upcImages : await bingImages(`${searchTerm} product`);
     const backImages = off?.backImage ? [off.backImage] : [];
