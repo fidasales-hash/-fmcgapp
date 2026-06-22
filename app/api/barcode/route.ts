@@ -92,7 +92,7 @@ async function lookupOpenFoodFacts(barcode: string): Promise<ProductInfo | null>
   return null;
 }
 
-async function lookupUPC(barcode: string): Promise<{ name: string; size: string; category: string; marketPrice: number; images: string[] } | null> {
+async function lookupUPC(barcode: string): Promise<{ name: string; size: string; category: string; images: string[] } | null> {
   try {
     const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(barcode)}`);
     const data = await res.json();
@@ -101,21 +101,30 @@ async function lookupUPC(barcode: string): Promise<{ name: string; size: string;
     const name = item.title ?? '';
     const size = toMetric(item.size ?? '') || extractSizeFromTitle(name);
     const category = item.category ? mapCategory(item.category) : 'Other';
-    let marketPrice = 0;
-    const lowestPrice = typeof item.lowest_recorded_price === 'number' ? item.lowest_recorded_price : 0;
-    if (lowestPrice > 0) {
-      try {
-        const fxRes = await fetch('https://api.frankfurter.app/latest?from=USD&to=ZAR');
-        if (fxRes.ok) {
-          const fxData = await fxRes.json();
-          const rate = fxData.rates?.ZAR;
-          if (rate) marketPrice = Math.round(lowestPrice * rate);
-        }
-      } catch { /* price stays 0 */ }
-    }
     const images: string[] = Array.isArray(item.images) ? item.images : [];
-    return { name, size, category, marketPrice, images };
+    return { name, size, category, images };
   } catch { return null; }
+}
+
+const SA_RETAIL_DOMAINS = ['checkers.co.za', 'pnp.co.za', 'woolworths.co.za', 'shoprite.co.za', 'makro.co.za', 'spar.co.za', 'takealot.com'];
+
+async function lookupTavilyPrice(query: string): Promise<number> {
+  if (!process.env.TAVILY_API_KEY) return 0;
+  try {
+    const res = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: process.env.TAVILY_API_KEY, query, search_depth: 'basic', max_results: 5, include_domains: SA_RETAIL_DOMAINS }),
+    });
+    const data = await res.json();
+    const content = (data.results ?? []).map((r: { content: string }) => r.content).join(' ');
+    const prices = [...content.matchAll(/R\s*(\d+(?:[.,]\d{1,2})?)/gi)]
+      .map(m => parseFloat(m[1].replace(',', '.')))
+      .filter(p => p >= 1 && p < 10000);
+    if (!prices.length) return 0;
+    prices.sort((a, b) => a - b);
+    return prices[Math.floor(prices.length / 2)];
+  } catch { return 0; }
 }
 
 export async function POST(req: NextRequest) {
@@ -131,13 +140,12 @@ export async function POST(req: NextRequest) {
 
     const found = !!(upc || off);
 
-    // Merge: OFF for name/size/category (better global coverage), UPC for price
     const name = off?.name || upc?.name || '';
     const size = off?.size || upc?.size || '';
     const category = (off?.category && off.category !== 'Other' ? off.category : upc?.category) ?? 'Other';
-    const marketPrice = upc?.marketPrice ?? 0;
 
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
+    const marketPrice = name ? await lookupTavilyPrice(searchTerm) : 0;
     const upcImages = upc?.images ?? [];
     const frontImages = off?.frontImage ? [off.frontImage] : upcImages.length ? upcImages : await bingImages(`${searchTerm} product`);
     const backImages = off?.backImage ? [off.backImage] : [];
