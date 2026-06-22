@@ -378,6 +378,17 @@ export default function UploadPage() {
     setAnalyzingCount(c => c - 1);
   }
 
+  function clearForm() {
+    setFile1(null); setFile2(null); setFile3(null);
+    setBarcode(''); setBarcodeStatus('idle'); setBarcodeLoading(false);
+    setFrontImages([]); setBackImages([]);
+    setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
+    setImagesLoading(false);
+    setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
+    setError('');
+    stopScan();
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -429,7 +440,10 @@ export default function UploadPage() {
 
   return (
     <main className="upload-page">
-      <h1>Add Product</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+        <h1 style={{ margin: 0 }}>Add Product</h1>
+        <button type="button" onClick={clearForm} style={{ background: 'none', border: '1.5px solid var(--muted)', borderRadius: 8, padding: '0.35rem 0.85rem', fontSize: '0.85rem', color: 'var(--muted)', cursor: 'pointer', fontWeight: 600 }}>Clear</button>
+      </div>
       <form onSubmit={handleSubmit}>
 
         {/* Barcode scanner overlay */}
