@@ -14,6 +14,24 @@ const CATEGORY_MAP: { terms: string[]; category: string }[] = [
   { terms: ['electronic', 'tech', 'battery', 'cable', 'charger', 'headphone', 'earphone'], category: 'Electronics' },
 ];
 
+function toMetric(size: string): string {
+  if (!size) return size;
+  // fl oz → ml
+  size = size.replace(/(\d+(?:\.\d+)?)\s*fl\.?\s*oz/gi, (_, n) => `${Math.round(parseFloat(n) * 29.574)}ml`);
+  // oz → g (weight)
+  size = size.replace(/(\d+(?:\.\d+)?)\s*oz/gi, (_, n) => `${Math.round(parseFloat(n) * 28.35)}g`);
+  // lb / lbs → g or kg
+  size = size.replace(/(\d+(?:\.\d+)?)\s*lbs?/gi, (_, n) => {
+    const g = Math.round(parseFloat(n) * 453.592);
+    return g >= 1000 ? `${(g / 1000).toFixed(2).replace(/\.?0+$/, '')}kg` : `${g}g`;
+  });
+  // qt → ml
+  size = size.replace(/(\d+(?:\.\d+)?)\s*qt/gi, (_, n) => `${Math.round(parseFloat(n) * 946)}ml`);
+  // gal → L
+  size = size.replace(/(\d+(?:\.\d+)?)\s*gal/gi, (_, n) => `${parseFloat((parseFloat(n) * 3.785).toFixed(1))}L`);
+  return size;
+}
+
 function mapCategory(upcCategory: string): string {
   const c = upcCategory.toLowerCase();
   for (const { terms, category } of CATEGORY_MAP) {
@@ -57,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     if (item) {
       name = item.title ?? '';
-      size = item.size ?? '';
+      size = toMetric(item.size ?? '');
       category = item.category ? mapCategory(item.category) : 'Other';
 
       const lowestPrice = typeof item.lowest_recorded_price === 'number' ? item.lowest_recorded_price : 0;
