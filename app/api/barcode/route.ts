@@ -33,7 +33,7 @@ function toMetric(size: string): string {
 }
 
 function extractSizeFromTitle(title: string): string {
-  const m = title.match(/(\d+(?:\.\d+)?)\s*(fl\.?\s*oz|oz|ml|cl|dl|l\b|g\b|kg|lb s?|lbs?|gal|qt|pint s?|pints?)/i);
+  const m = title.match(/(\d+(?:\.\d+)?)[\s-]*(fl\.?\s*oz|oz|ml|cl|dl|l\b|g\b|kg|lbs?|gal|qt|pints?)/i);
   return m ? toMetric(m[0].trim()) : '';
 }
 
