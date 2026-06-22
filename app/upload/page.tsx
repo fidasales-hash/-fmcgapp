@@ -179,8 +179,8 @@ function CameraSlot({
 
 const MIN_IMAGE_PX = 500;
 
-function ImagePicker({ label, images, selected, onSelect, loading }: {
-  label: string; images: string[]; selected: string | null; onSelect: (url: string | null) => void; loading?: boolean;
+function ImagePicker({ label, subtitle, images, selected, onSelect, loading }: {
+  label: string; subtitle?: string; images: string[]; selected: string | null; onSelect: (url: string | null) => void; loading?: boolean;
 }) {
   const [approved, setApproved] = useState<string[]>([]);
 
@@ -207,7 +207,8 @@ function ImagePicker({ label, images, selected, onSelect, loading }: {
   if (!approved.length) return null;
   return (
     <div style={{ marginBottom: '1rem' }}>
-      <p className="field-label" style={{ marginBottom: '0.4rem' }}>{label}</p>
+      <p className="field-label" style={{ marginBottom: subtitle ? '0.1rem' : '0.4rem' }}>{label}</p>
+      {subtitle && <p style={{ fontSize: '0.78rem', color: 'var(--muted)', margin: '0 0 0.4rem' }}>{subtitle}</p>}
       <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
         {approved.map((url, i) => (
           <img key={i} src={url} alt={`option ${i + 1}`} onClick={() => onSelect(selected === url ? null : url)}
@@ -241,6 +242,9 @@ export default function UploadPage() {
   const [offImgs, setOffImgs] = useState<string[]>([]);
   const [upcImgs, setUpcImgs] = useState<string[]>([]);
   const [backImages, setBackImages] = useState<string[]>([]);
+  const [serperSourceName, setSerperSourceName] = useState('');
+  const [offSourceName, setOffSourceName] = useState('');
+  const [upcSourceName, setUpcSourceName] = useState('');
   const [selectedFront, setSelectedFront] = useState<string | null>(null);
   const [selectedBack, setSelectedBack] = useState<string | null>(null);
   const [selectedThird, setSelectedThird] = useState<string | null>(null);
@@ -321,9 +325,13 @@ export default function UploadPage() {
             marketPrice: data.marketPrice ? String(data.marketPrice) : prev.marketPrice,
           }));
         }
-        setSerperImgs(data.serperImages ?? []);
-        setOffImgs(data.offImages ?? []);
-        setUpcImgs(data.upcImages ?? []);
+        const s = data.sources ?? {};
+        setSerperImgs(s.serper?.images ?? []);
+        setOffImgs(s.off?.images ?? []);
+        setUpcImgs(s.upc?.images ?? []);
+        setSerperSourceName(s.serper?.name ?? '');
+        setOffSourceName([s.off?.name, s.off?.size].filter(Boolean).join(' '));
+        setUpcSourceName([s.upc?.name, s.upc?.size].filter(Boolean).join(' '));
         if (data.backImages?.length) setBackImages(data.backImages);
       }
     } catch { /* silent */ }
@@ -386,6 +394,7 @@ export default function UploadPage() {
     setFile1(null); setFile2(null); setFile3(null);
     setBarcode(''); setBarcodeStatus('idle'); setBarcodeLoading(false);
     setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
+    setSerperSourceName(''); setOffSourceName(''); setUpcSourceName('');
     setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
     setImagesLoading(false);
     setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
@@ -419,6 +428,7 @@ export default function UploadPage() {
         setFile1(null); setFile2(null); setFile3(null);
         setBarcode(''); setBarcodeStatus('idle');
         setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
+        setSerperSourceName(''); setOffSourceName(''); setUpcSourceName('');
         setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
         setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
       } else {
@@ -491,9 +501,9 @@ export default function UploadPage() {
         </div>
 
         {/* Image source comparison — tap any image to select it as the front photo */}
-        <ImagePicker label="Google Images (Serper)" images={serperImgs} selected={selectedFront} onSelect={setSelectedFront} loading={imagesLoading} />
-        <ImagePicker label="Open Food Facts" images={offImgs} selected={selectedFront} onSelect={setSelectedFront} />
-        <ImagePicker label="UPCitemdb" images={upcImgs} selected={selectedFront} onSelect={setSelectedFront} />
+        <ImagePicker label="Google Images (Serper)" subtitle={serperSourceName || undefined} images={serperImgs} selected={selectedFront} onSelect={setSelectedFront} loading={imagesLoading} />
+        <ImagePicker label="Open Food Facts" subtitle={offSourceName || undefined} images={offImgs} selected={selectedFront} onSelect={setSelectedFront} />
+        <ImagePicker label="UPCitemdb" subtitle={upcSourceName || undefined} images={upcImgs} selected={selectedFront} onSelect={setSelectedFront} />
         <ImagePicker label="Back label — tap to select (optional)" images={backImages} selected={selectedBack} onSelect={setSelectedBack} />
 
         {/* Camera slots */}

@@ -74,9 +74,8 @@ function mapCategory(upcCategory: string): string {
   return 'Other';
 }
 
-// Google Images via Serper. Returns [] when SERPER_API_KEY is unset, so the
-// feature stays dormant (no errors) until a key is added in the environment.
-async function serperImages(query: string): Promise<string[]> {
+// Google Images via Serper. Returns [] when SERPER_API_KEY is unset.
+async function serperSearch(query: string): Promise<{ imageUrl: string; title: string }[]> {
   const key = process.env.SERPER_API_KEY;
   if (!key) return [];
   try {
@@ -86,8 +85,17 @@ async function serperImages(query: string): Promise<string[]> {
       body: JSON.stringify({ q: query, num: 10 }),
     });
     const d = await r.json();
-    return ((d.images ?? []) as { imageUrl: string }[]).map(i => i.imageUrl).filter(Boolean);
+    return ((d.images ?? []) as { imageUrl: string; title: string }[])
+      .map(i => ({ imageUrl: i.imageUrl || '', title: i.title || '' }))
+      .filter(i => i.imageUrl);
   } catch { return []; }
+}
+
+// Strip site-name suffixes from Serper page titles to get a clean product name
+function parseSerperName(items: { title: string }[]): string {
+  if (!items.length) return '';
+  const t = items[0].title;
+  return t.replace(/\s*[-|:–]\s*(checkers|pnp|pick n pay|woolworths|shoprite|clicks|dis.?chem|takealot|makro|spar|amazon|walmart|target|google|bing|yahoo|www\.|\.(co|com|za)).*$/i, '').trim();
 }
 
 interface ProductInfo { name: string; size: string; category: string; frontImage?: string; backImage?: string; }
@@ -180,21 +188,26 @@ export async function POST(req: NextRequest) {
     const imageUrl = off?.frontImage || upcImages[0] || '';
 
     // All three run in parallel — Serper always fires (not just as fallback)
-    const [serperImgs, marketPrice, groq] = await Promise.all([
-      serperImages(`${searchTerm} product`),
+    const [serperResults, marketPrice, groq] = await Promise.all([
+      serperSearch(`${searchTerm} product`),
       name ? lookupTavilyPrice(searchTerm) : Promise.resolve(0),
       imageUrl ? analyzeImageUrl(imageUrl) : Promise.resolve({ name: '', size: '', category: '' }),
     ]);
 
-    const finalName = name || groq.name;
+    const serperName = parseSerperName(serperResults);
+    const serperImageUrls = serperResults.map(r => r.imageUrl);
+
+    const finalName = name || serperName || groq.name;
     const finalSize = size || groq.size;
     const finalCategory = (category && category !== 'Other') ? category : (groq.category || 'Other');
 
     return NextResponse.json({
       found, name: finalName, size: finalSize, category: finalCategory, marketPrice,
-      serperImages: serperImgs,
-      offImages,
-      upcImages,
+      sources: {
+        serper: { name: serperName, images: serperImageUrls },
+        off: { name: off?.name || '', size: off?.size || '', category: off?.category || '', images: offImages },
+        upc: { name: upc?.name || '', size: upc?.size || '', category: upc?.category || '', images: upcImages },
+      },
       backImages: off?.backImage ? [off.backImage] : [],
     });
   } catch (e) {
