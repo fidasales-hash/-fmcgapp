@@ -54,13 +54,13 @@ async function tavilyImages(query: string): Promise<string[]> {
       body: JSON.stringify({
         api_key: process.env.TAVILY_API_KEY,
         query,
-        search_depth: 'basic',
-        max_results: 5,
+        search_depth: 'advanced',
+        max_results: 10,
         include_images: true,
       }),
     });
     const d = await r.json();
-    return ((d.images ?? []) as string[]).slice(0, 6);
+    return ((d.images ?? []) as string[]).slice(0, 12);
   } catch { return []; }
 }
 
