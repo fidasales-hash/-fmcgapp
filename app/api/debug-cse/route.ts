@@ -26,5 +26,7 @@ export async function GET() {
     error: d.error ?? null,
     itemCount: d.items?.length ?? 0,
     firstImage: d.items?.[0]?.link ?? null,
+    keyInUse: key,
+    cxInUse: cx,
   });
 }
