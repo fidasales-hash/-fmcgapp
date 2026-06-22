@@ -428,15 +428,15 @@ export default function UploadPage() {
         {/* Barcode input */}
         <div style={{ marginBottom: '1.25rem' }}>
           <label className="field-label">Barcode</label>
+          {scanSupported && (
+            <button type="button" onClick={startScan} disabled={barcodeLoading} className="btn-primary"
+              style={{ width: '100%', marginBottom: '0.5rem' }}>
+              📷 Scan Barcode
+            </button>
+          )}
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {scanSupported && (
-              <button type="button" onClick={startScan} disabled={barcodeLoading} className="btn-primary"
-                style={{ marginBottom: 0, whiteSpace: 'nowrap', padding: '0 1rem', background: 'var(--primary)' }}>
-                📷 Scan
-              </button>
-            )}
             <input
-              type="text" inputMode="numeric" placeholder="or type barcode"
+              type="text" inputMode="numeric" placeholder="or type barcode number"
               value={barcode}
               onChange={e => setBarcode(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookupBarcodeCode(barcode.trim()); } }}
