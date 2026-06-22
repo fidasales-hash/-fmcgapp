@@ -48,7 +48,7 @@ function mapCategory(upcCategory: string): string {
 async function googleImages(query: string): Promise<string[]> {
   const key = process.env.GOOGLE_CSE_API_KEY;
   const cx = process.env.GOOGLE_CSE_CX;
-  if (!key || !cx) return [];
+  if (!key || !cx) { console.error('googleImages: missing GOOGLE_CSE_API_KEY or GOOGLE_CSE_CX'); return []; }
   try {
     const url = new URL('https://www.googleapis.com/customsearch/v1');
     url.searchParams.set('key', key);
@@ -59,8 +59,9 @@ async function googleImages(query: string): Promise<string[]> {
     url.searchParams.set('imgSize', 'large');
     const r = await fetch(url.toString());
     const d = await r.json();
+    if (d.error) console.error('googleImages error:', JSON.stringify(d.error));
     return ((d.items ?? []) as { link: string }[]).map(i => i.link);
-  } catch { return []; }
+  } catch (e) { console.error('googleImages fetch error:', e); return []; }
 }
 
 interface ProductInfo { name: string; size: string; category: string; }
