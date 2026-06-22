@@ -434,20 +434,18 @@ export default function UploadPage() {
               📷 Scan Barcode
             </button>
           )}
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input
-              type="text" inputMode="numeric" placeholder="or type barcode number"
-              value={barcode}
-              onChange={e => setBarcode(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookupBarcodeCode(barcode.trim()); } }}
-              className="field" style={{ marginBottom: 0, flex: 1 }}
-              disabled={barcodeLoading}
-            />
-            <button type="button" onClick={() => lookupBarcodeCode(barcode.trim())} disabled={!barcode.trim() || barcodeLoading}
-              className="btn-primary" style={{ marginBottom: 0, whiteSpace: 'nowrap', padding: '0 1rem' }}>
-              {barcodeLoading ? '…' : 'Go'}
-            </button>
-          </div>
+          <input
+            type="text" inputMode="numeric" placeholder="or type barcode number"
+            value={barcode}
+            onChange={e => setBarcode(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookupBarcodeCode(barcode.trim()); } }}
+            className="field" style={{ marginBottom: '0.5rem' }}
+            disabled={barcodeLoading}
+          />
+          <button type="button" onClick={() => lookupBarcodeCode(barcode.trim())} disabled={!barcode.trim() || barcodeLoading}
+            className="btn-primary" style={{ width: '100%', marginBottom: 0 }}>
+            {barcodeLoading ? '…' : 'Look Up'}
+          </button>
           {barcodeStatus === 'found' && <p style={{ color: 'var(--green)', fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 600 }}>✓ Product found</p>}
           {barcodeStatus === 'notfound' && <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>Not found — fill in manually or take photos below</p>}
         </div>
