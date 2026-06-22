@@ -93,51 +93,49 @@ async function lookupOpenFoodFacts(barcode: string): Promise<ProductInfo | null>
   return null;
 }
 
+async function lookupUPC(barcode: string): Promise<{ name: string; size: string; category: string; marketPrice: number } | null> {
+  try {
+    const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(barcode)}`);
+    const data = await res.json();
+    const item = data.items?.[0];
+    if (!item) return null;
+    const name = item.title ?? '';
+    const size = toMetric(item.size ?? '') || extractSizeFromTitle(name);
+    const category = item.category ? mapCategory(item.category) : 'Other';
+    let marketPrice = 0;
+    const lowestPrice = typeof item.lowest_recorded_price === 'number' ? item.lowest_recorded_price : 0;
+    if (lowestPrice > 0) {
+      try {
+        const fxRes = await fetch('https://api.frankfurter.app/latest?from=USD&to=ZAR');
+        if (fxRes.ok) {
+          const fxData = await fxRes.json();
+          const rate = fxData.rates?.ZAR;
+          if (rate) marketPrice = Math.round(lowestPrice * rate);
+        }
+      } catch { /* price stays 0 */ }
+    }
+    return { name, size, category, marketPrice };
+  } catch { return null; }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { barcode } = await req.json();
     if (!barcode) return NextResponse.json({ error: 'No barcode' }, { status: 400 });
 
-    let name = '';
-    let size = '';
-    let category = 'Other';
-    let marketPrice = 0;
-    let found = false;
+    // Query UPC and Open Food Facts family in parallel
+    const [upc, off] = await Promise.all([
+      lookupUPC(String(barcode)),
+      lookupOpenFoodFacts(String(barcode)),
+    ]);
 
-    // 1. UPC Item DB
-    const upcRes = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(String(barcode))}`);
-    const upcData = await upcRes.json();
-    const item = upcData.items?.[0];
+    const found = !!(upc || off);
 
-    if (item) {
-      found = true;
-      name = item.title ?? '';
-      size = toMetric(item.size ?? '') || extractSizeFromTitle(item.title ?? '');
-      category = item.category ? mapCategory(item.category) : 'Other';
-
-      const lowestPrice = typeof item.lowest_recorded_price === 'number' ? item.lowest_recorded_price : 0;
-      if (lowestPrice > 0) {
-        try {
-          const fxRes = await fetch('https://api.frankfurter.app/latest?from=USD&to=ZAR');
-          if (fxRes.ok) {
-            const fxData = await fxRes.json();
-            const rate = fxData.rates?.ZAR;
-            if (rate) marketPrice = Math.round(lowestPrice * rate);
-          }
-        } catch { /* price stays 0 */ }
-      }
-    }
-
-    // 2. Open Food Facts family fallback
-    if (!found) {
-      const off = await lookupOpenFoodFacts(barcode);
-      if (off) {
-        found = true;
-        name = off.name;
-        size = off.size;
-        category = off.category;
-      }
-    }
+    // Merge: OFF for name/size/category (better global coverage), UPC for price
+    const name = off?.name || upc?.name || '';
+    const size = off?.size || upc?.size || '';
+    const category = (off?.category !== 'Other' ? off?.category : upc?.category) ?? 'Other';
+    const marketPrice = upc?.marketPrice ?? 0;
 
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
     const [frontImages, backImages] = await Promise.all([
