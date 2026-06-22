@@ -237,7 +237,9 @@ export default function UploadPage() {
   const [barcode, setBarcode] = useState('');
   const [barcodeLoading, setBarcodeLoading] = useState(false);
   const [barcodeStatus, setBarcodeStatus] = useState<'idle' | 'found' | 'notfound'>('idle');
-  const [frontImages, setFrontImages] = useState<string[]>([]);
+  const [serperImgs, setSerperImgs] = useState<string[]>([]);
+  const [offImgs, setOffImgs] = useState<string[]>([]);
+  const [upcImgs, setUpcImgs] = useState<string[]>([]);
   const [backImages, setBackImages] = useState<string[]>([]);
   const [selectedFront, setSelectedFront] = useState<string | null>(null);
   const [selectedBack, setSelectedBack] = useState<string | null>(null);
@@ -299,7 +301,7 @@ export default function UploadPage() {
     if (!code) return;
     setBarcodeLoading(true);
     setBarcodeStatus('idle');
-    setFrontImages([]); setBackImages([]);
+    setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
     setSelectedFront(null); setSelectedBack(null);
     try {
       const res = await fetch('/api/barcode', {
@@ -319,7 +321,9 @@ export default function UploadPage() {
             marketPrice: data.marketPrice ? String(data.marketPrice) : prev.marketPrice,
           }));
         }
-        if (data.frontImages?.length) setFrontImages(data.frontImages);
+        setSerperImgs(data.serperImages ?? []);
+        setOffImgs(data.offImages ?? []);
+        setUpcImgs(data.upcImages ?? []);
         if (data.backImages?.length) setBackImages(data.backImages);
       }
     } catch { /* silent */ }
@@ -327,7 +331,7 @@ export default function UploadPage() {
   }
 
   async function fetchImages(name: string, size: string) {
-    if (!name || frontImages.length) return;
+    if (!name || serperImgs.length) return;
     setImagesLoading(true);
     try {
       const res = await fetch('/api/images', {
@@ -337,7 +341,7 @@ export default function UploadPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.frontImages?.length) setFrontImages(data.frontImages);
+        if (data.frontImages?.length) setSerperImgs(data.frontImages);
         if (data.backImages?.length) setBackImages(data.backImages);
       }
     } catch { /* silent */ }
@@ -381,7 +385,7 @@ export default function UploadPage() {
   function clearForm() {
     setFile1(null); setFile2(null); setFile3(null);
     setBarcode(''); setBarcodeStatus('idle'); setBarcodeLoading(false);
-    setFrontImages([]); setBackImages([]);
+    setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
     setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
     setImagesLoading(false);
     setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
@@ -414,7 +418,7 @@ export default function UploadPage() {
         setSuccess(true);
         setFile1(null); setFile2(null); setFile3(null);
         setBarcode(''); setBarcodeStatus('idle');
-        setFrontImages([]); setBackImages([]);
+        setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
         setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
         setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
       } else {
@@ -486,13 +490,15 @@ export default function UploadPage() {
           {barcodeStatus === 'notfound' && <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>Not found — fill in manually or take photos below</p>}
         </div>
 
-        {/* Online image pickers */}
-        <ImagePicker label="Front image — tap to select" images={frontImages} selected={selectedFront} onSelect={setSelectedFront} loading={imagesLoading} />
+        {/* Image source comparison — tap any image to select it as the front photo */}
+        <ImagePicker label="Google Images (Serper)" images={serperImgs} selected={selectedFront} onSelect={setSelectedFront} loading={imagesLoading} />
+        <ImagePicker label="Open Food Facts" images={offImgs} selected={selectedFront} onSelect={setSelectedFront} />
+        <ImagePicker label="UPCitemdb" images={upcImgs} selected={selectedFront} onSelect={setSelectedFront} />
         <ImagePicker label="Back label — tap to select (optional)" images={backImages} selected={selectedBack} onSelect={setSelectedBack} />
 
         {/* Camera slots */}
         <CameraSlot
-          label={frontImages.length ? 'Or take your own front photo *' : 'Photo 1 — front *'}
+          label={serperImgs.length || offImgs.length || upcImgs.length ? 'Or take your own front photo *' : 'Photo 1 — front *'}
           tapLabel="Tap to open camera"
           analyzing={analyzing}
           onFile={file => { setFile1(file); analyzePhoto(file); }}

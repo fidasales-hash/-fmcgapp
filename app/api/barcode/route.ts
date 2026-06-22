@@ -174,14 +174,14 @@ export async function POST(req: NextRequest) {
     const category = (off?.category && off.category !== 'Other' ? off.category : upc?.category) ?? 'Other';
 
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
-    // UPCitemdb images dropped — its crowdsourced/US data often returns the wrong
-    // product for SA barcodes. Use only the barcode-exact Open Food Facts image,
-    // else fall back to a name search via Serper.
-    const frontImages = off?.frontImage ? [off.frontImage] : await serperImages(`${searchTerm} product`);
-    const backImages = off?.backImage ? [off.backImage] : [];
 
-    const imageUrl = frontImages[0] ?? '';
-    const [marketPrice, groq] = await Promise.all([
+    const offImages = off?.frontImage ? [off.frontImage] : [];
+    const upcImages = upc?.images ?? [];
+    const imageUrl = off?.frontImage || upcImages[0] || '';
+
+    // All three run in parallel — Serper always fires (not just as fallback)
+    const [serperImgs, marketPrice, groq] = await Promise.all([
+      serperImages(`${searchTerm} product`),
       name ? lookupTavilyPrice(searchTerm) : Promise.resolve(0),
       imageUrl ? analyzeImageUrl(imageUrl) : Promise.resolve({ name: '', size: '', category: '' }),
     ]);
@@ -190,7 +190,13 @@ export async function POST(req: NextRequest) {
     const finalSize = size || groq.size;
     const finalCategory = (category && category !== 'Other') ? category : (groq.category || 'Other');
 
-    return NextResponse.json({ found, name: finalName, size: finalSize, category: finalCategory, marketPrice, frontImages, backImages });
+    return NextResponse.json({
+      found, name: finalName, size: finalSize, category: finalCategory, marketPrice,
+      serperImages: serperImgs,
+      offImages,
+      upcImages,
+      backImages: off?.backImage ? [off.backImage] : [],
+    });
   } catch (e) {
     console.error('barcode error:', e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
