@@ -45,26 +45,22 @@ function mapCategory(upcCategory: string): string {
   return 'Other';
 }
 
-async function googleImages(query: string): Promise<string[]> {
-  const key = process.env.GOOGLE_CSE_API_KEY;
-  const cx = process.env.GOOGLE_CSE_CX;
-  if (!key || !cx) { console.error('googleImages: missing GOOGLE_CSE_API_KEY or GOOGLE_CSE_CX'); return []; }
+async function bingImages(query: string): Promise<string[]> {
+  const key = process.env.BING_IMAGE_SEARCH_KEY;
+  if (!key) return [];
   try {
-    const url = new URL('https://www.googleapis.com/customsearch/v1');
-    url.searchParams.set('key', key);
-    url.searchParams.set('cx', cx);
+    const url = new URL('https://api.bing.microsoft.com/v7.0/images/search');
     url.searchParams.set('q', query);
-    url.searchParams.set('searchType', 'image');
-    url.searchParams.set('num', '10');
-    url.searchParams.set('imgSize', 'large');
-    const r = await fetch(url.toString());
+    url.searchParams.set('count', '10');
+    url.searchParams.set('imageType', 'Photo');
+    url.searchParams.set('size', 'Large');
+    const r = await fetch(url.toString(), { headers: { 'Ocp-Apim-Subscription-Key': key } });
     const d = await r.json();
-    if (d.error) console.error('googleImages error:', JSON.stringify(d.error));
-    return ((d.items ?? []) as { link: string }[]).map(i => i.link);
-  } catch (e) { console.error('googleImages fetch error:', e); return []; }
+    return ((d.value ?? []) as { contentUrl: string }[]).map(i => i.contentUrl);
+  } catch { return []; }
 }
 
-interface ProductInfo { name: string; size: string; category: string; }
+interface ProductInfo { name: string; size: string; category: string; frontImage?: string; backImage?: string; }
 
 async function lookupOpenFoodFacts(barcode: string): Promise<ProductInfo | null> {
   const hosts = [
@@ -87,7 +83,9 @@ async function lookupOpenFoodFacts(barcode: string): Promise<ProductInfo | null>
       const size = toMetric(p.quantity || '');
       const catRaw = (p.categories_tags ?? []).join(' ');
       const category = mapCategory(catRaw);
-      if (name) return { name, size, category };
+      const frontImage: string = p.image_front_url || p.image_url || '';
+      const backImage: string = p.image_back_url || '';
+      if (name) return { name, size, category, frontImage, backImage };
     }
   }
   return null;
@@ -138,10 +136,8 @@ export async function POST(req: NextRequest) {
     const marketPrice = upc?.marketPrice ?? 0;
 
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
-    const [frontImages, backImages] = await Promise.all([
-      googleImages(`${searchTerm} product`),
-      googleImages(`${searchTerm} back label`),
-    ]);
+    const frontImages = off?.frontImage ? [off.frontImage] : await bingImages(`${searchTerm} product`);
+    const backImages = off?.backImage ? [off.backImage] : await bingImages(`${searchTerm} back label`);
 
     return NextResponse.json({ found, name, size, category, marketPrice, frontImages, backImages });
   } catch (e) {

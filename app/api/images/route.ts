@@ -2,21 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-async function googleImages(query: string): Promise<string[]> {
-  const key = process.env.GOOGLE_CSE_API_KEY;
-  const cx = process.env.GOOGLE_CSE_CX;
-  if (!key || !cx) return [];
+async function bingImages(query: string): Promise<string[]> {
+  const key = process.env.BING_IMAGE_SEARCH_KEY;
+  if (!key) return [];
   try {
-    const url = new URL('https://www.googleapis.com/customsearch/v1');
-    url.searchParams.set('key', key);
-    url.searchParams.set('cx', cx);
+    const url = new URL('https://api.bing.microsoft.com/v7.0/images/search');
     url.searchParams.set('q', query);
-    url.searchParams.set('searchType', 'image');
-    url.searchParams.set('num', '10');
-    url.searchParams.set('imgSize', 'large');
-    const r = await fetch(url.toString());
+    url.searchParams.set('count', '10');
+    url.searchParams.set('imageType', 'Photo');
+    url.searchParams.set('size', 'Large');
+    const r = await fetch(url.toString(), { headers: { 'Ocp-Apim-Subscription-Key': key } });
     const d = await r.json();
-    return ((d.items ?? []) as { link: string }[]).map(i => i.link);
+    return ((d.value ?? []) as { contentUrl: string }[]).map(i => i.contentUrl);
   } catch { return []; }
 }
 
@@ -27,8 +24,8 @@ export async function POST(req: NextRequest) {
 
     const term = `${name}${size ? ' ' + size : ''}`;
     const [frontImages, backImages] = await Promise.all([
-      googleImages(`${term} product`),
-      googleImages(`${term} back label`),
+      bingImages(`${term} product`),
+      bingImages(`${term} back label`),
     ]);
 
     return NextResponse.json({ frontImages, backImages });
