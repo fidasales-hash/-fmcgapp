@@ -91,7 +91,7 @@ async function lookupOpenFoodFacts(barcode: string): Promise<ProductInfo | null>
   return null;
 }
 
-async function lookupUPC(barcode: string): Promise<{ name: string; size: string; category: string; marketPrice: number } | null> {
+async function lookupUPC(barcode: string): Promise<{ name: string; size: string; category: string; marketPrice: number; images: string[] } | null> {
   try {
     const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(barcode)}`);
     const data = await res.json();
@@ -112,7 +112,8 @@ async function lookupUPC(barcode: string): Promise<{ name: string; size: string;
         }
       } catch { /* price stays 0 */ }
     }
-    return { name, size, category, marketPrice };
+    const images: string[] = Array.isArray(item.images) ? item.images : [];
+    return { name, size, category, marketPrice, images };
   } catch { return null; }
 }
 
@@ -136,8 +137,9 @@ export async function POST(req: NextRequest) {
     const marketPrice = upc?.marketPrice ?? 0;
 
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
-    const frontImages = off?.frontImage ? [off.frontImage] : await bingImages(`${searchTerm} product`);
-    const backImages = off?.backImage ? [off.backImage] : await bingImages(`${searchTerm} back label`);
+    const upcImages = upc?.images ?? [];
+    const frontImages = off?.frontImage ? [off.frontImage] : upcImages.length ? upcImages : await bingImages(`${searchTerm} product`);
+    const backImages = off?.backImage ? [off.backImage] : [];
 
     return NextResponse.json({ found, name, size, category, marketPrice, frontImages, backImages });
   } catch (e) {
