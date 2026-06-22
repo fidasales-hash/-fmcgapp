@@ -16,6 +16,7 @@ const CATEGORY_MAP: { terms: string[]; category: string }[] = [
 
 function toMetric(size: string): string {
   if (!size) return size;
+  size = size.replace(/-/g, ' ');
   // fl oz → ml
   size = size.replace(/(\d+(?:\.\d+)?)\s*fl\.?\s*oz/gi, (_, n) => `${Math.round(parseFloat(n) * 29.574)}ml`);
   // oz → g (weight)
