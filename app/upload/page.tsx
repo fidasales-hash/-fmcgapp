@@ -177,9 +177,26 @@ function CameraSlot({
   );
 }
 
+const MIN_IMAGE_PX = 500;
+
 function ImagePicker({ label, images, selected, onSelect, loading }: {
   label: string; images: string[]; selected: string | null; onSelect: (url: string | null) => void; loading?: boolean;
 }) {
+  const [approved, setApproved] = useState<string[]>([]);
+
+  useEffect(() => {
+    setApproved([]);
+    images.forEach(url => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.naturalWidth >= MIN_IMAGE_PX || img.naturalHeight >= MIN_IMAGE_PX) {
+          setApproved(prev => prev.includes(url) ? prev : [...prev, url]);
+        }
+      };
+      img.src = url;
+    });
+  }, [images]);
+
   if (loading) return (
     <div style={{ marginBottom: '1rem' }}>
       <p className="field-label" style={{ marginBottom: '0.4rem' }}>{label}</p>
@@ -187,11 +204,12 @@ function ImagePicker({ label, images, selected, onSelect, loading }: {
     </div>
   );
   if (!images.length) return null;
+  if (!approved.length) return null;
   return (
     <div style={{ marginBottom: '1rem' }}>
       <p className="field-label" style={{ marginBottom: '0.4rem' }}>{label}</p>
       <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
-        {images.map((url, i) => (
+        {approved.map((url, i) => (
           <img key={i} src={url} alt={`option ${i + 1}`} onClick={() => onSelect(selected === url ? null : url)}
             style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', flexShrink: 0, border: selected === url ? '3px solid var(--primary)' : '3px solid transparent', opacity: selected && selected !== url ? 0.45 : 1, transition: 'opacity 0.15s, border-color 0.15s' }} />
         ))}

@@ -8,7 +8,7 @@ import sharp from 'sharp';
 // Web images: centre on same 1200×1200 white canvas as staff photos, but never upscale
 async function processWebImage(buf: Buffer): Promise<Buffer> {
   const layer = await sharp(buf)
-    .resize(1100, 1100, { fit: 'inside' })
+    .resize(1100, 1100, { fit: 'inside', withoutEnlargement: true })
     .png()
     .toBuffer();
   return sharp({ create: { width: 1200, height: 1200, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } } })
