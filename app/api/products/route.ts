@@ -3,6 +3,15 @@ import { put } from '@vercel/blob';
 import { processProductImage } from '@/lib/imageProcess';
 import { categorize } from '@/lib/categorize';
 import { getAllProducts, insertProduct } from '@/lib/db';
+import sharp from 'sharp';
+
+// Web images are already clean product shots — just convert to JPEG, no upscaling or bg removal
+async function processWebImage(buf: Buffer): Promise<Buffer> {
+  return sharp(buf)
+    .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 95 })
+    .toBuffer();
+}
 
 export const runtime = 'nodejs';
 
@@ -45,7 +54,7 @@ export async function POST(req: NextRequest) {
     } else {
       buf1 = Buffer.from(await photo!.arrayBuffer());
     }
-    const processed1 = await processProductImage(buf1);
+    const processed1 = photo1Url ? await processWebImage(buf1) : await processProductImage(buf1);
     const { url: photoUrl } = await put(`products/${id}.jpg`, processed1, {
       access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,
     });
@@ -55,7 +64,7 @@ export async function POST(req: NextRequest) {
     if (photo2Url) {
       const r = await fetch(photo2Url);
       if (r.ok) {
-        const processed2 = await processProductImage(Buffer.from(await r.arrayBuffer()));
+        const processed2 = await processWebImage(Buffer.from(await r.arrayBuffer()));
         const { url } = await put(`products/${id}_2.jpg`, processed2, {
           access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,
         });
