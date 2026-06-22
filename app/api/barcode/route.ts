@@ -184,9 +184,9 @@ export async function POST(req: NextRequest) {
       imageUrl ? analyzeImageUrl(imageUrl) : Promise.resolve({ name: '', size: '', category: '' }),
     ]);
 
-    const finalName = name || groq.name;
-    const finalSize = size || groq.size;
-    const finalCategory = category !== 'Other' ? category : (groq.category || 'Other');
+    const finalName = groq.name || name;
+    const finalSize = groq.size || size;
+    const finalCategory = (groq.category && groq.category !== 'Other') ? groq.category : category;
 
     return NextResponse.json({ found, name: finalName, size: finalSize, category: finalCategory, marketPrice, frontImages, backImages });
   } catch (e) {
