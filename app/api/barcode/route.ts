@@ -106,7 +106,7 @@ async function lookupUPC(barcode: string): Promise<{ name: string; size: string;
   } catch { return null; }
 }
 
-const SA_RETAIL_DOMAINS = ['checkers.co.za', 'pnp.co.za', 'woolworths.co.za', 'shoprite.co.za', 'makro.co.za', 'spar.co.za', 'takealot.com'];
+const SA_RETAIL_DOMAINS = ['checkers.co.za', 'pnp.co.za', 'woolworths.co.za', 'shoprite.co.za', 'makro.co.za', 'spar.co.za', 'takealot.com', 'amazon.co.za'];
 
 async function lookupTavilyPrice(query: string): Promise<number> {
   if (!process.env.TAVILY_API_KEY) return 0;

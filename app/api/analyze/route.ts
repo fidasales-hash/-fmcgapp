@@ -64,7 +64,7 @@ Return ONLY valid JSON with no extra text:
             query,
             search_depth: 'basic',
             max_results: 5,
-            include_domains: ['checkers.co.za', 'pnp.co.za', 'woolworths.co.za', 'shoprite.co.za', 'makro.co.za', 'spar.co.za', 'takealot.com'],
+            include_domains: ['checkers.co.za', 'pnp.co.za', 'woolworths.co.za', 'shoprite.co.za', 'makro.co.za', 'spar.co.za', 'takealot.com', 'amazon.co.za'],
           }),
         });
         const tvData = await tvRes.json();
