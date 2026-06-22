@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     // Merge: OFF for name/size/category (better global coverage), UPC for price
     const name = off?.name || upc?.name || '';
     const size = off?.size || upc?.size || '';
-    const category = (off?.category !== 'Other' ? off?.category : upc?.category) ?? 'Other';
+    const category = (off?.category && off.category !== 'Other' ? off.category : upc?.category) ?? 'Other';
     const marketPrice = upc?.marketPrice ?? 0;
 
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
