@@ -64,21 +64,53 @@ async function tavilyImages(query: string): Promise<string[]> {
   } catch { return []; }
 }
 
+interface ProductInfo { name: string; size: string; category: string; }
+
+async function lookupOpenFoodFacts(barcode: string): Promise<ProductInfo | null> {
+  const hosts = [
+    'world.openfoodfacts.org',
+    'world.openbeautyfacts.org',
+    'world.openpetfoodfacts.org',
+    'world.openproductsfacts.org',
+  ];
+  const results = await Promise.all(
+    hosts.map(h =>
+      fetch(`https://${h}/api/v0/product/${encodeURIComponent(barcode)}.json`)
+        .then(r => r.json())
+        .catch(() => null)
+    )
+  );
+  for (const d of results) {
+    if (d?.status === 1 && d.product) {
+      const p = d.product;
+      const name = p.product_name_en || p.product_name || '';
+      const size = toMetric(p.quantity || '');
+      const catRaw = (p.categories_tags ?? []).join(' ');
+      const category = mapCategory(catRaw);
+      if (name) return { name, size, category };
+    }
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { barcode } = await req.json();
     if (!barcode) return NextResponse.json({ error: 'No barcode' }, { status: 400 });
 
-    const upcRes = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(String(barcode))}`);
-    const upcData = await upcRes.json();
-    const item = upcData.items?.[0];
-
     let name = '';
     let size = '';
     let category = 'Other';
     let marketPrice = 0;
+    let found = false;
+
+    // 1. UPC Item DB
+    const upcRes = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(String(barcode))}`);
+    const upcData = await upcRes.json();
+    const item = upcData.items?.[0];
 
     if (item) {
+      found = true;
       name = item.title ?? '';
       size = toMetric(item.size ?? '') || extractSizeFromTitle(item.title ?? '');
       category = item.category ? mapCategory(item.category) : 'Other';
@@ -96,13 +128,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 2. Open Food Facts family fallback
+    if (!found) {
+      const off = await lookupOpenFoodFacts(barcode);
+      if (off) {
+        found = true;
+        name = off.name;
+        size = off.size;
+        category = off.category;
+      }
+    }
+
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
     const [frontImages, backImages] = await Promise.all([
       tavilyImages(`${searchTerm} product`),
       tavilyImages(`${searchTerm} back label`),
     ]);
 
-    return NextResponse.json({ found: !!item, name, size, category, marketPrice, frontImages, backImages });
+    return NextResponse.json({ found, name, size, category, marketPrice, frontImages, backImages });
   } catch (e) {
     console.error('barcode error:', e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
