@@ -179,8 +179,8 @@ function CameraSlot({
 
 const MIN_IMAGE_PX = 500;
 
-function ImagePicker({ label, subtitle, onUseSource, images, selected, onSelect, loading }: {
-  label: string; subtitle?: string; onUseSource?: () => void; images: string[]; selected: string | null; onSelect: (url: string | null) => void; loading?: boolean;
+function ImagePicker({ label, subtitle, onUseSource, images, picked, onToggle, onClearRow, loading }: {
+  label: string; subtitle?: string; onUseSource?: () => void; images: string[]; picked: string[]; onToggle: (url: string) => void; onClearRow: () => void; loading?: boolean;
 }) {
   const [approved, setApproved] = useState<string[]>([]);
 
@@ -215,13 +215,24 @@ function ImagePicker({ label, subtitle, onUseSource, images, selected, onSelect,
         </div>
       )}
       <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
-        {approved.map((url, i) => (
-          <img key={i} src={url} alt={`option ${i + 1}`} onClick={() => onSelect(selected === url ? null : url)}
-            style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', flexShrink: 0, border: selected === url ? '3px solid var(--primary)' : '3px solid transparent', opacity: selected && selected !== url ? 0.45 : 1, transition: 'opacity 0.15s, border-color 0.15s' }} />
-        ))}
+        {approved.map((url, i) => {
+          const slot = picked.indexOf(url);
+          const isPicked = slot >= 0;
+          return (
+            <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+              <img src={url} alt={`option ${i + 1}`} onClick={() => onToggle(url)}
+                style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', display: 'block', border: isPicked ? '3px solid var(--primary)' : '3px solid transparent', transition: 'border-color 0.15s' }} />
+              {isPicked && (
+                <span style={{ position: 'absolute', top: 4, right: 4, background: 'var(--primary)', color: '#fff', borderRadius: '50%', width: 20, height: 20, fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {slot + 1}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
-      {selected && (
-        <button type="button" onClick={() => onSelect(null)} style={{ fontSize: '0.78rem', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem 0', marginTop: '0.15rem' }}>
+      {approved.some(url => picked.includes(url)) && (
+        <button type="button" onClick={onClearRow} style={{ fontSize: '0.78rem', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem 0', marginTop: '0.15rem' }}>
           ✕ Clear selection
         </button>
       )}
@@ -251,9 +262,7 @@ export default function UploadPage() {
   const [offSource, setOffSource] = useState({ name: '', size: '', category: '' });
   const [upcSource, setUpcSource] = useState({ name: '', size: '', category: '' });
   const [marketPriceSource, setMarketPriceSource] = useState('');
-  const [selectedFront, setSelectedFront] = useState<string | null>(null);
-  const [selectedBack, setSelectedBack] = useState<string | null>(null);
-  const [selectedThird, setSelectedThird] = useState<string | null>(null);
+  const [pickedImages, setPickedImages] = useState<string[]>([]);
   const [imagesLoading, setImagesLoading] = useState(false);
 
   const [scanning, setScanning] = useState(false);
@@ -312,7 +321,7 @@ export default function UploadPage() {
     setBarcodeLoading(true);
     setBarcodeStatus('idle');
     setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
-    setSelectedFront(null); setSelectedBack(null);
+    setPickedImages([]);
     try {
       const res = await fetch('/api/barcode', {
         method: 'POST',
@@ -401,7 +410,7 @@ export default function UploadPage() {
     setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
     setSerperSource({ name: '' }); setOffSource({ name: '', size: '', category: '' }); setUpcSource({ name: '', size: '', category: '' });
     setMarketPriceSource('');
-    setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
+    setPickedImages([]);
     setImagesLoading(false);
     setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
     setError('');
@@ -411,15 +420,15 @@ export default function UploadPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!file1 && !selectedFront) { setError('Please select or take a front photo'); return; }
+    if (!file1 && !pickedImages[0]) { setError('Please select or take a front photo'); return; }
     setSubmitting(true);
     try {
       const fd = new FormData();
-      if (selectedFront) { fd.append('photo1Url', selectedFront); }
+      if (pickedImages[0]) { fd.append('photo1Url', pickedImages[0]); }
       else if (file1) { fd.append('photo', await compressImage(file1)); }
-      if (selectedBack) { fd.append('photo2Url', selectedBack); }
+      if (pickedImages[1]) { fd.append('photo2Url', pickedImages[1]); }
       else if (file2) { fd.append('photo2', await compressImage(file2)); }
-      if (selectedThird) { fd.append('photo3Url', selectedThird); }
+      if (pickedImages[2]) { fd.append('photo3Url', pickedImages[2]); }
       else if (file3) { fd.append('photo3', await compressImage(file3)); }
       fd.append('name', form.name);
       fd.append('size', form.size);
@@ -436,7 +445,7 @@ export default function UploadPage() {
         setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
         setSerperSource({ name: '' }); setOffSource({ name: '', size: '', category: '' }); setUpcSource({ name: '', size: '', category: '' });
         setMarketPriceSource('');
-        setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
+        setPickedImages([]);
         setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
       } else {
         const data = await res.json();
@@ -446,6 +455,12 @@ export default function UploadPage() {
       setError('Network error — please try again');
     }
     setSubmitting(false);
+  }
+
+  function toggleImage(url: string) {
+    setPickedImages(prev =>
+      prev.includes(url) ? prev.filter(u => u !== url) : prev.length < 3 ? [...prev, url] : prev
+    );
   }
 
   function applySource(source: { name?: string; size?: string; category?: string }) {
@@ -516,15 +531,15 @@ export default function UploadPage() {
           {barcodeStatus === 'notfound' && <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>Not found — fill in manually or take photos below</p>}
         </div>
 
-        {/* Image source comparison — tap any image to select it as the front photo */}
-        <ImagePicker label="Google Images (Serper)" subtitle={serperSource.name || undefined} onUseSource={serperSource.name ? () => applySource(serperSource) : undefined} images={serperImgs} selected={selectedFront} onSelect={setSelectedFront} loading={imagesLoading} />
-        <ImagePicker label="Open Food Facts" subtitle={[offSource.name, offSource.size].filter(Boolean).join(' ') || undefined} onUseSource={offSource.name ? () => applySource(offSource) : undefined} images={offImgs} selected={selectedFront} onSelect={setSelectedFront} />
-        <ImagePicker label="UPCitemdb" subtitle={[upcSource.name, upcSource.size].filter(Boolean).join(' ') || undefined} onUseSource={upcSource.name ? () => applySource(upcSource) : undefined} images={upcImgs} selected={selectedFront} onSelect={setSelectedFront} />
-        <ImagePicker label="Back label — tap to select (optional)" images={backImages} selected={selectedBack} onSelect={setSelectedBack} />
+        {/* Image source comparison — tap up to 3 images; badges show which slot (1/2/3) each fills */}
+        <ImagePicker label="Google Images (Serper)" subtitle={serperSource.name || undefined} onUseSource={serperSource.name ? () => applySource(serperSource) : undefined} images={serperImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !serperImgs.includes(u)))} loading={imagesLoading} />
+        <ImagePicker label="Open Food Facts" subtitle={[offSource.name, offSource.size].filter(Boolean).join(' ') || undefined} onUseSource={offSource.name ? () => applySource(offSource) : undefined} images={offImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !offImgs.includes(u)))} />
+        <ImagePicker label="UPCitemdb" subtitle={[upcSource.name, upcSource.size].filter(Boolean).join(' ') || undefined} onUseSource={upcSource.name ? () => applySource(upcSource) : undefined} images={upcImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !upcImgs.includes(u)))} />
+        <ImagePicker label="Back label (optional)" images={backImages} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !backImages.includes(u)))} />
 
         {/* Camera slots */}
         <CameraSlot
-          label={serperImgs.length || offImgs.length || upcImgs.length ? 'Or take your own front photo *' : 'Photo 1 — front *'}
+          label={serperImgs.length || offImgs.length || upcImgs.length ? `Or take your own front photo${pickedImages[0] ? ' (slot 1 filled)' : ' *'}` : 'Photo 1 — front *'}
           tapLabel="Tap to open camera"
           analyzing={analyzing}
           onFile={file => { setFile1(file); analyzePhoto(file); }}
