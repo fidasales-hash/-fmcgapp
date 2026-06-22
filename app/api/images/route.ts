@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-async function bingImages(query: string): Promise<string[]> {
-  const key = process.env.BING_IMAGE_SEARCH_KEY;
+// Google Images via Serper. Returns [] when SERPER_API_KEY is unset, so the
+// feature stays dormant (no errors) until a key is added in the environment.
+async function serperImages(query: string): Promise<string[]> {
+  const key = process.env.SERPER_API_KEY;
   if (!key) return [];
   try {
-    const url = new URL('https://api.bing.microsoft.com/v7.0/images/search');
-    url.searchParams.set('q', query);
-    url.searchParams.set('count', '10');
-    url.searchParams.set('imageType', 'Photo');
-    url.searchParams.set('size', 'Large');
-    const r = await fetch(url.toString(), { headers: { 'Ocp-Apim-Subscription-Key': key } });
+    const r = await fetch('https://google.serper.dev/images', {
+      method: 'POST',
+      headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: query, num: 10 }),
+    });
     const d = await r.json();
-    return ((d.value ?? []) as { contentUrl: string }[]).map(i => i.contentUrl);
+    return ((d.images ?? []) as { imageUrl: string }[]).map(i => i.imageUrl).filter(Boolean);
   } catch { return []; }
 }
 
@@ -24,8 +25,8 @@ export async function POST(req: NextRequest) {
 
     const term = `${name}${size ? ' ' + size : ''}`;
     const [frontImages, backImages] = await Promise.all([
-      bingImages(`${term} product`),
-      bingImages(`${term} back label`),
+      serperImages(`${term} product`),
+      serperImages(`${term} back label`),
     ]);
 
     return NextResponse.json({ frontImages, backImages });

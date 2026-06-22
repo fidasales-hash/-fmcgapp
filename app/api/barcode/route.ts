@@ -74,18 +74,19 @@ function mapCategory(upcCategory: string): string {
   return 'Other';
 }
 
-async function bingImages(query: string): Promise<string[]> {
-  const key = process.env.BING_IMAGE_SEARCH_KEY;
+// Google Images via Serper. Returns [] when SERPER_API_KEY is unset, so the
+// feature stays dormant (no errors) until a key is added in the environment.
+async function serperImages(query: string): Promise<string[]> {
+  const key = process.env.SERPER_API_KEY;
   if (!key) return [];
   try {
-    const url = new URL('https://api.bing.microsoft.com/v7.0/images/search');
-    url.searchParams.set('q', query);
-    url.searchParams.set('count', '10');
-    url.searchParams.set('imageType', 'Photo');
-    url.searchParams.set('size', 'Large');
-    const r = await fetch(url.toString(), { headers: { 'Ocp-Apim-Subscription-Key': key } });
+    const r = await fetch('https://google.serper.dev/images', {
+      method: 'POST',
+      headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: query, num: 10 }),
+    });
     const d = await r.json();
-    return ((d.value ?? []) as { contentUrl: string }[]).map(i => i.contentUrl);
+    return ((d.images ?? []) as { imageUrl: string }[]).map(i => i.imageUrl).filter(Boolean);
   } catch { return []; }
 }
 
@@ -174,7 +175,7 @@ export async function POST(req: NextRequest) {
 
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
     const upcImages = upc?.images ?? [];
-    const frontImages = off?.frontImage ? [off.frontImage] : upcImages.length ? upcImages : await bingImages(`${searchTerm} product`);
+    const frontImages = off?.frontImage ? [off.frontImage] : upcImages.length ? upcImages : await serperImages(`${searchTerm} product`);
     const backImages = off?.backImage ? [off.backImage] : [];
 
     const imageUrl = frontImages[0] ?? '';
