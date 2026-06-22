@@ -45,22 +45,21 @@ function mapCategory(upcCategory: string): string {
   return 'Other';
 }
 
-async function tavilyImages(query: string): Promise<string[]> {
-  if (!process.env.TAVILY_API_KEY) return [];
+async function googleImages(query: string): Promise<string[]> {
+  const key = process.env.GOOGLE_CSE_API_KEY;
+  const cx = process.env.GOOGLE_CSE_CX;
+  if (!key || !cx) return [];
   try {
-    const r = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: process.env.TAVILY_API_KEY,
-        query,
-        search_depth: 'advanced',
-        max_results: 10,
-        include_images: true,
-      }),
-    });
+    const url = new URL('https://www.googleapis.com/customsearch/v1');
+    url.searchParams.set('key', key);
+    url.searchParams.set('cx', cx);
+    url.searchParams.set('q', query);
+    url.searchParams.set('searchType', 'image');
+    url.searchParams.set('num', '10');
+    url.searchParams.set('imgSize', 'large');
+    const r = await fetch(url.toString());
     const d = await r.json();
-    return ((d.images ?? []) as string[]).slice(0, 12);
+    return ((d.items ?? []) as { link: string }[]).map(i => i.link);
   } catch { return []; }
 }
 
@@ -139,8 +138,8 @@ export async function POST(req: NextRequest) {
 
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
     const [frontImages, backImages] = await Promise.all([
-      tavilyImages(`${searchTerm} product`),
-      tavilyImages(`${searchTerm} back label`),
+      googleImages(`${searchTerm} product`),
+      googleImages(`${searchTerm} back label`),
     ]);
 
     return NextResponse.json({ found, name, size, category, marketPrice, frontImages, backImages });
