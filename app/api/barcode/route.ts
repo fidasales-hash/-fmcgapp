@@ -145,8 +145,15 @@ async function lookupUPC(barcode: string): Promise<{ name: string; size: string;
 
 const SA_RETAIL_DOMAINS = ['checkers.co.za', 'pnp.co.za', 'woolworths.co.za', 'shoprite.co.za', 'makro.co.za', 'spar.co.za', 'takealot.com', 'amazon.co.za'];
 
-async function lookupTavilyPrice(query: string): Promise<number> {
-  if (!process.env.TAVILY_API_KEY) return 0;
+const RETAILER_NAMES: Record<string, string> = {
+  'checkers.co.za': 'Checkers', 'pnp.co.za': 'Pick n Pay',
+  'woolworths.co.za': 'Woolworths', 'shoprite.co.za': 'Shoprite',
+  'makro.co.za': 'Makro', 'spar.co.za': 'Spar',
+  'takealot.com': 'Takealot', 'amazon.co.za': 'Amazon',
+};
+
+async function lookupTavilyPrice(query: string): Promise<{ price: number; source: string }> {
+  if (!process.env.TAVILY_API_KEY) return { price: 0, source: '' };
   try {
     const res = await fetch('https://api.tavily.com/search', {
       method: 'POST',
@@ -154,14 +161,20 @@ async function lookupTavilyPrice(query: string): Promise<number> {
       body: JSON.stringify({ api_key: process.env.TAVILY_API_KEY, query, search_depth: 'basic', max_results: 5, include_domains: SA_RETAIL_DOMAINS }),
     });
     const data = await res.json();
-    const content = (data.results ?? []).map((r: { content: string }) => r.content).join(' ');
-    const prices = [...content.matchAll(/R\s*(\d+(?:[.,]\d{1,2})?)/gi)]
-      .map(m => parseFloat(m[1].replace(',', '.')))
-      .filter(p => p >= 1 && p < 10000);
-    if (!prices.length) return 0;
-    prices.sort((a, b) => a - b);
-    return prices[Math.floor(prices.length / 2)];
-  } catch { return 0; }
+    const pairs: { price: number; domain: string }[] = [];
+    for (const r of (data.results ?? [])) {
+      let domain = '';
+      try { domain = new URL(r.url).hostname.replace('www.', ''); } catch { /* ignore */ }
+      const prices = [...(r.content ?? '').matchAll(/R\s*(\d+(?:[.,]\d{1,2})?)/gi)]
+        .map((m: RegExpMatchArray) => parseFloat(m[1].replace(',', '.')))
+        .filter((p: number) => p >= 1 && p < 10000);
+      pairs.push(...prices.map(p => ({ price: p, domain })));
+    }
+    if (!pairs.length) return { price: 0, source: '' };
+    pairs.sort((a, b) => a.price - b.price);
+    const { price, domain } = pairs[Math.floor(pairs.length / 2)];
+    return { price, source: RETAILER_NAMES[domain] || domain };
+  } catch { return { price: 0, source: '' }; }
 }
 
 export async function POST(req: NextRequest) {
@@ -188,11 +201,13 @@ export async function POST(req: NextRequest) {
     const imageUrl = off?.frontImage || upcImages[0] || '';
 
     // All three run in parallel — Serper always fires (not just as fallback)
-    const [serperResults, marketPrice, groq] = await Promise.all([
+    const [serperResults, tavilyResult, groq] = await Promise.all([
       serperSearch(`${searchTerm} product`),
-      name ? lookupTavilyPrice(searchTerm) : Promise.resolve(0),
+      name ? lookupTavilyPrice(searchTerm) : Promise.resolve({ price: 0, source: '' }),
       imageUrl ? analyzeImageUrl(imageUrl) : Promise.resolve({ name: '', size: '', category: '' }),
     ]);
+    const marketPrice = tavilyResult.price;
+    const marketPriceSource = tavilyResult.source;
 
     const serperName = parseSerperName(serperResults);
     const serperImageUrls = serperResults.map(r => r.imageUrl);
@@ -202,7 +217,7 @@ export async function POST(req: NextRequest) {
     const finalCategory = (category && category !== 'Other') ? category : (groq.category || 'Other');
 
     return NextResponse.json({
-      found, name: finalName, size: finalSize, category: finalCategory, marketPrice,
+      found, name: finalName, size: finalSize, category: finalCategory, marketPrice, marketPriceSource,
       sources: {
         serper: { name: serperName, images: serperImageUrls },
         off: { name: off?.name || '', size: off?.size || '', category: off?.category || '', images: offImages },

@@ -245,6 +245,7 @@ export default function UploadPage() {
   const [serperSourceName, setSerperSourceName] = useState('');
   const [offSourceName, setOffSourceName] = useState('');
   const [upcSourceName, setUpcSourceName] = useState('');
+  const [marketPriceSource, setMarketPriceSource] = useState('');
   const [selectedFront, setSelectedFront] = useState<string | null>(null);
   const [selectedBack, setSelectedBack] = useState<string | null>(null);
   const [selectedThird, setSelectedThird] = useState<string | null>(null);
@@ -324,6 +325,7 @@ export default function UploadPage() {
             category: data.category && data.category !== 'Other' ? data.category : prev.category,
             marketPrice: data.marketPrice ? String(data.marketPrice) : prev.marketPrice,
           }));
+          if (data.marketPriceSource) setMarketPriceSource(data.marketPriceSource);
         }
         const s = data.sources ?? {};
         setSerperImgs(s.serper?.images ?? []);
@@ -395,6 +397,7 @@ export default function UploadPage() {
     setBarcode(''); setBarcodeStatus('idle'); setBarcodeLoading(false);
     setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
     setSerperSourceName(''); setOffSourceName(''); setUpcSourceName('');
+    setMarketPriceSource('');
     setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
     setImagesLoading(false);
     setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
@@ -429,6 +432,7 @@ export default function UploadPage() {
         setBarcode(''); setBarcodeStatus('idle');
         setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
         setSerperSourceName(''); setOffSourceName(''); setUpcSourceName('');
+        setMarketPriceSource('');
         setSelectedFront(null); setSelectedBack(null); setSelectedThird(null);
         setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
       } else {
@@ -556,7 +560,7 @@ export default function UploadPage() {
           <label className="field-label">
             Market Price (R)
             {form.marketPrice
-              ? <span style={{ marginLeft: '0.4rem', fontSize: '0.72rem', color: 'var(--green)', fontWeight: 600 }}>● found online</span>
+              ? <span style={{ marginLeft: '0.4rem', fontSize: '0.72rem', color: 'var(--green)', fontWeight: 600 }}>● {marketPriceSource ? `via ${marketPriceSource}` : 'found online'}</span>
               : <span style={{ marginLeft: '0.4rem', fontSize: '0.72rem', color: 'var(--muted)' }}>optional</span>}
           </label>
           <input type="number" min="0" step="0.01" placeholder="0.00" value={form.marketPrice}
