@@ -174,8 +174,10 @@ export async function POST(req: NextRequest) {
     const category = (off?.category && off.category !== 'Other' ? off.category : upc?.category) ?? 'Other';
 
     const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
-    const upcImages = upc?.images ?? [];
-    const frontImages = off?.frontImage ? [off.frontImage] : upcImages.length ? upcImages : await serperImages(`${searchTerm} product`);
+    // UPCitemdb images dropped — its crowdsourced/US data often returns the wrong
+    // product for SA barcodes. Use only the barcode-exact Open Food Facts image,
+    // else fall back to a name search via Serper.
+    const frontImages = off?.frontImage ? [off.frontImage] : await serperImages(`${searchTerm} product`);
     const backImages = off?.backImage ? [off.backImage] : [];
 
     const imageUrl = frontImages[0] ?? '';
