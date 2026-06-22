@@ -28,20 +28,40 @@ export async function POST(req: NextRequest) {
     const marketPrice = parseFloat((formData.get('marketPrice') as string | null) ?? '0') || 0;
     const category = (formData.get('category') as string | null)?.trim() || categorize(name);
 
-    if (!photo) return NextResponse.json({ error: 'Photo required' }, { status: 400 });
+    const photo1Url = (formData.get('photo1Url') as string | null) ?? '';
+    const photo2Url = (formData.get('photo2Url') as string | null) ?? '';
+
+    if (!photo && !photo1Url) return NextResponse.json({ error: 'Photo required' }, { status: 400 });
     if (!name) return NextResponse.json({ error: 'Product name required' }, { status: 400 });
 
     const id = Date.now().toString();
 
-    // Process photo 1 (required)
-    const processed1 = await processProductImage(Buffer.from(await photo.arrayBuffer()));
+    // Process photo 1 — from URL or file upload
+    let buf1: Buffer;
+    if (photo1Url) {
+      const r = await fetch(photo1Url);
+      if (!r.ok) return NextResponse.json({ error: 'Failed to fetch selected image' }, { status: 400 });
+      buf1 = Buffer.from(await r.arrayBuffer());
+    } else {
+      buf1 = Buffer.from(await photo!.arrayBuffer());
+    }
+    const processed1 = await processProductImage(buf1);
     const { url: photoUrl } = await put(`products/${id}.jpg`, processed1, {
       access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,
     });
 
-    // Process photo 2 (optional)
+    // Process photo 2 — from URL or file upload (optional)
     let photoUrl2 = '';
-    if (photo2 && photo2.size > 0) {
+    if (photo2Url) {
+      const r = await fetch(photo2Url);
+      if (r.ok) {
+        const processed2 = await processProductImage(Buffer.from(await r.arrayBuffer()));
+        const { url } = await put(`products/${id}_2.jpg`, processed2, {
+          access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,
+        });
+        photoUrl2 = url;
+      }
+    } else if (photo2 && photo2.size > 0) {
       const processed2 = await processProductImage(Buffer.from(await photo2.arrayBuffer()));
       const { url } = await put(`products/${id}_2.jpg`, processed2, {
         access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,

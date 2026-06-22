@@ -88,7 +88,6 @@ function CameraSlot({
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
-      // auto-enable torch
       const track = stream.getVideoTracks()[0];
       const caps = track.getCapabilities() as Record<string, unknown>;
       if (caps.torch) {
@@ -96,11 +95,11 @@ function CameraSlot({
         try {
           await track.applyConstraints({ advanced: [{ torch: true }] } as unknown as MediaTrackConstraints);
           setTorchOn(true);
-        } catch { /* torch unavailable on this device */ }
+        } catch { /* torch unavailable */ }
       }
       setMode('camera');
     } catch {
-      fileRef.current?.click(); // fallback for devices that block getUserMedia
+      fileRef.current?.click();
     }
   }
 
@@ -110,11 +109,9 @@ function CameraSlot({
 
     let blob: Blob | null = null;
     try {
-      // ImageCapture shoots at full sensor resolution regardless of stream preview size
       const ic = new (window as unknown as { ImageCapture: new (t: MediaStreamTrack) => { takePhoto(): Promise<Blob> } }).ImageCapture(track);
       blob = await ic.takePhoto();
     } catch {
-      // fallback: draw current video frame to canvas
       const video = videoRef.current;
       if (video) {
         const canvas = document.createElement('canvas');
@@ -180,7 +177,6 @@ function CameraSlot({
     <div style={{ marginBottom: '1rem' }}>
       <p className="field-label" style={{ marginBottom: '0.4rem' }}>{label}</p>
 
-      {/* full-screen camera overlay — always in DOM so videoRef is ready */}
       <div style={{
         display: mode === 'camera' ? 'flex' : 'none',
         position: 'fixed', inset: 0, zIndex: 1000,
@@ -243,6 +239,59 @@ function CameraSlot({
   );
 }
 
+function ImagePicker({
+  label,
+  images,
+  selected,
+  onSelect,
+  loading,
+}: {
+  label: string;
+  images: string[];
+  selected: string | null;
+  onSelect: (url: string | null) => void;
+  loading?: boolean;
+}) {
+  if (loading) return (
+    <div style={{ marginBottom: '1rem' }}>
+      <p className="field-label" style={{ marginBottom: '0.4rem' }}>{label}</p>
+      <p style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600 }}>⏳ Finding images…</p>
+    </div>
+  );
+  if (!images.length) return null;
+
+  return (
+    <div style={{ marginBottom: '1rem' }}>
+      <p className="field-label" style={{ marginBottom: '0.4rem' }}>{label}</p>
+      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+        {images.map((url, i) => (
+          <img
+            key={i}
+            src={url}
+            alt={`option ${i + 1}`}
+            onClick={() => onSelect(selected === url ? null : url)}
+            style={{
+              width: 90, height: 90, objectFit: 'cover', borderRadius: 8,
+              cursor: 'pointer', flexShrink: 0,
+              border: selected === url ? '3px solid var(--primary)' : '3px solid transparent',
+              opacity: selected && selected !== url ? 0.45 : 1,
+              transition: 'opacity 0.15s, border-color 0.15s',
+            }}
+          />
+        ))}
+      </div>
+      {selected && (
+        <button type="button" onClick={() => onSelect(null)} style={{
+          fontSize: '0.78rem', color: 'var(--muted)', background: 'none',
+          border: 'none', cursor: 'pointer', padding: '0.2rem 0', marginTop: '0.15rem',
+        }}>
+          ✕ Clear selection
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function UploadPage() {
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
@@ -252,6 +301,66 @@ export default function UploadPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  const [barcode, setBarcode] = useState('');
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const [barcodeStatus, setBarcodeStatus] = useState<'idle' | 'found' | 'notfound'>('idle');
+  const [frontImages, setFrontImages] = useState<string[]>([]);
+  const [backImages, setBackImages] = useState<string[]>([]);
+  const [selectedFront, setSelectedFront] = useState<string | null>(null);
+  const [selectedBack, setSelectedBack] = useState<string | null>(null);
+  const [imagesLoading, setImagesLoading] = useState(false);
+
+  async function lookupBarcode() {
+    if (!barcode.trim()) return;
+    setBarcodeLoading(true);
+    setBarcodeStatus('idle');
+    setFrontImages([]);
+    setBackImages([]);
+    setSelectedFront(null);
+    setSelectedBack(null);
+    try {
+      const res = await fetch('/api/barcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode: barcode.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBarcodeStatus(data.found ? 'found' : 'notfound');
+        if (data.found) {
+          setForm(prev => ({
+            ...prev,
+            name: data.name || prev.name,
+            size: data.size || prev.size,
+            category: data.category && data.category !== 'Other' ? data.category : prev.category,
+            marketPrice: data.marketPrice ? String(data.marketPrice) : prev.marketPrice,
+          }));
+        }
+        if (data.frontImages?.length) setFrontImages(data.frontImages);
+        if (data.backImages?.length) setBackImages(data.backImages);
+      }
+    } catch { /* silent */ }
+    setBarcodeLoading(false);
+  }
+
+  async function fetchImages(name: string, size: string) {
+    if (!name || frontImages.length) return;
+    setImagesLoading(true);
+    try {
+      const res = await fetch('/api/images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, size }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.frontImages?.length) setFrontImages(data.frontImages);
+        if (data.backImages?.length) setBackImages(data.backImages);
+      }
+    } catch { /* silent */ }
+    setImagesLoading(false);
+  }
 
   async function analyzePhoto(file: File, fillEmptyOnly = false) {
     if (localStorage.getItem('claudeApiEnabled') === 'false') return;
@@ -272,10 +381,11 @@ export default function UploadPage() {
             bestBefore:  prev.bestBefore,
             notes:       prev.notes,
             price:       prev.price,
-            marketPrice: prev.marketPrice || (data.marketPrice ? String(data.marketPrice) : ''),
+            marketPrice: prev.marketPrice,
             category:    prev.category === 'Other' && aiCategory ? aiCategory : prev.category,
           };
         });
+        if (data.name) fetchImages(data.name, data.size || '');
       } else {
         const data = await res.json().catch(() => ({}));
         setError(`Label reading failed: ${data.error ?? res.status} — fill in manually`);
@@ -289,12 +399,20 @@ export default function UploadPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!file1) { setError('Please take a photo first'); return; }
+    if (!file1 && !selectedFront) { setError('Please select or take a front photo'); return; }
     setSubmitting(true);
     try {
       const fd = new FormData();
-      fd.append('photo', await compressImage(file1));
-      if (file2) fd.append('photo2', await compressImage(file2));
+      if (selectedFront) {
+        fd.append('photo1Url', selectedFront);
+      } else if (file1) {
+        fd.append('photo', await compressImage(file1));
+      }
+      if (selectedBack) {
+        fd.append('photo2Url', selectedBack);
+      } else if (file2) {
+        fd.append('photo2', await compressImage(file2));
+      }
       fd.append('name', form.name);
       fd.append('size', form.size);
       fd.append('bestBefore', form.bestBefore);
@@ -306,6 +424,9 @@ export default function UploadPage() {
       if (res.ok) {
         setSuccess(true);
         setFile1(null); setFile2(null);
+        setBarcode(''); setBarcodeStatus('idle');
+        setFrontImages([]); setBackImages([]);
+        setSelectedFront(null); setSelectedBack(null);
         setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
       } else {
         const data = await res.json();
@@ -333,15 +454,63 @@ export default function UploadPage() {
       <h1>Add Product</h1>
       <form onSubmit={handleSubmit}>
 
+        {/* Barcode lookup */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label className="field-label">Barcode</label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Enter barcode number"
+              value={barcode}
+              onChange={e => setBarcode(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookupBarcode(); } }}
+              className="field"
+              style={{ marginBottom: 0, flex: 1 }}
+              disabled={barcodeLoading}
+            />
+            <button
+              type="button"
+              onClick={lookupBarcode}
+              disabled={!barcode.trim() || barcodeLoading}
+              className="btn-primary"
+              style={{ marginBottom: 0, whiteSpace: 'nowrap', padding: '0 1rem' }}
+            >
+              {barcodeLoading ? '…' : 'Lookup'}
+            </button>
+          </div>
+          {barcodeStatus === 'found' && (
+            <p style={{ color: 'var(--green)', fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 600 }}>✓ Product found</p>
+          )}
+          {barcodeStatus === 'notfound' && (
+            <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>Not found — fill in manually or take photos below</p>
+          )}
+        </div>
+
+        {/* Online image pickers */}
+        <ImagePicker
+          label="Front image — tap to select"
+          images={frontImages}
+          selected={selectedFront}
+          onSelect={setSelectedFront}
+          loading={imagesLoading}
+        />
+        <ImagePicker
+          label="Back label — tap to select (optional)"
+          images={backImages}
+          selected={selectedBack}
+          onSelect={setSelectedBack}
+        />
+
+        {/* Camera slots */}
         <CameraSlot
-          label="Photo 1 — front *"
+          label={frontImages.length ? 'Or take your own front photo *' : 'Photo 1 — front *'}
           tapLabel="Tap to open camera"
           analyzing={analyzing}
           onFile={file => { setFile1(file); analyzePhoto(file); }}
         />
-
         <CameraSlot
-          label="Photo 2 — back / side (optional)"
+          label={backImages.length ? 'Or take your own back photo (optional)' : 'Photo 2 — back / side (optional)'}
           tapLabel="Tap to open camera"
           compact
           analyzing={analyzing}
