@@ -1,6 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Groq from 'groq-sdk';
 
 export const runtime = 'nodejs';
+
+const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+async function analyzeImageUrl(url: string): Promise<{ name: string; size: string; category: string }> {
+  try {
+    const response = await groqClient.chat.completions.create({
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      max_tokens: 256,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url } },
+          { type: 'text', text: `Look at this product packaging. Extract:
+1. Product name: brand name + product type (e.g. "Heinz Baked Beans")
+2. Size/weight: quantity shown on pack (e.g. "400g", "330ml", "6 x 250ml")
+3. Category: pick exactly one: Drinks, Tinned & Canned, Snacks & Confectionery, Bakery & Cereals, Home & Cleaning, Health & Beauty, Baby & Toddler, Pet, Electronics, Other
+
+Return ONLY valid JSON: {"name":"...","size":"...","category":"..."}` },
+        ],
+      }],
+    });
+    const text = response.choices[0].message.content ?? '';
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return { name: '', size: '', category: '' };
+    const { name = '', size = '', category = '' } = JSON.parse(match[0]);
+    return { name, size: toMetric(size), category };
+  } catch { return { name: '', size: '', category: '' }; }
+}
 
 const CATEGORY_MAP: { terms: string[]; category: string }[] = [
   { terms: ['beverage', 'drink', 'juice', 'soda', 'water', 'coffee', 'tea', 'beer', 'wine', 'spirits', 'cola', 'energy drink'], category: 'Drinks' },
@@ -144,13 +173,21 @@ export async function POST(req: NextRequest) {
     const size = off?.size || upc?.size || '';
     const category = (off?.category && off.category !== 'Other' ? off.category : upc?.category) ?? 'Other';
 
-    const searchTerm = `${name || `product ${barcode}`}${size ? ' ' + size : ''}`;
-    const marketPrice = name ? await lookupTavilyPrice(searchTerm) : 0;
     const upcImages = upc?.images ?? [];
     const frontImages = off?.frontImage ? [off.frontImage] : upcImages.length ? upcImages : await bingImages(`${searchTerm} product`);
     const backImages = off?.backImage ? [off.backImage] : [];
 
-    return NextResponse.json({ found, name, size, category, marketPrice, frontImages, backImages });
+    const imageUrl = frontImages[0] ?? '';
+    const [marketPrice, groq] = await Promise.all([
+      name ? lookupTavilyPrice(searchTerm) : Promise.resolve(0),
+      imageUrl ? analyzeImageUrl(imageUrl) : Promise.resolve({ name: '', size: '', category: '' }),
+    ]);
+
+    const finalName = name || groq.name;
+    const finalSize = size || groq.size;
+    const finalCategory = category !== 'Other' ? category : (groq.category || 'Other');
+
+    return NextResponse.json({ found, name: finalName, size: finalSize, category: finalCategory, marketPrice, frontImages, backImages });
   } catch (e) {
     console.error('barcode error:', e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
