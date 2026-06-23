@@ -7,8 +7,8 @@ const WHATSAPP_NUMBER = '27615807797';
 const STORE_INFO = {
   name:    'Clearance Shop',
   address: 'Park Crescent, Glenhazel, Johannesburg, Gauteng',
-  hours:   'Mon–Fri 9am–5pm',
-  payment: 'EFT · Cash · Yoco',
+  hours:   'Mon–Friday 9am–4pm',
+  payment: 'Credit & Debit Cards',
   phone:   '+27 61 580 7797',
   returns: 'Hassle-free returns, always. If it\'s damaged or unfit to eat, we collect for free.',
 };
@@ -448,17 +448,13 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
       return (
         (category === 'All' || p.category === category) &&
         (status === 'All' || (status === 'In Date' && !expired) || (status === 'Past Best Before' && expired)) &&
-        (!search || p.name.toLowerCase().includes(search.toLowerCase()))
+        (!search || p.name.toLowerCase().includes(search.toLowerCase())) &&
+        (sort !== 'under-100' || p.price < 100)
       );
     })
     .sort((a, b) => {
-      if (sort === 'price-asc') return a.price - b.price;
+      if (sort === 'price-asc' || sort === 'under-100') return a.price - b.price;
       if (sort === 'price-desc') return b.price - a.price;
-      if (sort === 'expiry') {
-        const da = a.bestBefore ? new Date(a.bestBefore).getTime() : Infinity;
-        const db = b.bestBefore ? new Date(b.bestBefore).getTime() : Infinity;
-        return da - db;
-      }
       return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
     });
 
@@ -553,6 +549,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
             <option value="newest">Newest</option>
             <option value="price-asc">Low→High</option>
             <option value="price-desc">High→Low</option>
+            <option value="under-100">Under R100</option>
           </select>
         </div>
 
@@ -582,7 +579,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
             </div>
             <div className="sidebar-section">
               <p className="sidebar-label">Sort</p>
-              {([['newest', 'Newest'], ['price-asc', 'Price: Low→High'], ['price-desc', 'Price: High→Low']] as const).map(([val, label]) => (
+              {([['newest', 'Newest'], ['price-asc', 'Price: Low→High'], ['price-desc', 'Price: High→Low'], ['under-100', 'Under R100']] as const).map(([val, label]) => (
                 <button key={val} className={`sidebar-chip${sort === val ? ' active' : ''}`} onClick={() => setSort(val)}>
                   {label}
                 </button>
