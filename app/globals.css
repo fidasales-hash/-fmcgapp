@@ -587,6 +587,16 @@ body {
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+.lightbox-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.15); color: #fff;
+  border: none; border-radius: 50%;
+  width: 44px; height: 44px; font-size: 1.8rem; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.lightbox-arrow:hover { background: rgba(255,255,255,0.3); }
+.lightbox-arrow-left { left: 1rem; }
+.lightbox-arrow-right { right: 1rem; }
 
 /* ── Upload / Admin shared: PIN gate ───────────── */
 .pin-gate {

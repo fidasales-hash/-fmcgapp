@@ -102,7 +102,7 @@ function formatBB(bestBefore: string) {
 
 function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   product: Product;
-  onExpand: (url: string) => void;
+  onExpand: (urls: string[], index: number) => void;
   onAddToCart: (product: Product) => void;
   cartQty: number;
   onUpdateQty: (id: string, qty: number) => void;
@@ -132,7 +132,7 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
 
   function handlePhotoClick() {
     if (didSwipe.current) { didSwipe.current = false; return; }
-    onExpand(activeUrl);
+    onExpand(photos, photoIndex);
   }
 
   return (
@@ -367,7 +367,8 @@ export default function Storefront() {
   const [category, setCategory] = useState('All');
   const [status, setStatus] = useState('All');
   const [sort, setSort] = useState('newest');
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxImgs, setLightboxImgs] = useState<string[]>([]);
+  const [lightboxIdx, setLightboxIdx] = useState(0);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -390,11 +391,15 @@ export default function Storefront() {
   }, [cart]);
 
   useEffect(() => {
-    if (!lightboxUrl) return;
-    const handler = (e: KeyboardEvent) => e.key === 'Escape' && setLightboxUrl(null);
+    if (!lightboxImgs.length) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxImgs([]);
+      if (e.key === 'ArrowLeft') setLightboxIdx(i => Math.max(i - 1, 0));
+      if (e.key === 'ArrowRight') setLightboxIdx(i => Math.min(i + 1, lightboxImgs.length - 1));
+    };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [lightboxUrl]);
+  }, [lightboxImgs]);
 
 
   const fetchProducts = useCallback(async () => {
@@ -452,11 +457,17 @@ export default function Storefront() {
 
   return (
     <>
-      {lightboxUrl && (
-        <div className="lightbox-backdrop" onClick={() => setLightboxUrl(null)}>
+      {lightboxImgs.length > 0 && (
+        <div className="lightbox-backdrop" onClick={() => setLightboxImgs([])}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={lightboxUrl} alt="" className="lightbox-img" onClick={e => e.stopPropagation()} />
-          <button className="lightbox-close" onClick={() => setLightboxUrl(null)} aria-label="Close">✕</button>
+          <img src={lightboxImgs[lightboxIdx]} alt="" className="lightbox-img" onClick={e => e.stopPropagation()} />
+          <button className="lightbox-close" onClick={() => setLightboxImgs([])} aria-label="Close">✕</button>
+          {lightboxIdx > 0 && (
+            <button className="lightbox-arrow lightbox-arrow-left" onClick={e => { e.stopPropagation(); setLightboxIdx(i => i - 1); }} aria-label="Previous">‹</button>
+          )}
+          {lightboxIdx < lightboxImgs.length - 1 && (
+            <button className="lightbox-arrow lightbox-arrow-right" onClick={e => { e.stopPropagation(); setLightboxIdx(i => i + 1); }} aria-label="Next">›</button>
+          )}
         </div>
       )}
 
@@ -567,7 +578,7 @@ export default function Storefront() {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  onExpand={setLightboxUrl}
+                  onExpand={(urls, idx) => { setLightboxImgs(urls); setLightboxIdx(idx); }}
                   onAddToCart={addToCart}
                   cartQty={cart.find(i => i.product.id === product.id)?.qty ?? 0}
                   onUpdateQty={updateQty}
