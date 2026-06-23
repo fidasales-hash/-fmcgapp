@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { processProductImage } from '@/lib/imageProcess';
 import { categorize } from '@/lib/categorize';
-import { getAllProducts, insertProduct } from '@/lib/db';
+import { getAllProducts, insertProduct, getProductByBarcode } from '@/lib/db';
 import sharp from 'sharp';
 
 // Web images: centre on same 1200×1200 white canvas as staff photos, but never upscale
@@ -50,6 +50,10 @@ export async function POST(req: NextRequest) {
 
     if (!photo && !photo1Url) return NextResponse.json({ error: 'Photo required' }, { status: 400 });
     if (!name) return NextResponse.json({ error: 'Product name required' }, { status: 400 });
+    if (barcode) {
+      const existing = await getProductByBarcode(barcode);
+      if (existing) return NextResponse.json({ error: `Barcode already exists — "${existing.name}" is already in the store.` }, { status: 409 });
+    }
 
     const id = Date.now().toString();
 

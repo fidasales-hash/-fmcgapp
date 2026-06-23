@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { getProductByBarcode } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
@@ -200,12 +201,13 @@ export async function POST(req: NextRequest) {
     const upcImages = upc?.images ?? [];
     const imageUrl = off?.frontImage || upcImages[0] || '';
 
-    // All four run in parallel — Serper always fires (not just as fallback)
-    const [serperResults, serperBackResults, tavilyResult, groq] = await Promise.all([
+    // All five run in parallel — Serper always fires (not just as fallback)
+    const [serperResults, serperBackResults, tavilyResult, groq, duplicate] = await Promise.all([
       serperSearch(`${searchTerm} product`),
       serperSearch(`${searchTerm} back label`),
       name ? lookupTavilyPrice(searchTerm) : Promise.resolve({ price: 0, source: '' }),
       imageUrl ? analyzeImageUrl(imageUrl) : Promise.resolve({ name: '', size: '', category: '' }),
+      getProductByBarcode(String(barcode)),
     ]);
     const marketPrice = tavilyResult.price;
     const marketPriceSource = tavilyResult.source;
@@ -219,6 +221,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       found, name: finalName, size: finalSize, category: finalCategory, marketPrice, marketPriceSource,
+      duplicate: duplicate ?? null,
       sources: {
         serper: { name: serperName, images: serperImageUrls },
         off: { name: off?.name || '', size: off?.size || '', category: off?.category || '', images: offImages },

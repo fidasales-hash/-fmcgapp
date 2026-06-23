@@ -292,6 +292,7 @@ export default function UploadPage() {
   const [barcode, setBarcode] = useState('');
   const [barcodeLoading, setBarcodeLoading] = useState(false);
   const [barcodeStatus, setBarcodeStatus] = useState<'idle' | 'found' | 'notfound'>('idle');
+  const [barcodeDuplicate, setBarcodeDuplicate] = useState<{ id: string; name: string } | null>(null);
   const [serperImgs, setSerperImgs] = useState<string[]>([]);
   const [offImgs, setOffImgs] = useState<string[]>([]);
   const [upcImgs, setUpcImgs] = useState<string[]>([]);
@@ -401,6 +402,7 @@ export default function UploadPage() {
     if (!code) return;
     setBarcodeLoading(true);
     setBarcodeStatus('idle');
+    setBarcodeDuplicate(null);
     setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
     setPickedImages([]);
     try {
@@ -412,6 +414,7 @@ export default function UploadPage() {
       if (res.ok) {
         const data = await res.json();
         setBarcodeStatus(data.found ? 'found' : 'notfound');
+        if (data.duplicate) setBarcodeDuplicate(data.duplicate);
         if (data.found) {
           // name/size/category are worker's choice — filled via "Use" buttons, not auto-applied
           setForm(prev => ({
@@ -488,7 +491,7 @@ export default function UploadPage() {
   function clearForm() {
     setFile1(null); setFile2(null); setFile3(null);
     setPaste1(null); setPaste2(null); setPaste3(null);
-    setBarcode(''); setBarcodeStatus('idle'); setBarcodeLoading(false);
+    setBarcode(''); setBarcodeStatus('idle'); setBarcodeLoading(false); setBarcodeDuplicate(null);
     setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
     setSerperSource({ name: '' }); setOffSource({ name: '', size: '', category: '' }); setUpcSource({ name: '', size: '', category: '' });
     setMarketPriceSource('');
@@ -505,6 +508,7 @@ export default function UploadPage() {
     e.preventDefault();
     setError('');
     if (!file1 && !pickedImages[0]) { setError('Please select or take a front photo'); return; }
+    if (barcodeDuplicate) { setError(`Barcode already in store — "${barcodeDuplicate.name}"`); return; }
     if (!form.size.trim()) { setError("Size / weight is required (e.g. 330ml, 500g, 2L, 1kg, 10's)"); return; }
     if (!SIZE_RE.test(form.size.trim())) { setError("Size must be a number with unit — e.g. 330ml, 500g, 2L, 1.5kg, 6 x 330ml, 10's"); return; }
     setSubmitting(true);
@@ -632,8 +636,9 @@ export default function UploadPage() {
             className="btn-primary" style={{ width: '100%', marginBottom: 0 }}>
             {barcodeLoading ? '…' : 'Look Up'}
           </button>
-          {barcodeStatus === 'found' && <p style={{ color: 'var(--green)', fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 600 }}>✓ {form.name || 'Product found'}{form.size ? ` — ${form.size}` : ''}</p>}
+          {barcodeStatus === 'found' && !barcodeDuplicate && <p style={{ color: 'var(--green)', fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 600 }}>✓ {form.name || 'Product found'}{form.size ? ` — ${form.size}` : ''}</p>}
           {barcodeStatus === 'notfound' && <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>Not found — fill in manually or take photos below</p>}
+          {barcodeDuplicate && <p style={{ color: '#c00', fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 600 }}>⚠ Already in store — "{barcodeDuplicate.name}"</p>}
         </div>
 
         {/* Image source comparison — tap up to 3 images; badges show which slot (1/2/3) each fills */}

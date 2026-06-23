@@ -86,6 +86,15 @@ export async function updateProduct(id: string, u: Partial<Product>) {
   `;
 }
 
+export async function getProductByBarcode(barcode: string): Promise<{ id: string; name: string } | null> {
+  if (!barcode) return null;
+  await ensureTable();
+  const db = getDb();
+  const rows = await db`SELECT id, name FROM products WHERE barcode = ${barcode} LIMIT 1`;
+  if (!rows[0]) return null;
+  return { id: String(rows[0].id), name: String(rows[0].name) };
+}
+
 export async function deleteProduct(id: string): Promise<{ photoUrl: string; photoUrl2: string; photoUrl3: string } | null> {
   await ensureTable();
   const db = getDb();
