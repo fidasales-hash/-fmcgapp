@@ -603,11 +603,22 @@ export default function UploadPage() {
           onFile={file => { setFile2(file); analyzePhoto(file, true); }}
         />
         <CameraSlot
-          label="Photo 3 — extra view (optional)"
-          tapLabel="Tap to open camera"
+          label="Photo 3 — best before date (optional)"
+          tapLabel="Tap to photograph date"
           compact
           analyzing={analyzing}
-          onFile={file => setFile3(file)}
+          onFile={async file => {
+            setFile3(file);
+            try {
+              const fd = new FormData();
+              fd.append('photo', file);
+              const res = await fetch('/api/analyze-date', { method: 'POST', body: fd });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.bestBefore) setForm(f => ({ ...f, bestBefore: data.bestBefore }));
+              }
+            } catch { /* silent */ }
+          }}
         />
 
         {analyzing && (
