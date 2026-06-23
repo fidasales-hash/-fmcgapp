@@ -542,10 +542,10 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
 
         <div className="mobile-filters">
           <select className="mobile-select" value={category} onChange={e => selectCategory(e.target.value)}>
-            {categories.map(c => <option key={c} value={c}>{c === 'All' ? 'All' : c}</option>)}
+            {categories.map(c => <option key={c} value={c}>{c === 'All' ? 'All Categories' : c}</option>)}
           </select>
           <select className="mobile-select" value={status} onChange={e => setStatus(e.target.value)}>
-            <option value="All">All</option>
+            <option value="All">All Dates</option>
             <option value="In Date">In Date</option>
             <option value="Past Best Before">Past BB</option>
           </select>
