@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@vercel/blob';
-import { deleteProduct, updateProduct } from '@/lib/db';
+import { deleteProduct, updateProduct, getProductByBarcode } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
@@ -11,6 +11,12 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
+    if (body.barcode) {
+      const existing = await getProductByBarcode(body.barcode);
+      if (existing && existing.id !== id) {
+        return NextResponse.json({ error: `Barcode already used by "${existing.name}"` }, { status: 409 });
+      }
+    }
     await updateProduct(id, body);
     return NextResponse.json({ success: true });
   } catch (e: unknown) {

@@ -81,7 +81,8 @@ export async function updateProduct(id: string, u: Partial<Product>) {
       category     = ${u.category ?? 'Other'},
       notes        = ${u.notes ?? ''},
       price        = ${u.price ?? 0},
-      market_price = ${u.marketPrice ?? 0}
+      market_price = ${u.marketPrice ?? 0},
+      barcode      = ${u.barcode ?? ''}
     WHERE id = ${id}
   `;
 }
