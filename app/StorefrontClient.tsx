@@ -416,6 +416,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
   }, []);
 
   useEffect(() => {
+    fetchProducts();
     window.addEventListener('focus', fetchProducts);
     return () => window.removeEventListener('focus', fetchProducts);
   }, [fetchProducts]);
