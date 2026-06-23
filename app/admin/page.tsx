@@ -197,6 +197,7 @@ export default function AdminPage() {
                     {' · '}<strong>R {Number(product.price ?? 0).toFixed(2)}</strong>
                   </div>
                   {product.notes && <div className="admin-notes">{product.notes}</div>}
+                  {product.barcode && <div className="admin-notes" style={{ color: 'var(--muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>Barcode: {product.barcode}</div>}
                 </div>
               )}
 

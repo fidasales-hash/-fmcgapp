@@ -523,6 +523,7 @@ export default function UploadPage() {
       fd.append('price', form.price);
       fd.append('marketPrice', form.marketPrice);
       fd.append('category', form.category);
+      fd.append('barcode', barcode);
       const res = await fetch('/api/products', { method: 'POST', body: fd });
       if (res.ok) {
         setSuccess(true);

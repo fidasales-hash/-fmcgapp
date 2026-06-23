@@ -10,5 +10,6 @@ export interface Product {
   photoUrl: string;
   photoUrl2: string;
   photoUrl3: string;
+  barcode: string;
   addedAt: string; // ISO
 }
