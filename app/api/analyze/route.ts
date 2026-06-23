@@ -6,9 +6,9 @@ export const runtime = 'nodejs';
 
 const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const GROQ_PROMPT = `Look at this product packaging. Extract:
-1. Product name: brand name + product type (e.g. "Heinz Baked Beans")
-2. Size/weight: quantity shown on pack (e.g. "400g", "330ml", "6 x 250ml")
+const GROQ_PROMPT = `Look at this product packaging image. Extract:
+1. Product name: brand + product type only, max 5 words, no adjectives or descriptions. Examples: "Heinz Baked Beans", "Coca-Cola Original", "Sunlight Dish Liquid"
+2. Size/weight: digits + unit only — ml, g, L, or kg (e.g. "400g", "330ml", "2L", "1.5kg", "6 x 250ml"). Leave blank if not visible
 3. Category: pick exactly one from this list:
    Drinks, Tinned & Canned, Snacks & Confectionery, Bakery & Cereals, Home & Cleaning, Health & Beauty, Baby & Toddler, Pet, Electronics, Other
 

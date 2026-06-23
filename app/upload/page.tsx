@@ -446,10 +446,14 @@ export default function UploadPage() {
     stopScan();
   }
 
+  const SIZE_RE = /^\d+(\.\d+)?\s*(ml|g|l|kg)(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?$/i;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     if (!file1 && !pickedImages[0]) { setError('Please select or take a front photo'); return; }
+    if (!form.size.trim()) { setError('Size / weight is required (e.g. 330ml, 500g, 2L, 1kg)'); return; }
+    if (!SIZE_RE.test(form.size.trim())) { setError('Size must be a number with unit — e.g. 330ml, 500g, 2L, 1.5kg, 6 x 330ml'); return; }
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -492,11 +496,29 @@ export default function UploadPage() {
     );
   }
 
-  function applySource(source: { name?: string; size?: string; category?: string }) {
+  async function applySource(source: { name?: string; size?: string; category?: string }) {
+    const name = source.name ?? '';
+    const size = source.size ?? '';
+    let cleanName = name;
+    let cleanSize = size;
+    if (name) {
+      try {
+        const res = await fetch('/api/reword', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, size }),
+        });
+        if (res.ok) {
+          const d = await res.json();
+          cleanName = d.name || name;
+          cleanSize = d.size || size;
+        }
+      } catch { /* use original on failure */ }
+    }
     setForm(f => ({
       ...f,
-      ...(source.name ? { name: source.name } : {}),
-      ...(source.size ? { size: source.size } : {}),
+      ...(cleanName ? { name: cleanName } : {}),
+      ...(cleanSize ? { size: cleanSize } : {}),
       ...(source.category && CATEGORIES.includes(source.category) ? { category: source.category } : {}),
     }));
   }
@@ -602,9 +624,9 @@ export default function UploadPage() {
         <input type="text" placeholder="Product name *" value={form.name}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, name: v })); }}
           required className="field" autoComplete="off" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} />
-        <input type="text" placeholder="Size / weight  (e.g. 330ml, 500g)" value={form.size}
+        <input type="text" placeholder="Size / weight * (e.g. 330ml, 500g, 2L, 1kg)" value={form.size}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, size: v })); }}
-          className="field" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} />
+          required className="field" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} />
         <div className="field-wrap">
           <label className="field-label">Category</label>
           <select className="field" style={{ marginBottom: 0, appearance: 'auto' }} value={form.category} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, category: v })); }}>
