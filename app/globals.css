@@ -114,6 +114,7 @@ body {
     bottom: 0;
     flex: none;
     justify-content: center;
+    pointer-events: none;
   }
   .header-search {
     margin-left: auto;
