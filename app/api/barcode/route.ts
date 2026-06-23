@@ -200,9 +200,8 @@ export async function POST(req: NextRequest) {
     const imageUrl = off?.frontImage || upcImages[0] || '';
 
     // All five run in parallel — Serper always fires (not just as fallback)
-    const [serperResults, serperBackResults, tavilyResult, groq, duplicate] = await Promise.all([
+    const [serperResults, tavilyResult, groq, duplicate] = await Promise.all([
       serperSearch(`${searchTerm} product`),
-      serperSearch(`${searchTerm} back label`),
       name ? lookupTavilyPrice(searchTerm) : Promise.resolve({ price: 0, source: '' }),
       imageUrl ? analyzeImageUrl(imageUrl) : Promise.resolve({ name: '', size: '', category: '' }),
       getProductByBarcode(String(barcode)),
@@ -225,10 +224,6 @@ export async function POST(req: NextRequest) {
         off: { name: off?.name || '', size: off?.size || '', category: off?.category || '', images: offImages },
         upc: { name: upc?.name || '', size: upc?.size || '', category: upc?.category || '', images: upcImages },
       },
-      backImages: [
-        ...(off?.backImage ? [off.backImage] : []),
-        ...serperBackResults.map(r => r.imageUrl),
-      ],
     });
   } catch (e) {
     console.error('barcode error:', e);

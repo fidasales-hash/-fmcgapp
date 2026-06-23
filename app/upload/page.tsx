@@ -296,7 +296,6 @@ export default function UploadPage() {
   const [serperImgs, setSerperImgs] = useState<string[]>([]);
   const [offImgs, setOffImgs] = useState<string[]>([]);
   const [upcImgs, setUpcImgs] = useState<string[]>([]);
-  const [backImages, setBackImages] = useState<string[]>([]);
   const [serperSource, setSerperSource] = useState({ name: '' });
   const [offSource, setOffSource] = useState({ name: '', size: '', category: '' });
   const [upcSource, setUpcSource] = useState({ name: '', size: '', category: '' });
@@ -403,7 +402,7 @@ export default function UploadPage() {
     setBarcodeLoading(true);
     setBarcodeStatus('idle');
     setBarcodeDuplicate(null);
-    setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
+    setSerperImgs([]); setOffImgs([]); setUpcImgs([]);
     setPickedImages([]);
     try {
       const res = await fetch('/api/barcode', {
@@ -430,7 +429,6 @@ export default function UploadPage() {
         setSerperSource({ name: s.serper?.name ?? '' });
         setOffSource({ name: s.off?.name ?? '', size: s.off?.size ?? '', category: s.off?.category ?? '' });
         setUpcSource({ name: s.upc?.name ?? '', size: s.upc?.size ?? '', category: s.upc?.category ?? '' });
-        if (data.backImages?.length) setBackImages(data.backImages);
       }
     } catch { /* silent */ }
     setBarcodeLoading(false);
@@ -448,7 +446,6 @@ export default function UploadPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.frontImages?.length) setSerperImgs(data.frontImages);
-        if (data.backImages?.length) setBackImages(data.backImages);
       }
     } catch { /* silent */ }
     setImagesLoading(false);
@@ -492,7 +489,7 @@ export default function UploadPage() {
     setFile1(null); setFile2(null); setFile3(null);
     setPaste1(null); setPaste2(null); setPaste3(null);
     setBarcode(''); setBarcodeStatus('idle'); setBarcodeLoading(false); setBarcodeDuplicate(null);
-    setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
+    setSerperImgs([]); setOffImgs([]); setUpcImgs([]);
     setSerperSource({ name: '' }); setOffSource({ name: '', size: '', category: '' }); setUpcSource({ name: '', size: '', category: '' });
     setMarketPriceSource('');
     setPickedImages([]);
@@ -533,7 +530,7 @@ export default function UploadPage() {
         setSuccess(true);
         setFile1(null); setFile2(null); setFile3(null);
         setBarcode(''); setBarcodeStatus('idle');
-        setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
+        setSerperImgs([]); setOffImgs([]); setUpcImgs([]);
         setSerperSource({ name: '' }); setOffSource({ name: '', size: '', category: '' }); setUpcSource({ name: '', size: '', category: '' });
         setMarketPriceSource('');
         setPickedImages([]);
@@ -645,7 +642,6 @@ export default function UploadPage() {
         <ImagePicker label="Google Images (Serper)" subtitle={serperSource.name || undefined} onUseSource={serperSource.name ? () => applySource(serperSource) : undefined} images={serperImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !serperImgs.includes(u)))} loading={imagesLoading} />
         <ImagePicker label="Open Food Facts" subtitle={[offSource.name, offSource.size].filter(Boolean).join(' ') || undefined} onUseSource={offSource.name ? () => applySource(offSource) : undefined} images={offImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !offImgs.includes(u)))} />
         <ImagePicker label="UPCitemdb" subtitle={[upcSource.name, upcSource.size].filter(Boolean).join(' ') || undefined} onUseSource={upcSource.name ? () => applySource(upcSource) : undefined} images={upcImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !upcImgs.includes(u)))} />
-        <ImagePicker label="Back label (optional)" images={backImages} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !backImages.includes(u)))} />
 
         {/* Camera slots */}
         <CameraSlot
@@ -656,7 +652,7 @@ export default function UploadPage() {
           pendingFile={paste1}
         />
         <CameraSlot
-          label={backImages.length ? 'Or take your own back photo (optional)' : 'Photo 2 — back / side (optional)'}
+          label="Photo 2 — back / side (optional)"
           tapLabel="Tap to open camera"
           compact
           analyzing={analyzing}
