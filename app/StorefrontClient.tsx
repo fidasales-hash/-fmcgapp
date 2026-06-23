@@ -553,7 +553,6 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
             <option value="newest">Newest</option>
             <option value="price-asc">Low→High</option>
             <option value="price-desc">High→Low</option>
-            <option value="expiry">Expiry</option>
           </select>
         </div>
 
@@ -583,7 +582,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
             </div>
             <div className="sidebar-section">
               <p className="sidebar-label">Sort</p>
-              {([['newest', 'Newest'], ['price-asc', 'Price: Low→High'], ['price-desc', 'Price: High→Low'], ['expiry', 'Expiry: Soonest']] as const).map(([val, label]) => (
+              {([['newest', 'Newest'], ['price-asc', 'Price: Low→High'], ['price-desc', 'Price: High→Low']] as const).map(([val, label]) => (
                 <button key={val} className={`sidebar-chip${sort === val ? ' active' : ''}`} onClick={() => setSort(val)}>
                   {label}
                 </button>
