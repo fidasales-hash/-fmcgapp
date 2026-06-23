@@ -361,10 +361,16 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
 }
 
 
-export default function StorefrontClient({ initialProducts }: { initialProducts: Product[] }) {
+export default function StorefrontClient({ initialProducts, initialCategory = 'All' }: { initialProducts: Product[]; initialCategory?: string }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loading, setLoading] = useState(false);
-  const [category, setCategory] = useState('All');
+  const [category, setCategory] = useState(initialCategory);
+
+  function selectCategory(cat: string) {
+    setCategory(cat);
+    const url = cat === 'All' ? '/' : `/?category=${encodeURIComponent(cat)}`;
+    window.history.replaceState(null, '', url);
+  }
   const [status, setStatus] = useState('All');
   const [sort, setSort] = useState('newest');
   const [lightboxImgs, setLightboxImgs] = useState<string[]>([]);
@@ -534,7 +540,7 @@ export default function StorefrontClient({ initialProducts }: { initialProducts:
         </header>
 
         <div className="mobile-filters">
-          <select className="mobile-select" value={category} onChange={e => setCategory(e.target.value)}>
+          <select className="mobile-select" value={category} onChange={e => selectCategory(e.target.value)}>
             {categories.map(c => <option key={c} value={c}>{c === 'All' ? 'All' : c}</option>)}
           </select>
           <select className="mobile-select" value={status} onChange={e => setStatus(e.target.value)}>
@@ -557,7 +563,7 @@ export default function StorefrontClient({ initialProducts }: { initialProducts:
             <div className="sidebar-section">
               <p className="sidebar-label">Category</p>
               {categories.map(c => (
-                <button key={c} className={`sidebar-chip${category === c ? ' active' : ''}`} onClick={() => setCategory(c)}>
+                <button key={c} className={`sidebar-chip${category === c ? ' active' : ''}`} onClick={() => selectCategory(c)}>
                   {c === 'All' ? 'All' : c}
                 </button>
               ))}
