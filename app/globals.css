@@ -150,6 +150,7 @@ body {
 /* ── Mobile filter bar ─────────────────────────── */
 .mobile-filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
   background: #fff;
@@ -158,9 +159,6 @@ body {
 .mobile-select {
   flex: 1;
   min-width: 0;
-}
-.mobile-select:first-child {
-  flex: 2;
   font-size: 0.8rem;
   padding: 0.35rem 0.4rem;
   border: 1.5px solid var(--border);
@@ -168,6 +166,10 @@ body {
   background: #fff;
   color: var(--text);
   cursor: pointer;
+}
+.mobile-select:first-child {
+  flex: none;
+  width: max-content;
 }
 @media (min-width: 640px) {
   .mobile-filters { display: none; }
