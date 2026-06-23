@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/upload', '/admin', '/api/'],
     },
-    sitemap: 'https://fmcgapp.vercel.app/sitemap.xml',
+    sitemap: 'https://clearanceshop.co.za/sitemap.xml',
   };
 }
