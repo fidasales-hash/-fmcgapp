@@ -6,21 +6,38 @@ export const runtime = 'nodejs';
 
 const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+const GROQ_PROMPT = `Look at this product packaging. Extract:
+1. Product name: brand name + product type (e.g. "Heinz Baked Beans")
+2. Size/weight: quantity shown on pack (e.g. "400g", "330ml", "6 x 250ml")
+3. Category: pick exactly one from this list:
+   Drinks, Tinned & Canned, Snacks & Confectionery, Bakery & Cereals, Home & Cleaning, Health & Beauty, Baby & Toddler, Pet, Electronics, Other
+
+Return ONLY valid JSON with no extra text:
+{"name":"...","size":"...","category":"..."}`;
+
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const photo = formData.get('photo') as File;
-    if (!photo) return NextResponse.json({ error: 'No photo' }, { status: 400 });
+    const contentType = req.headers.get('content-type') ?? '';
 
-    const buffer = Buffer.from(await photo.arrayBuffer());
+    let imageUrlForGroq = '';
 
-    // Resize to max 800px — Groq rejects large images
-    const resized = await sharp(buffer)
-      .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 80 })
-      .toBuffer();
+    if (contentType.includes('application/json')) {
+      const body = await req.json();
+      const photoUrl: string = body.photoUrl ?? '';
+      if (!photoUrl) return NextResponse.json({ error: 'No photoUrl' }, { status: 400 });
+      imageUrlForGroq = photoUrl;
+    } else {
+      const formData = await req.formData();
+      const photo = formData.get('photo') as File;
+      if (!photo) return NextResponse.json({ error: 'No photo' }, { status: 400 });
 
-    const base64 = resized.toString('base64');
+      const buffer = Buffer.from(await photo.arrayBuffer());
+      const resized = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      imageUrlForGroq = `data:image/jpeg;base64,${resized.toString('base64')}`;
+    }
 
     const response = await client.chat.completions.create({
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
@@ -28,21 +45,8 @@ export async function POST(req: NextRequest) {
       messages: [{
         role: 'user',
         content: [
-          {
-            type: 'image_url',
-            image_url: { url: `data:image/jpeg;base64,${base64}` },
-          },
-          {
-            type: 'text',
-            text: `Look at this product packaging. Extract:
-1. Product name: brand name + product type (e.g. "Heinz Baked Beans")
-2. Size/weight: quantity shown on pack (e.g. "400g", "330ml", "6 x 250ml")
-3. Category: pick exactly one from this list:
-   Drinks, Tinned & Canned, Snacks & Confectionery, Bakery & Cereals, Home & Cleaning, Health & Beauty, Baby & Toddler, Pet, Electronics, Other
-
-Return ONLY valid JSON with no extra text:
-{"name":"...","size":"...","category":"..."}`,
-          },
+          { type: 'image_url', image_url: { url: imageUrlForGroq } },
+          { type: 'text', text: GROQ_PROMPT },
         ],
       }],
     });

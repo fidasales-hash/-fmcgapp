@@ -264,6 +264,8 @@ export default function UploadPage() {
   const [marketPriceSource, setMarketPriceSource] = useState('');
   const [pickedImages, setPickedImages] = useState<string[]>([]);
   const [imagesLoading, setImagesLoading] = useState(false);
+  const [groqAnalyzing, setGroqAnalyzing] = useState(false);
+  const firstPickedImage = pickedImages[0];
 
   const [scanning, setScanning] = useState(false);
   const [scanSupported, setScanSupported] = useState(false);
@@ -275,6 +277,34 @@ export default function UploadPage() {
     setScanSupported('BarcodeDetector' in window);
     return () => stopScan();
   }, []);
+
+  useEffect(() => {
+    if (!firstPickedImage) return;
+    if (localStorage.getItem('claudeApiEnabled') === 'false') return;
+    setGroqAnalyzing(true);
+    fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photoUrl: firstPickedImage }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || data.error) return;
+        setForm(prev => {
+          if (prev.name) return prev;
+          const aiCategory = CATEGORIES.includes(data.category) ? data.category : '';
+          return {
+            ...prev,
+            name: data.name || '',
+            size: prev.size || data.size || '',
+            category: prev.category === 'Other' && aiCategory ? aiCategory : prev.category,
+            marketPrice: prev.marketPrice || (data.marketPrice ? String(data.marketPrice) : ''),
+          };
+        });
+      })
+      .catch(() => {})
+      .finally(() => setGroqAnalyzing(false));
+  }, [firstPickedImage]);
 
   async function startScan() {
     setScanning(true);
@@ -562,6 +592,11 @@ export default function UploadPage() {
         {analyzing && (
           <p style={{ fontSize: '0.85rem', color: 'var(--primary)', margin: '0.25rem 0 0.75rem', fontWeight: 600 }}>
             ⏳ Reading product label…
+          </p>
+        )}
+        {groqAnalyzing && !analyzing && (
+          <p style={{ fontSize: '0.85rem', color: 'var(--primary)', margin: '0.25rem 0 0.75rem', fontWeight: 600 }}>
+            ⏳ Reading selected image…
           </p>
         )}
 
