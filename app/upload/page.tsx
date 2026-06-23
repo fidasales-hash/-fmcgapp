@@ -62,6 +62,7 @@ function CameraSlot({
   const [rotatedFile, setRotatedFile] = useState<File | null>(null);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => () => stopStream(), []);
 
@@ -143,6 +144,14 @@ function CameraSlot({
     setPreview(URL.createObjectURL(file)); setMode('preview'); onFile(file);
   }
 
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault(); setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    setCapturedFile(file); setRotatedFile(null);
+    setPreview(URL.createObjectURL(file)); setMode('preview'); onFile(file);
+  }
+
   return (
     <div style={{ marginBottom: '1rem' }}>
       <p className="field-label" style={{ marginBottom: '0.4rem' }}>{label}</p>
@@ -160,7 +169,17 @@ function CameraSlot({
       </div>
       {mode === 'idle' && (
         <>
-          <div className={`photo-placeholder${compact ? ' photo-placeholder-opt' : ''}`} style={{ cursor: 'pointer' }} onClick={openCamera}>📷 {tapLabel}</div>
+          <div
+            className={`photo-placeholder${compact ? ' photo-placeholder-opt' : ''}`}
+            style={{ cursor: 'pointer', border: dragging ? '2px dashed var(--primary)' : undefined, background: dragging ? 'var(--surface)' : undefined, transition: 'border 0.15s, background 0.15s' }}
+            onClick={openCamera}
+            onDragOver={e => { e.preventDefault(); setDragging(true); }}
+            onDragEnter={e => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+          >
+            {dragging ? '⬇ Drop image here' : `📷 ${tapLabel}`}
+          </div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFileInput} />
         </>
       )}
