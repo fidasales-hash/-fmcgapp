@@ -291,13 +291,12 @@ export default function UploadPage() {
       .then(data => {
         if (!data || data.error) return;
         setForm(prev => {
-          if (prev.name) return prev;
           const aiCategory = CATEGORIES.includes(data.category) ? data.category : '';
           return {
             ...prev,
-            name: data.name || '',
-            size: prev.size || data.size || '',
-            category: prev.category === 'Other' && aiCategory ? aiCategory : prev.category,
+            name: data.name || prev.name,
+            size: data.size || prev.size,
+            category: aiCategory || prev.category,
             marketPrice: prev.marketPrice || (data.marketPrice ? String(data.marketPrice) : ''),
           };
         });
