@@ -376,6 +376,7 @@ export default function Storefront() {
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
   const cartLoaded = useRef(false);
+  const lbTouchX = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -458,15 +459,31 @@ export default function Storefront() {
   return (
     <>
       {lightboxImgs.length > 0 && (
-        <div className="lightbox-backdrop" onClick={() => setLightboxImgs([])}>
+        <div className="lightbox-backdrop"
+          onTouchStart={e => { lbTouchX.current = e.touches[0].clientX; }}
+          onTouchEnd={e => {
+            const dx = lbTouchX.current === null ? 0 : e.changedTouches[0].clientX - lbTouchX.current;
+            lbTouchX.current = null;
+            if (Math.abs(dx) < 40) { setLightboxImgs([]); return; }
+            if (dx < 0) setLightboxIdx(i => Math.min(i + 1, lightboxImgs.length - 1));
+            else setLightboxIdx(i => Math.max(i - 1, 0));
+          }}
+          onClick={() => setLightboxImgs([])}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={lightboxImgs[lightboxIdx]} alt="" className="lightbox-img" onClick={e => e.stopPropagation()} />
           <button className="lightbox-close" onClick={() => setLightboxImgs([])} aria-label="Close">✕</button>
           {lightboxIdx > 0 && (
-            <button className="lightbox-arrow lightbox-arrow-left" onClick={e => { e.stopPropagation(); setLightboxIdx(i => i - 1); }} aria-label="Previous">‹</button>
+            <button className="lightbox-arrow lightbox-arrow-left"
+              onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.max(i - 1, 0)); }}
+              onTouchEnd={e => { e.stopPropagation(); setLightboxIdx(i => Math.max(i - 1, 0)); }}
+              aria-label="Previous">‹</button>
           )}
           {lightboxIdx < lightboxImgs.length - 1 && (
-            <button className="lightbox-arrow lightbox-arrow-right" onClick={e => { e.stopPropagation(); setLightboxIdx(i => i + 1); }} aria-label="Next">›</button>
+            <button className="lightbox-arrow lightbox-arrow-right"
+              onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.min(i + 1, lightboxImgs.length - 1)); }}
+              onTouchEnd={e => { e.stopPropagation(); setLightboxIdx(i => Math.min(i + 1, lightboxImgs.length - 1)); }}
+              aria-label="Next">›</button>
           )}
         </div>
       )}
