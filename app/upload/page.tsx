@@ -49,13 +49,14 @@ async function rotateCW(file: File): Promise<{ file: File; preview: string }> {
 type SlotMode = 'idle' | 'camera' | 'preview';
 
 function CameraSlot({
-  label, tapLabel, compact, analyzing, onFile,
+  label, tapLabel, compact, analyzing, onFile, pendingFile,
 }: {
-  label: string; tapLabel: string; compact?: boolean; analyzing: boolean; onFile: (file: File) => void;
+  label: string; tapLabel: string; compact?: boolean; analyzing: boolean; onFile: (file: File) => void; pendingFile?: File | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const browseRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<SlotMode>('idle');
   const [preview, setPreview] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
@@ -65,6 +66,12 @@ function CameraSlot({
   const [dragging, setDragging] = useState(false);
 
   useEffect(() => () => stopStream(), []);
+
+  useEffect(() => {
+    if (!pendingFile || mode !== 'idle') return;
+    setCapturedFile(pendingFile); setRotatedFile(null);
+    setPreview(URL.createObjectURL(pendingFile)); setMode('preview'); onFile(pendingFile);
+  }, [pendingFile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function stopStream() {
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -171,16 +178,25 @@ function CameraSlot({
         <>
           <div
             className={`photo-placeholder${compact ? ' photo-placeholder-opt' : ''}`}
-            style={{ cursor: 'pointer', border: dragging ? '2px dashed var(--primary)' : undefined, background: dragging ? 'var(--surface)' : undefined, transition: 'border 0.15s, background 0.15s' }}
-            onClick={openCamera}
+            style={{ cursor: 'pointer', border: dragging ? '2px dashed var(--primary)' : undefined, background: dragging ? 'var(--surface)' : undefined, transition: 'border 0.15s, background 0.15s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragEnter={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
           >
-            {dragging ? '⬇ Drop image here' : `📷 ${tapLabel}`}
+            {dragging ? <span>⬇ Drop image here</span> : (
+              <>
+                <button type="button" onClick={openCamera} style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.45rem 1.1rem', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}>📷 {tapLabel}</button>
+                <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
+                  <button type="button" onClick={() => browseRef.current?.click()} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', padding: 0 }}>📁 Browse</button>
+                  <span>· Drag &amp; drop ·</span>
+                  <span>Ctrl+V Paste</span>
+                </div>
+              </>
+            )}
           </div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFileInput} />
+          <input ref={browseRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileInput} />
         </>
       )}
       {mode === 'preview' && preview && (
@@ -263,6 +279,9 @@ export default function UploadPage() {
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
   const [file3, setFile3] = useState<File | null>(null);
+  const [paste1, setPaste1] = useState<File | null>(null);
+  const [paste2, setPaste2] = useState<File | null>(null);
+  const [paste3, setPaste3] = useState<File | null>(null);
   const [form, setForm] = useState({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
   const [analyzingCount, setAnalyzingCount] = useState(0);
   const analyzing = analyzingCount > 0;
@@ -296,6 +315,20 @@ export default function UploadPage() {
     setScanSupported('BarcodeDetector' in window);
     return () => stopScan();
   }, []);
+
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'));
+      if (!item) return;
+      const file = item.getAsFile();
+      if (!file) return;
+      if (!file1) { setPaste1(file); return; }
+      if (!file2) { setPaste2(file); return; }
+      if (!file3) { setPaste3(file); }
+    }
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [file1, file2, file3]);
 
   useEffect(() => {
     if (!firstPickedImage) return;
@@ -454,6 +487,7 @@ export default function UploadPage() {
 
   function clearForm() {
     setFile1(null); setFile2(null); setFile3(null);
+    setPaste1(null); setPaste2(null); setPaste3(null);
     setBarcode(''); setBarcodeStatus('idle'); setBarcodeLoading(false);
     setSerperImgs([]); setOffImgs([]); setUpcImgs([]); setBackImages([]);
     setSerperSource({ name: '' }); setOffSource({ name: '', size: '', category: '' }); setUpcSource({ name: '', size: '', category: '' });
@@ -613,6 +647,7 @@ export default function UploadPage() {
           tapLabel="Tap to open camera"
           analyzing={analyzing}
           onFile={file => { setFile1(file); analyzePhoto(file); }}
+          pendingFile={paste1}
         />
         <CameraSlot
           label={backImages.length ? 'Or take your own back photo (optional)' : 'Photo 2 — back / side (optional)'}
@@ -620,6 +655,7 @@ export default function UploadPage() {
           compact
           analyzing={analyzing}
           onFile={file => { setFile2(file); analyzePhoto(file, true); }}
+          pendingFile={paste2}
         />
         <CameraSlot
           label="Photo 3 — best before date (optional)"
@@ -638,6 +674,7 @@ export default function UploadPage() {
               }
             } catch { /* silent */ }
           }}
+          pendingFile={paste3}
         />
 
         {analyzing && (
