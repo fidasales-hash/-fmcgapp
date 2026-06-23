@@ -13,7 +13,7 @@ Size: "${size}"
 
 Rules:
 - Name: brand + product type + variant/flavour if present, max 6 words, title case. E.g. "Hershey's Kisses Candy Cane", "Coca-Cola Zero Sugar", "Heinz Baked Beans"
-- Size: digits + unit only (ml, g, L, kg). E.g. "330ml", "500g", "2L". Multiple packs like "6 x 330ml". If size is missing or unknown, write "N/A"
+- Size: digits + unit only (ml, g, L, kg). E.g. "330ml", "500g", "2L". Multiple packs like "6 x 330ml". Count-only packs like "10's", "6's". If size is missing or unknown, write "N/A"
 
 Return ONLY valid JSON:
 {"name":"...","size":"..."}`;

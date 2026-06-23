@@ -499,14 +499,14 @@ export default function UploadPage() {
     stopScan();
   }
 
-  const SIZE_RE = /^\d+(\.\d+)?\s*(ml|g|l|kg)(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?$/i;
+  const SIZE_RE = /^(\d+(\.\d+)?\s*(ml|g|l|kg)(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?|\d+'?s)$/i;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     if (!file1 && !pickedImages[0]) { setError('Please select or take a front photo'); return; }
-    if (!form.size.trim()) { setError('Size / weight is required (e.g. 330ml, 500g, 2L, 1kg)'); return; }
-    if (!SIZE_RE.test(form.size.trim())) { setError('Size must be a number with unit — e.g. 330ml, 500g, 2L, 1.5kg, 6 x 330ml'); return; }
+    if (!form.size.trim()) { setError("Size / weight is required (e.g. 330ml, 500g, 2L, 1kg, 10's)"); return; }
+    if (!SIZE_RE.test(form.size.trim())) { setError("Size must be a number with unit — e.g. 330ml, 500g, 2L, 1.5kg, 6 x 330ml, 10's"); return; }
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -691,7 +691,7 @@ export default function UploadPage() {
         <input type="text" placeholder="Product name *" value={form.name}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, name: v })); }}
           required className="field" autoComplete="off" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} />
-        <input type="text" placeholder="Size / weight * (e.g. 330ml, 500g, 2L, 1kg)" value={form.size}
+        <input type="text" placeholder="Size / weight * (e.g. 330ml, 500g, 2L, 1kg, 10's)" value={form.size}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, size: v })); }}
           required className="field" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} />
         <div className="field-wrap">
