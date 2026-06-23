@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     if (!name) return NextResponse.json({ name: '', size: size || '' });
 
     const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      model: 'llama-3.1-8b-instant',
       max_tokens: 64,
       messages: [{ role: 'user', content: REWORD_PROMPT(name, size ?? '') }],
     });
