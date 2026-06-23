@@ -66,7 +66,7 @@ function StoreInfoDrawer({ onClose }: { onClose: () => void }) {
             </span>
             <div>
               <p className="store-info-label">Delivery</p>
-              <p className="store-info-value">We courier nationwide across South Africa.</p>
+              <p className="store-info-value">We courier nationwide across South Africa. Standard courier fee R50 on all orders.</p>
             </div>
           </div>
           <div className="store-info-row">
@@ -300,6 +300,7 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
 
             {details.fulfillment === 'delivery' && (
               <>
+                <p style={{ fontSize: '0.82rem', color: 'var(--muted)', marginBottom: '0.25rem' }}>Standard courier fee: <strong style={{ color: 'var(--text)' }}>R50</strong></p>
                 <input className="field" placeholder="Street address *" value={details.address} onChange={set('address')} />
                 <input className="field" placeholder="Notes — suburb, gate code, landmark" value={details.notes} onChange={set('notes')} />
               </>
