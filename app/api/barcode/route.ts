@@ -4,11 +4,9 @@ import { getProductByBarcode } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
-const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 async function analyzeImageUrl(url: string): Promise<{ name: string; size: string; category: string }> {
   try {
-    const response = await groqClient.chat.completions.create({
+    const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       max_tokens: 256,
       messages: [{

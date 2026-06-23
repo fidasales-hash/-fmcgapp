@@ -4,8 +4,6 @@ import sharp from 'sharp';
 
 export const runtime = 'nodejs';
 
-const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 const GROQ_PROMPT = `Look at this product packaging image. Extract:
 1. Product name: brand + product type + variant/flavour if shown, max 6 words. Examples: "Hershey's Kisses Candy Cane", "Coca-Cola Zero Sugar", "Heinz Baked Beans", "Sunlight Dish Liquid"
 2. Size/weight: digits + unit only — ml, g, L, or kg (e.g. "400g", "330ml", "2L", "1.5kg", "6 x 250ml"). For count-only packs use e.g. "10's", "6's". Leave blank if not visible
@@ -39,7 +37,7 @@ export async function POST(req: NextRequest) {
       imageUrlForGroq = `data:image/jpeg;base64,${resized.toString('base64')}`;
     }
 
-    const response = await client.chat.completions.create({
+    const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       max_tokens: 256,
       messages: [{

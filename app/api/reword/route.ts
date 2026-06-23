@@ -3,8 +3,6 @@ import Groq from 'groq-sdk';
 
 export const runtime = 'nodejs';
 
-const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 const REWORD_PROMPT = (name: string, size: string) =>
   `Clean up this product name and size for a retail listing.
 
@@ -23,7 +21,7 @@ export async function POST(req: NextRequest) {
     const { name, size } = await req.json();
     if (!name) return NextResponse.json({ name: '', size: size || '' });
 
-    const response = await client.chat.completions.create({
+    const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       max_tokens: 64,
       messages: [{ role: 'user', content: REWORD_PROMPT(name, size ?? '') }],

@@ -4,8 +4,6 @@ import sharp from 'sharp';
 
 export const runtime = 'nodejs';
 
-const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 const DATE_PROMPT = `Look at this product packaging image. Find the best before, use by, or expiry date.
 
 The date will be in MM/YYYY format (e.g. "06/2026", "12/2025").
@@ -33,7 +31,7 @@ export async function POST(req: NextRequest) {
       .toBuffer();
     const imageUrl = `data:image/jpeg;base64,${resized.toString('base64')}`;
 
-    const response = await client.chat.completions.create({
+    const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       max_tokens: 32,
       messages: [{
