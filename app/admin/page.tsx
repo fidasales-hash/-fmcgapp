@@ -127,6 +127,7 @@ export default function AdminPage() {
   const [editPhotos, setEditPhotos] = useState<EditPhotos>(EMPTY_PHOTOS);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [savedOk, setSavedOk] = useState(false);
   const [claudeEnabled, setClaudeEnabled] = useState(true);
   const dateRef = useRef<HTMLInputElement>(null);
   const bbValue = useRef('');
@@ -204,9 +205,22 @@ export default function AdminPage() {
       const res = await fetch(`/api/products/${id}`, { method: 'PATCH', body: fd });
       if (res.ok) {
         const freshRes = await fetch('/api/products');
-        if (freshRes.ok) setProducts(await freshRes.json());
-        setEditing(null);
-        setEditPhotos(EMPTY_PHOTOS);
+        if (freshRes.ok) {
+          const fresh = await freshRes.json() as Product[];
+          setProducts(fresh);
+          const updated = fresh.find(p => p.id === id);
+          if (updated) {
+            setEditPhotos(ep => ({
+              ...ep,
+              file1: null, preview1: updated.photoUrl,
+              file2: null, preview2: updated.photoUrl2 ?? '',
+              file3: null, preview3: updated.photoUrl3 ?? '',
+              clear2: false, clear3: false,
+            }));
+          }
+        }
+        setSavedOk(true);
+        setTimeout(() => setSavedOk(false), 2500);
       } else {
         const errData = await res.json().catch(() => ({}));
         setSaveError(errData.error || `Save failed (${res.status})`);
@@ -321,12 +335,13 @@ export default function AdminPage() {
                   </div>
 
                   {saveError && <p className="error">{saveError}</p>}
+                  {savedOk && <p style={{ color: '#16a34a', fontSize: '0.82rem', margin: '0.25rem 0' }}>Saved ✓</p>}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="btn-primary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => saveEdit(product.id)} disabled={saving}>
                       {saving ? '…' : 'Save'}
                     </button>
-                    <button className="btn-secondary" style={{ flex: 1, padding: '0.5rem', marginTop: 0 }} onClick={() => { setEditing(null); setSaveError(''); setEditPhotos(EMPTY_PHOTOS); }}>
-                      Cancel
+                    <button className="btn-secondary" style={{ flex: 1, padding: '0.5rem', marginTop: 0 }} onClick={() => { setEditing(null); setSaveError(''); setSavedOk(false); setEditPhotos(EMPTY_PHOTOS); }}>
+                      {savedOk ? 'Done' : 'Cancel'}
                     </button>
                   </div>
                 </div>
