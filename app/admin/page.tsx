@@ -7,15 +7,79 @@ const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bake
 function isExpired(bestBefore: string) {
   if (!bestBefore) return false;
   const d = new Date(bestBefore + 'T00:00:00');
-  if (isNaN(d.getTime())) return true; // malformed/AI-generated date → assume expired
+  if (isNaN(d.getTime())) return true;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return d < today;
 }
 
 type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string; price: string; marketPrice: string; barcode: string };
+type EditPhotos = { file1: File | null; preview1: string; file2: File | null; preview2: string; clear2: boolean; file3: File | null; preview3: string; clear3: boolean };
 
 const CLAUDE_KEY = 'claudeApiEnabled';
+
+function DropZone({ preview, label, onFile, onClear }: { preview: string; label: string; onFile: (f: File) => void; onClear?: () => void }) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f?.type.startsWith('image/')) onFile(f);
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+      <div
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
+        style={{
+          aspectRatio: '1', borderRadius: 8, overflow: 'hidden', cursor: 'pointer',
+          border: preview
+            ? `0.5px solid var(--border, #ddd)`
+            : `1.5px dashed ${dragging ? 'var(--primary, #2563eb)' : 'var(--border, #ddd)'}`,
+          background: dragging ? 'rgba(37,99,235,0.05)' : preview ? 'transparent' : 'var(--surface, #f9f9f9)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 4, position: 'relative', transition: 'border-color 0.15s',
+        }}
+      >
+        {preview ? (
+          <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <>
+            <span style={{ fontSize: '1.25rem', color: '#ccc' }}>+</span>
+            <span style={{ fontSize: '0.68rem', color: '#bbb' }}>{dragging ? 'Drop' : label}</span>
+          </>
+        )}
+        {dragging && preview && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(37,99,235,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--primary, #2563eb)', fontWeight: 600 }}>Drop</span>
+          </div>
+        )}
+      </div>
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
+      {preview && (
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--primary, #2563eb)', cursor: 'pointer' }}
+            onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}>Replace</span>
+          {onClear && (
+            <span style={{ fontSize: '0.7rem', color: '#bbb', cursor: 'pointer' }}
+              onClick={e => { e.stopPropagation(); onClear(); }}>· Remove</span>
+          )}
+        </div>
+      )}
+      {!preview && (
+        <div style={{ textAlign: 'center' }}>
+          <span style={{ fontSize: '0.7rem', color: '#bbb' }}>{label}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function exportCSV(products: Product[]) {
   const headers = ['Name', 'Size', 'Category', 'Best Before', 'Status', 'Price (R)', 'Added'];
@@ -38,12 +102,15 @@ function exportCSV(products: Product[]) {
   URL.revokeObjectURL(url);
 }
 
+const EMPTY_PHOTOS: EditPhotos = { file1: null, preview1: '', file2: null, preview2: '', clear2: false, file3: null, preview3: '', clear3: false };
+
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '', price: '', marketPrice: '', barcode: '' });
+  const [editPhotos, setEditPhotos] = useState<EditPhotos>(EMPTY_PHOTOS);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [claudeEnabled, setClaudeEnabled] = useState(true);
@@ -70,22 +137,62 @@ export default function AdminPage() {
     const bb = isNaN(d.getTime()) ? '' : p.bestBefore;
     bbValue.current = bb;
     setEditForm({ name: p.name, size: p.size, bestBefore: bb, category: p.category, notes: p.notes, price: String(p.price ?? 0), marketPrice: String(p.marketPrice ?? 0), barcode: p.barcode ?? '' });
+    setEditPhotos({ file1: null, preview1: p.photoUrl, file2: null, preview2: p.photoUrl2 ?? '', clear2: false, file3: null, preview3: p.photoUrl3 ?? '', clear3: false });
+    setSaveError('');
+  }
+
+  function handlePhotoFile(slot: 1 | 2 | 3, file: File) {
+    const url = URL.createObjectURL(file);
+    setEditPhotos(p => {
+      if (slot === 1) {
+        if (p.preview1.startsWith('blob:')) URL.revokeObjectURL(p.preview1);
+        return { ...p, file1: file, preview1: url };
+      }
+      if (slot === 2) {
+        if (p.preview2.startsWith('blob:')) URL.revokeObjectURL(p.preview2);
+        return { ...p, file2: file, preview2: url, clear2: false };
+      }
+      if (p.preview3.startsWith('blob:')) URL.revokeObjectURL(p.preview3);
+      return { ...p, file3: file, preview3: url, clear3: false };
+    });
+  }
+
+  function clearPhoto(slot: 2 | 3) {
+    setEditPhotos(p => {
+      if (slot === 2) {
+        if (p.preview2.startsWith('blob:')) URL.revokeObjectURL(p.preview2);
+        return { ...p, file2: null, preview2: '', clear2: true };
+      }
+      if (p.preview3.startsWith('blob:')) URL.revokeObjectURL(p.preview3);
+      return { ...p, file3: null, preview3: '', clear3: true };
+    });
   }
 
   async function saveEdit(id: string) {
     setSaving(true);
     setSaveError('');
     try {
-      const payload = { ...editForm, bestBefore: bbValue.current, price: parseFloat(editForm.price) || 0, marketPrice: parseFloat(editForm.marketPrice) || 0, barcode: editForm.barcode.trim() };
-      const res = await fetch(`/api/products/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const fd = new FormData();
+      fd.append('name', editForm.name);
+      fd.append('size', editForm.size);
+      fd.append('bestBefore', bbValue.current);
+      fd.append('category', editForm.category);
+      fd.append('notes', editForm.notes);
+      fd.append('price', String(parseFloat(editForm.price) || 0));
+      fd.append('marketPrice', String(parseFloat(editForm.marketPrice) || 0));
+      fd.append('barcode', editForm.barcode.trim());
+      if (editPhotos.file1) fd.append('photo1', editPhotos.file1);
+      if (editPhotos.file2) fd.append('photo2', editPhotos.file2);
+      if (editPhotos.file3) fd.append('photo3', editPhotos.file3);
+      if (editPhotos.clear2) fd.append('clear2', 'true');
+      if (editPhotos.clear3) fd.append('clear3', 'true');
+
+      const res = await fetch(`/api/products/${id}`, { method: 'PATCH', body: fd });
       if (res.ok) {
         const freshRes = await fetch('/api/products');
         if (freshRes.ok) setProducts(await freshRes.json());
         setEditing(null);
+        setEditPhotos(EMPTY_PHOTOS);
       } else {
         const errData = await res.json().catch(() => ({}));
         setSaveError(errData.error || `Save failed (${res.status})`);
@@ -175,12 +282,36 @@ export default function AdminPage() {
                   <input className="field" type="number" min="0" step="0.01" value={editForm.marketPrice} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, marketPrice: v })); }} placeholder="Market Price (R)" />
                   <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, notes: v })); }} placeholder="Notes" />
                   <input className="field" value={editForm.barcode} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, barcode: v })); }} placeholder="Barcode (optional)" inputMode="numeric" />
+
+                  <div style={{ borderTop: '1px solid var(--border, #eee)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#999', marginBottom: '0.5rem' }}>Photos</div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <DropZone
+                        preview={editPhotos.preview1}
+                        label="Main"
+                        onFile={f => handlePhotoFile(1, f)}
+                      />
+                      <DropZone
+                        preview={editPhotos.preview2}
+                        label="Photo 2"
+                        onFile={f => handlePhotoFile(2, f)}
+                        onClear={editPhotos.preview2 ? () => clearPhoto(2) : undefined}
+                      />
+                      <DropZone
+                        preview={editPhotos.preview3}
+                        label="Photo 3"
+                        onFile={f => handlePhotoFile(3, f)}
+                        onClear={editPhotos.preview3 ? () => clearPhoto(3) : undefined}
+                      />
+                    </div>
+                  </div>
+
                   {saveError && <p className="error">{saveError}</p>}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="btn-primary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => saveEdit(product.id)} disabled={saving}>
                       {saving ? '…' : 'Save'}
                     </button>
-                    <button className="btn-secondary" style={{ flex: 1, padding: '0.5rem', marginTop: 0 }} onClick={() => { setEditing(null); setSaveError(''); }}>
+                    <button className="btn-secondary" style={{ flex: 1, padding: '0.5rem', marginTop: 0 }} onClick={() => { setEditing(null); setSaveError(''); setEditPhotos(EMPTY_PHOTOS); }}>
                       Cancel
                     </button>
                   </div>

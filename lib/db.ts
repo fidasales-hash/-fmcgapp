@@ -70,21 +70,50 @@ export async function insertProduct(p: Product) {
   `;
 }
 
+export async function getProductPhotoUrls(id: string): Promise<{ photoUrl: string; photoUrl2: string; photoUrl3: string } | null> {
+  const db = getDb();
+  const rows = await db`SELECT photo_url, photo_url_2, photo_url_3 FROM products WHERE id = ${id}`;
+  if (!rows[0]) return null;
+  return {
+    photoUrl: String(rows[0].photo_url ?? ''),
+    photoUrl2: String(rows[0].photo_url_2 ?? ''),
+    photoUrl3: String(rows[0].photo_url_3 ?? ''),
+  };
+}
+
 export async function updateProduct(id: string, u: Partial<Product>) {
   await ensureTable();
   const db = getDb();
-  await db`
-    UPDATE products SET
-      name         = ${u.name ?? ''},
-      size         = ${u.size ?? ''},
-      best_before  = ${u.bestBefore || null},
-      category     = ${u.category ?? 'Other'},
-      notes        = ${u.notes ?? ''},
-      price        = ${u.price ?? 0},
-      market_price = ${u.marketPrice ?? 0},
-      barcode      = ${u.barcode ?? ''}
-    WHERE id = ${id}
-  `;
+  if (u.photoUrl !== undefined) {
+    await db`
+      UPDATE products SET
+        name         = ${u.name ?? ''},
+        size         = ${u.size ?? ''},
+        best_before  = ${u.bestBefore || null},
+        category     = ${u.category ?? 'Other'},
+        notes        = ${u.notes ?? ''},
+        price        = ${u.price ?? 0},
+        market_price = ${u.marketPrice ?? 0},
+        barcode      = ${u.barcode ?? ''},
+        photo_url    = ${u.photoUrl ?? ''},
+        photo_url_2  = ${u.photoUrl2 ?? ''},
+        photo_url_3  = ${u.photoUrl3 ?? ''}
+      WHERE id = ${id}
+    `;
+  } else {
+    await db`
+      UPDATE products SET
+        name         = ${u.name ?? ''},
+        size         = ${u.size ?? ''},
+        best_before  = ${u.bestBefore || null},
+        category     = ${u.category ?? 'Other'},
+        notes        = ${u.notes ?? ''},
+        price        = ${u.price ?? 0},
+        market_price = ${u.marketPrice ?? 0},
+        barcode      = ${u.barcode ?? ''}
+      WHERE id = ${id}
+    `;
+  }
 }
 
 export async function getProductByBarcode(barcode: string): Promise<{ id: string; name: string } | null> {
