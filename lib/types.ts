@@ -11,5 +11,8 @@ export interface Product {
   photoUrl2: string;
   photoUrl3: string;
   barcode: string;
+  kosher: boolean;
+  halal: boolean;
+  vegan: boolean;
   addedAt: string; // ISO
 }

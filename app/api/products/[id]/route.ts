@@ -22,6 +22,9 @@ export async function PATCH(
     const price = parseFloat(formData.get('price') as string) || 0;
     const marketPrice = parseFloat(formData.get('marketPrice') as string) || 0;
     const barcode = (formData.get('barcode') as string)?.trim() ?? '';
+    const kosher = formData.get('kosher') === 'true';
+    const halal = formData.get('halal') === 'true';
+    const vegan = formData.get('vegan') === 'true';
     const photo1 = formData.get('photo1') as File | null;
     const photo2 = formData.get('photo2') as File | null;
     const photo3 = formData.get('photo3') as File | null;
@@ -42,7 +45,7 @@ export async function PATCH(
       clear2 || clear3;
 
     if (!hasPhotoChanges) {
-      await updateProduct(id, { name, size, bestBefore, category, notes, price, marketPrice, barcode });
+      await updateProduct(id, { name, size, bestBefore, category, notes, price, marketPrice, barcode, kosher, halal, vegan });
       return NextResponse.json({ success: true });
     }
 
@@ -88,7 +91,7 @@ export async function PATCH(
       photoUrl3 = '';
     }
 
-    await updateProduct(id, { name, size, bestBefore, category, notes, price, marketPrice, barcode, photoUrl, photoUrl2, photoUrl3 });
+    await updateProduct(id, { name, size, bestBefore, category, notes, price, marketPrice, barcode, kosher, halal, vegan, photoUrl, photoUrl2, photoUrl3 });
     return NextResponse.json({ success: true, photoUrl, photoUrl2, photoUrl3 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';

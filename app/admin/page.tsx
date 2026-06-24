@@ -13,7 +13,7 @@ function isExpired(bestBefore: string) {
   return d < today;
 }
 
-type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string; price: string; marketPrice: string; barcode: string };
+type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string; price: string; marketPrice: string; barcode: string; kosher: boolean; halal: boolean; vegan: boolean };
 type EditPhotos = { file1: File | null; preview1: string; file2: File | null; preview2: string; clear2: boolean; file3: File | null; preview3: string; clear3: boolean };
 
 const CLAUDE_KEY = 'claudeApiEnabled';
@@ -123,7 +123,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '', price: '', marketPrice: '', barcode: '' });
+  const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '', price: '', marketPrice: '', barcode: '', kosher: false, halal: false, vegan: false });
   const [editPhotos, setEditPhotos] = useState<EditPhotos>(EMPTY_PHOTOS);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -151,7 +151,7 @@ export default function AdminPage() {
     const d = new Date(p.bestBefore + 'T00:00:00');
     const bb = isNaN(d.getTime()) ? '' : p.bestBefore;
     bbValue.current = bb;
-    setEditForm({ name: p.name, size: p.size, bestBefore: bb, category: p.category, notes: p.notes, price: String(p.price ?? 0), marketPrice: String(p.marketPrice ?? 0), barcode: p.barcode ?? '' });
+    setEditForm({ name: p.name, size: p.size, bestBefore: bb, category: p.category, notes: p.notes, price: String(p.price ?? 0), marketPrice: String(p.marketPrice ?? 0), barcode: p.barcode ?? '', kosher: p.kosher ?? false, halal: p.halal ?? false, vegan: p.vegan ?? false });
     setEditPhotos({ file1: null, preview1: p.photoUrl, file2: null, preview2: p.photoUrl2 ?? '', clear2: false, file3: null, preview3: p.photoUrl3 ?? '', clear3: false });
     setSaveError('');
   }
@@ -196,6 +196,9 @@ export default function AdminPage() {
       fd.append('price', String(parseFloat(editForm.price) || 0));
       fd.append('marketPrice', String(parseFloat(editForm.marketPrice) || 0));
       fd.append('barcode', editForm.barcode.trim());
+      fd.append('kosher', editForm.kosher ? 'true' : 'false');
+      fd.append('halal', editForm.halal ? 'true' : 'false');
+      fd.append('vegan', editForm.vegan ? 'true' : 'false');
       if (editPhotos.file1) fd.append('photo1', editPhotos.file1);
       if (editPhotos.file2) fd.append('photo2', editPhotos.file2);
       if (editPhotos.file3) fd.append('photo3', editPhotos.file3);
@@ -310,6 +313,17 @@ export default function AdminPage() {
                   <input className="field" type="number" min="0" step="0.01" value={editForm.marketPrice} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, marketPrice: v })); }} placeholder="Market Price (R)" />
                   <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, notes: v })); }} placeholder="Notes" />
                   <input className="field" value={editForm.barcode} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, barcode: v })); }} placeholder="Barcode (optional)" inputMode="numeric" />
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                    {([['halal', '☪ Halal', '#16a34a'], ['kosher', '✡ Kosher', '#2563eb'], ['vegan', '🌱 Vegan', '#15803d']] as const).map(([key, label, color]) => {
+                      const on = editForm[key];
+                      return (
+                        <button key={key} type="button" onClick={() => setEditForm(f => ({ ...f, [key]: !f[key] }))}
+                          style={{ padding: '0.3rem 0.7rem', borderRadius: 20, border: `1.5px solid ${color}`, background: on ? color : 'transparent', color: on ? '#fff' : color, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.15s' }}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
 
                   <div style={{ borderTop: '1px solid var(--border, #eee)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                     <div style={{ fontSize: '0.75rem', color: '#999', marginBottom: '0.5rem' }}>Photos</div>

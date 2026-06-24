@@ -306,6 +306,10 @@ export default function UploadPage() {
   const [sizeOverride, setSizeOverride] = useState(false);
   const firstPickedImage = pickedImages[0];
 
+  const [kosher, setKosher] = useState(false);
+  const [halal, setHalal] = useState(false);
+  const [vegan, setVegan] = useState(false);
+
   const [scanning, setScanning] = useState(false);
   const [scanSupported, setScanSupported] = useState(false);
   const scanVideoRef = useRef<HTMLVideoElement>(null);
@@ -500,6 +504,7 @@ export default function UploadPage() {
     setImagesLoading(false);
     setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
     setSizeOverride(false);
+    setKosher(false); setHalal(false); setVegan(false);
     setError('');
     stopScan();
   }
@@ -530,6 +535,9 @@ export default function UploadPage() {
       fd.append('marketPrice', form.marketPrice);
       fd.append('category', form.category);
       fd.append('barcode', barcode);
+      fd.append('kosher', kosher ? 'true' : 'false');
+      fd.append('halal', halal ? 'true' : 'false');
+      fd.append('vegan', vegan ? 'true' : 'false');
       const res = await fetch('/api/products', { method: 'POST', body: fd });
       if (res.ok) {
         setSuccess(true);
@@ -770,6 +778,22 @@ export default function UploadPage() {
         <textarea placeholder="Notes  (optional)" value={form.notes}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, notes: v })); }}
           className="field" rows={3} />
+
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label className="field-label">Dietary / Certification</label>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {([['halal', '☪ Halal', '#16a34a'], ['kosher', '✡ Kosher', '#2563eb'], ['vegan', '🌱 Vegan', '#15803d']] as const).map(([key, label, color]) => {
+              const on = key === 'halal' ? halal : key === 'kosher' ? kosher : vegan;
+              const set = key === 'halal' ? setHalal : key === 'kosher' ? setKosher : setVegan;
+              return (
+                <button key={key} type="button" onClick={() => set(!on)}
+                  style={{ padding: '0.35rem 0.85rem', borderRadius: 20, border: `1.5px solid ${color}`, background: on ? color : 'transparent', color: on ? '#fff' : color, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {error && <p className="error">{error}</p>}
         <button type="submit" disabled={submitting || analyzing} className="btn-primary">

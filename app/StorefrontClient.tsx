@@ -183,6 +183,13 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
         <span className="cat-label">{product.category}</span>
         <h2>{product.name}</h2>
         {product.size && <p className="size">{product.size}</p>}
+        {(product.halal || product.kosher || product.vegan) && (
+          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
+            {product.halal  && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dcfce7', color: '#15803d' }}>☪ Halal</span>}
+            {product.kosher && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dbeafe', color: '#1d4ed8' }}>✡ Kosher</span>}
+            {product.vegan  && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dcfce7', color: '#15803d' }}>🌱 Vegan</span>}
+          </div>
+        )}
         {product.price > 0 && (
           <div className="price-wrap">
             {product.marketPrice > product.price && (

@@ -32,6 +32,9 @@ async function ensureTable() {
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS market_price NUMERIC DEFAULT 0`;
   await db`ALTER TABLE products ALTER COLUMN best_before DROP NOT NULL`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode TEXT DEFAULT ''`;
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS kosher BOOLEAN DEFAULT false`;
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS halal BOOLEAN DEFAULT false`;
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS vegan BOOLEAN DEFAULT false`;
 }
 
 export async function getAllProducts(): Promise<Product[]> {
@@ -57,6 +60,9 @@ export async function getAllProducts(): Promise<Product[]> {
     photoUrl2: String(r.photo_url_2 ?? ''),
     photoUrl3: String(r.photo_url_3 ?? ''),
     barcode: String(r.barcode ?? ''),
+    kosher: Boolean(r.kosher),
+    halal: Boolean(r.halal),
+    vegan: Boolean(r.vegan),
     addedAt: String(r.added_at),
   }));
 }
@@ -65,8 +71,8 @@ export async function insertProduct(p: Product) {
   await ensureTable();
   const db = getDb();
   await db`
-    INSERT INTO products (id, name, size, best_before, category, notes, price, market_price, photo_url, photo_url_2, photo_url_3, barcode, added_at)
-    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.marketPrice ?? 0}, ${p.photoUrl}, ${p.photoUrl2}, ${p.photoUrl3 ?? ''}, ${p.barcode ?? ''}, ${p.addedAt})
+    INSERT INTO products (id, name, size, best_before, category, notes, price, market_price, photo_url, photo_url_2, photo_url_3, barcode, kosher, halal, vegan, added_at)
+    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.marketPrice ?? 0}, ${p.photoUrl}, ${p.photoUrl2}, ${p.photoUrl3 ?? ''}, ${p.barcode ?? ''}, ${p.kosher ?? false}, ${p.halal ?? false}, ${p.vegan ?? false}, ${p.addedAt})
   `;
 }
 
@@ -95,6 +101,9 @@ export async function updateProduct(id: string, u: Partial<Product>) {
         price        = ${u.price ?? 0},
         market_price = ${u.marketPrice ?? 0},
         barcode      = ${u.barcode ?? ''},
+        kosher       = ${u.kosher ?? false},
+        halal        = ${u.halal ?? false},
+        vegan        = ${u.vegan ?? false},
         photo_url    = ${u.photoUrl ?? ''},
         photo_url_2  = ${u.photoUrl2 ?? ''},
         photo_url_3  = ${u.photoUrl3 ?? ''}
@@ -110,7 +119,10 @@ export async function updateProduct(id: string, u: Partial<Product>) {
         notes        = ${u.notes ?? ''},
         price        = ${u.price ?? 0},
         market_price = ${u.marketPrice ?? 0},
-        barcode      = ${u.barcode ?? ''}
+        barcode      = ${u.barcode ?? ''},
+        kosher       = ${u.kosher ?? false},
+        halal        = ${u.halal ?? false},
+        vegan        = ${u.vegan ?? false}
       WHERE id = ${id}
     `;
   }

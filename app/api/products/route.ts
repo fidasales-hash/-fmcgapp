@@ -43,6 +43,9 @@ export async function POST(req: NextRequest) {
     const marketPrice = parseFloat((formData.get('marketPrice') as string | null) ?? '0') || 0;
     const category = (formData.get('category') as string | null)?.trim() || categorize(name);
     const barcode = (formData.get('barcode') as string | null)?.trim() ?? '';
+    const kosher = formData.get('kosher') === 'true';
+    const halal = formData.get('halal') === 'true';
+    const vegan = formData.get('vegan') === 'true';
 
     const photo1Url = (formData.get('photo1Url') as string | null) ?? '';
     const photo2Url = (formData.get('photo2Url') as string | null) ?? '';
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
       id, name, size, bestBefore,
       category,
       notes, price, marketPrice, photoUrl, photoUrl2, photoUrl3,
-      barcode,
+      barcode, kosher, halal, vegan,
       addedAt: new Date().toISOString(),
     };
 
