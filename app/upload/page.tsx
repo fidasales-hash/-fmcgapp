@@ -562,9 +562,10 @@ export default function UploadPage() {
   function cleanProductName(raw: string): string {
     const FILLER = /\b(product|food|brand|original|classic|regular|standard|item|goods)\b/gi;
     return raw
-      // strip store/site suffixes — everything after " - ", " | ", " : ", ", from "
-      .replace(/\s*[-–|:]\s+[A-Z].*/g, '')
+      // strip ", from X" patterns
       .replace(/,?\s*from\s+.*/gi, '')
+      // strip store name suffixes
+      .replace(/\s*[-|:–]\s*(checkers|pick\s*n?\s*pay|pnp|woolworths|shoprite|makro|spar|clicks|dis[- ]?chem|takealot|amazon|walmart|target|google|bing|yahoo|macy|nordstrom|www\.|[a-z]+\.(co|com|za))[^\n]*/gi, '')
       // strip parentheticals unless they contain flavour/variant keywords
       .replace(/\([^)]*\)/g, s => /sugar|salt|fat|free|lite|light|flavou?r|variant|original|reduced|low/i.test(s) ? s : '')
       // strip size from name (already in size field)
