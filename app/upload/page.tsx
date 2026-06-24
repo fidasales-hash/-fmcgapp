@@ -655,9 +655,9 @@ export default function UploadPage() {
         </div>
 
         {/* Image source comparison — tap up to 3 images; badges show which slot (1/2/3) each fills */}
-        <ImagePicker label="Google Images (Serper)" subtitle={serperSource.name || undefined} onUseSource={serperSource.name ? () => applySource(serperSource) : undefined} images={serperImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !serperImgs.includes(u)))} loading={imagesLoading} />
-        <ImagePicker label="Open Food Facts" subtitle={[offSource.name, offSource.size].filter(Boolean).join(' ') || undefined} onUseSource={offSource.name ? () => applySource(offSource) : undefined} images={offImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !offImgs.includes(u)))} />
-        <ImagePicker label="UPCitemdb" subtitle={[upcSource.name, upcSource.size].filter(Boolean).join(' ') || undefined} onUseSource={upcSource.name ? () => applySource(upcSource) : undefined} images={upcImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !upcImgs.includes(u)))} />
+        <ImagePicker label="Google Images (Serper)" subtitle={serperSource.name || undefined} onUseSource={!form.name && serperSource.name ? () => applySource(serperSource) : undefined} images={serperImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !serperImgs.includes(u)))} loading={imagesLoading} />
+        <ImagePicker label="Open Food Facts" subtitle={[offSource.name, offSource.size].filter(Boolean).join(' ') || undefined} onUseSource={!form.name && offSource.name ? () => applySource(offSource) : undefined} images={offImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !offImgs.includes(u)))} />
+        <ImagePicker label="UPCitemdb" subtitle={[upcSource.name, upcSource.size].filter(Boolean).join(' ') || undefined} onUseSource={!form.name && upcSource.name ? () => applySource(upcSource) : undefined} images={upcImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !upcImgs.includes(u)))} />
 
         {/* Camera slots */}
         <CameraSlot
