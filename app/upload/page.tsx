@@ -551,14 +551,20 @@ export default function UploadPage() {
     );
   }
 
+  const SIZE_RE = /\b\d+(\.\d+)?[-\s]*(ml|g|l|kg|cl|oz|lb|lbs|fl\.?\s*oz)\.?(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?\b/gi;
+
+  function extractSizeFromTitle(raw: string): string {
+    const match = raw.match(SIZE_RE);
+    if (!match) return '';
+    return match[0].replace(/[-\s.]/g, '').toLowerCase();
+  }
+
   function cleanProductName(raw: string): string {
     const FILLER = /\b(product|food|brand|original|classic|regular|standard|item|goods)\b/gi;
-    const SIZE_RE = /\b\d+(\.\d+)?[-\s]*(ml|g|l|kg|cl|oz|lb|lbs|fl\.?\s*oz)\.?(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?\b/gi;
     return raw
-      // strip ", from X" patterns
+      // strip store/site suffixes — everything after " - ", " | ", " : ", ", from "
+      .replace(/\s*[-–|:]\s+[A-Z].*/g, '')
       .replace(/,?\s*from\s+.*/gi, '')
-      // strip store name suffixes
-      .replace(/\s*[-|:–]\s*(checkers|pick\s*n?\s*pay|pnp|woolworths|shoprite|makro|spar|clicks|dis[- ]?chem|takealot|amazon|walmart|target|google|bing|yahoo|macy|nordstrom|target|walmart|www\.|[a-z]+\.(co|com|za))[^\n]*/gi, '')
       // strip parentheticals unless they contain flavour/variant keywords
       .replace(/\([^)]*\)/g, s => /sugar|salt|fat|free|lite|light|flavou?r|variant|original|reduced|low/i.test(s) ? s : '')
       // strip size from name (already in size field)
@@ -579,10 +585,11 @@ export default function UploadPage() {
 
   function applySource(source: { name?: string; size?: string; category?: string }) {
     const cleanName = source.name ? cleanProductName(source.name) : '';
+    const extractedSize = !source.size && source.name ? extractSizeFromTitle(source.name) : '';
     setForm(f => ({
       ...f,
       ...(cleanName ? { name: cleanName } : {}),
-      ...(source.size ? { size: source.size } : {}),
+      ...(source.size ? { size: source.size } : extractedSize ? { size: extractedSize } : {}),
       ...(source.category && CATEGORIES.includes(source.category) ? { category: source.category } : {}),
     }));
   }
