@@ -21,9 +21,22 @@ const CLAUDE_KEY = 'claudeApiEnabled';
 function DropZone({ preview, label, onFile, onClear }: { preview: string; label: string; onFile: (f: File) => void; onClear?: () => void }) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const enterCount = useRef(0);
+
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    enterCount.current++;
+    setDragging(true);
+  }
+
+  function handleDragLeave() {
+    enterCount.current--;
+    if (enterCount.current === 0) setDragging(false);
+  }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
+    enterCount.current = 0;
     setDragging(false);
     const f = e.dataTransfer.files[0];
     if (f?.type.startsWith('image/')) onFile(f);
@@ -32,8 +45,9 @@ function DropZone({ preview, label, onFile, onClear }: { preview: string; label:
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
       <div
-        onDragOver={e => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
+        onDragEnter={handleDragEnter}
+        onDragOver={e => e.preventDefault()}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
         style={{
@@ -47,15 +61,15 @@ function DropZone({ preview, label, onFile, onClear }: { preview: string; label:
         }}
       >
         {preview ? (
-          <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
         ) : (
           <>
-            <span style={{ fontSize: '1.25rem', color: '#ccc' }}>+</span>
-            <span style={{ fontSize: '0.68rem', color: '#bbb' }}>{dragging ? 'Drop' : label}</span>
+            <span style={{ fontSize: '1.25rem', color: '#ccc', pointerEvents: 'none' }}>+</span>
+            <span style={{ fontSize: '0.68rem', color: '#bbb', pointerEvents: 'none' }}>{dragging ? 'Drop' : label}</span>
           </>
         )}
         {dragging && preview && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(37,99,235,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(37,99,235,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--primary, #2563eb)', fontWeight: 600 }}>Drop</span>
           </div>
         )}
