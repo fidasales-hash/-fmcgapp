@@ -552,12 +552,23 @@ export default function UploadPage() {
   }
 
   function cleanProductName(raw: string): string {
+    const FILLER = /\b(product|food|brand|original|classic|regular|standard|item|goods)\b/gi;
+    const SIZE_RE = /\b\d+(\.\d+)?\s*(ml|g|l|kg|cl|oz|lb|lbs|fl\.?\s*oz)(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?\b/gi;
     return raw
+      // strip store name suffixes
       .replace(/\s*[-|:–]\s*(checkers|pick\s*n?\s*pay|pnp|woolworths|shoprite|makro|spar|clicks|dis[- ]?chem|takealot|amazon|walmart|target|google|bing|yahoo|www\.|[a-z]+\.(co|com|za))[^\n]*/gi, '')
-      .replace(/\([^)]*\)/g, s => s.toLowerCase().includes('sugar') || s.toLowerCase().includes('salt') || s.toLowerCase().includes('fat') ? s : '')
-      .replace(/®|™/g, '')
+      // strip parentheticals unless they contain flavour/variant keywords
+      .replace(/\([^)]*\)/g, s => /sugar|salt|fat|free|lite|light|flavou?r|variant|original|reduced|low/i.test(s) ? s : '')
+      // strip size from name (already in size field)
+      .replace(SIZE_RE, '')
+      // remove filler words
+      .replace(FILLER, '')
+      // clean punctuation
+      .replace(/®|™|,{2,}|\.{2,}/g, '')
+      .replace(/\s*,\s*$/, '')
       .replace(/\s{2,}/g, ' ')
       .trim()
+      // title case
       .replace(/\b\w/g, c => c.toUpperCase());
   }
 
