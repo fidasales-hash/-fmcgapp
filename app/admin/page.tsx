@@ -203,27 +203,27 @@ export default function AdminPage() {
       if (editPhotos.clear3) fd.append('clear3', 'true');
 
       const res = await fetch(`/api/products/${id}`, { method: 'PATCH', body: fd });
+      const resData = await res.json().catch(() => ({}));
       if (res.ok) {
-        const freshRes = await fetch('/api/products');
-        if (freshRes.ok) {
-          const fresh = await freshRes.json() as Product[];
-          setProducts(fresh);
-          const updated = fresh.find(p => p.id === id);
-          if (updated) {
-            setEditPhotos(ep => ({
-              ...ep,
-              file1: null, preview1: updated.photoUrl,
-              file2: null, preview2: updated.photoUrl2 ?? '',
-              file3: null, preview3: updated.photoUrl3 ?? '',
-              clear2: false, clear3: false,
-            }));
-          }
-        }
+        const newUrl1: string = resData.photoUrl ?? '';
+        const newUrl2: string = resData.photoUrl2 ?? '';
+        const newUrl3: string = resData.photoUrl3 ?? '';
+        setEditPhotos(ep => ({
+          ...ep,
+          file1: null, preview1: newUrl1 || ep.preview1,
+          file2: null, preview2: newUrl2,
+          file3: null, preview3: newUrl3,
+          clear2: false, clear3: false,
+        }));
+        setProducts(prev => prev.map(p =>
+          p.id === id
+            ? { ...p, photoUrl: newUrl1 || p.photoUrl, photoUrl2: newUrl2, photoUrl3: newUrl3 }
+            : p
+        ));
         setSavedOk(true);
         setTimeout(() => setSavedOk(false), 2500);
       } else {
-        const errData = await res.json().catch(() => ({}));
-        setSaveError(errData.error || `Save failed (${res.status})`);
+        setSaveError(resData.error || `Save failed (${res.status})`);
       }
     } catch {
       setSaveError('Network error — try again');

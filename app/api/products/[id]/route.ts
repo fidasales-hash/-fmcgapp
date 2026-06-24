@@ -4,6 +4,7 @@ import { processProductImage } from '@/lib/imageProcess';
 import { deleteProduct, updateProduct, getProductByBarcode, getProductPhotoUrls } from '@/lib/db';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 export async function PATCH(
   req: NextRequest,
@@ -88,7 +89,7 @@ export async function PATCH(
     }
 
     await updateProduct(id, { name, size, bestBefore, category, notes, price, marketPrice, barcode, photoUrl, photoUrl2, photoUrl3 });
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, photoUrl, photoUrl2, photoUrl3 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 500 });
