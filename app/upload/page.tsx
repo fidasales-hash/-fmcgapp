@@ -571,9 +571,8 @@ export default function UploadPage() {
       .replace(TITLE_SIZE_RE, '')
       // remove filler words
       .replace(FILLER, '')
-      // clean punctuation
-      .replace(/®|™|,{2,}|\.{2,}/g, '')
-      .replace(/\s*,\s*$/, '')
+      // clean punctuation — remove commas, periods, quotes, semicolons, !, ®, ™
+      .replace(/[®™.,;:!"'`]/g, '')
       .replace(/\s{2,}/g, ' ')
       .trim()
       // title case — lowercase first so ALL CAPS titles get fixed
