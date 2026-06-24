@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 async function analyzeImageUrl(url: string): Promise<{ name: string; size: string; category: string }> {
   try {
     const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
-      model: 'llama-3.2-11b-vision-preview',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       max_tokens: 256,
       messages: [{
         role: 'user',

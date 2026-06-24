@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const imageUrl = `data:image/jpeg;base64,${resized.toString('base64')}`;
 
     const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
-      model: 'llama-3.2-11b-vision-preview',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       max_tokens: 32,
       messages: [{
         role: 'user',

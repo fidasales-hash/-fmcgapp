@@ -23,7 +23,14 @@ export async function POST(req: NextRequest) {
       const body = await req.json();
       const photoUrl: string = body.photoUrl ?? '';
       if (!photoUrl) return NextResponse.json({ error: 'No photoUrl' }, { status: 400 });
-      imageUrlForGroq = photoUrl;
+      const imgRes = await fetch(photoUrl);
+      if (!imgRes.ok) return NextResponse.json({ error: 'Failed to fetch image' }, { status: 400 });
+      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+      const resized = await sharp(imgBuffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      imageUrlForGroq = `data:image/jpeg;base64,${resized.toString('base64')}`;
     } else {
       const formData = await req.formData();
       const photo = formData.get('photo') as File;
@@ -38,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
-      model: 'llama-3.2-11b-vision-preview',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       max_tokens: 256,
       messages: [{
         role: 'user',
