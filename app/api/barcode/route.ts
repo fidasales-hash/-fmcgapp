@@ -1,34 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Groq from 'groq-sdk';
 import { getProductByBarcode } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
-async function analyzeImageUrl(url: string): Promise<{ name: string; size: string; category: string }> {
-  try {
-    const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      max_tokens: 256,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image_url', image_url: { url } },
-          { type: 'text', text: `Look at this product packaging. Extract:
-1. Product name: brand name + product type (e.g. "Heinz Baked Beans")
-2. Size/weight: quantity shown on pack (e.g. "400g", "330ml", "6 x 250ml")
-3. Category: pick exactly one: Drinks, Tinned & Canned, Snacks & Confectionery, Bakery & Cereals, Home & Cleaning, Health & Beauty, Baby & Toddler, Pet, Electronics, Other
-
-Return ONLY valid JSON: {"name":"...","size":"...","category":"..."}` },
-        ],
-      }],
-    });
-    const text = response.choices[0].message.content ?? '';
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return { name: '', size: '', category: '' };
-    const { name = '', size = '', category = '' } = JSON.parse(match[0]);
-    return { name, size: toMetric(size), category };
-  } catch { return { name: '', size: '', category: '' }; }
-}
 
 const CATEGORY_MAP: { terms: string[]; category: string }[] = [
   { terms: ['beverage', 'drink', 'juice', 'soda', 'water', 'coffee', 'tea', 'beer', 'wine', 'spirits', 'cola', 'energy drink'], category: 'Drinks' },
@@ -197,13 +171,11 @@ export async function POST(req: NextRequest) {
 
     const offImages = off?.frontImage ? [off.frontImage] : [];
     const upcImages = upc?.images ?? [];
-    const imageUrl = off?.frontImage || upcImages[0] || '';
 
-    // All five run in parallel — Serper always fires (not just as fallback)
-    const [serperResults, tavilyResult, groq, duplicate] = await Promise.all([
+    // All four run in parallel
+    const [serperResults, tavilyResult, duplicate] = await Promise.all([
       serperSearch(`${searchTerm} product`),
       name ? lookupTavilyPrice(searchTerm) : Promise.resolve({ price: 0, source: '' }),
-      imageUrl ? analyzeImageUrl(imageUrl) : Promise.resolve({ name: '', size: '', category: '' }),
       getProductByBarcode(String(barcode)),
     ]);
     const marketPrice = tavilyResult.price;
@@ -212,9 +184,9 @@ export async function POST(req: NextRequest) {
     const serperName = parseSerperName(serperResults);
     const serperImageUrls = serperResults.map(r => r.imageUrl);
 
-    const finalName = name || serperName || groq.name;
-    const finalSize = size || groq.size;
-    const finalCategory = (category && category !== 'Other') ? category : (groq.category || 'Other');
+    const finalName = name || serperName;
+    const finalSize = size;
+    const finalCategory = (category && category !== 'Other') ? category : 'Other';
 
     return NextResponse.json({
       found, name: finalName, size: finalSize, category: finalCategory, marketPrice, marketPriceSource,
