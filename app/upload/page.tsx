@@ -333,6 +333,7 @@ export default function UploadPage() {
   useEffect(() => {
     if (!firstPickedImage) return;
     if (localStorage.getItem('claudeApiEnabled') === 'false') return;
+    if (form.name) return;
     setGroqAnalyzing(true);
     fetch('/api/analyze', {
       method: 'POST',
@@ -415,9 +416,11 @@ export default function UploadPage() {
         setBarcodeStatus(data.found ? 'found' : 'notfound');
         if (data.duplicate) setBarcodeDuplicate(data.duplicate);
         if (data.found) {
-          // name/size/category are worker's choice — filled via "Use" buttons, not auto-applied
           setForm(prev => ({
             ...prev,
+            name: data.name || prev.name,
+            size: data.size || prev.size,
+            category: (data.category && CATEGORIES.includes(data.category)) ? data.category : prev.category,
             marketPrice: data.marketPrice ? String(data.marketPrice) : prev.marketPrice,
           }));
           if (data.marketPriceSource) setMarketPriceSource(data.marketPriceSource);
@@ -709,6 +712,24 @@ export default function UploadPage() {
         <input type="text" placeholder="Product name *" value={form.name}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, name: v })); }}
           required className="field" autoComplete="off" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} />
+        {form.name && firstPickedImage && !groqAnalyzing && (
+          <button type="button" onClick={() => {
+            setGroqAnalyzing(true);
+            fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ photoUrl: firstPickedImage }) })
+              .then(r => r.ok ? r.json() : null)
+              .then(data => {
+                if (!data || data.error) return;
+                setForm(prev => {
+                  const aiCategory = CATEGORIES.includes(data.category) ? data.category : '';
+                  return { ...prev, name: data.name || prev.name, size: data.size || prev.size, category: aiCategory || prev.category };
+                });
+              })
+              .catch(() => {})
+              .finally(() => setGroqAnalyzing(false));
+          }} style={{ fontSize: '0.78rem', color: 'var(--primary)', background: 'none', border: '1px solid var(--primary)', borderRadius: 4, padding: '0.2rem 0.6rem', cursor: 'pointer', fontWeight: 600, marginTop: '-0.5rem', marginBottom: '0.75rem' }}>
+            {groqAnalyzing ? '⏳ Reading…' : '✦ Improve with AI'}
+          </button>
+        )}
         <input type="text" placeholder="Size / weight * (e.g. 330ml, 500g, 2L, 1kg, 10's)" value={form.size}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, size: v })); }}
           required className="field" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} />
