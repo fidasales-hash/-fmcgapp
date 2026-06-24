@@ -551,29 +551,22 @@ export default function UploadPage() {
     );
   }
 
-  async function applySource(source: { name?: string; size?: string; category?: string }) {
-    const name = source.name ?? '';
-    const size = source.size ?? '';
-    let cleanName = name;
-    let cleanSize = size;
-    if (name) {
-      try {
-        const res = await fetch('/api/reword', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, size }),
-        });
-        if (res.ok) {
-          const d = await res.json();
-          cleanName = d.name || name;
-          cleanSize = d.size || size;
-        }
-      } catch { /* use original on failure */ }
-    }
+  function cleanProductName(raw: string): string {
+    return raw
+      .replace(/\s*[-|:–]\s*(checkers|pick\s*n?\s*pay|pnp|woolworths|shoprite|makro|spar|clicks|dis[- ]?chem|takealot|amazon|walmart|target|google|bing|yahoo|www\.|[a-z]+\.(co|com|za))[^\n]*/gi, '')
+      .replace(/\([^)]*\)/g, s => s.toLowerCase().includes('sugar') || s.toLowerCase().includes('salt') || s.toLowerCase().includes('fat') ? s : '')
+      .replace(/®|™/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function applySource(source: { name?: string; size?: string; category?: string }) {
+    const cleanName = source.name ? cleanProductName(source.name) : '';
     setForm(f => ({
       ...f,
       ...(cleanName ? { name: cleanName } : {}),
-      ...(cleanSize ? { size: cleanSize } : {}),
+      ...(source.size ? { size: source.size } : {}),
       ...(source.category && CATEGORIES.includes(source.category) ? { category: source.category } : {}),
     }));
   }
