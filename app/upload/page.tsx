@@ -551,10 +551,10 @@ export default function UploadPage() {
     );
   }
 
-  const SIZE_RE = /\b\d+(\.\d+)?[-\s]*(ml|g|l|kg|cl|oz|lb|lbs|fl\.?\s*oz)\.?(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?\b/gi;
+  const TITLE_SIZE_RE = /\b\d+(\.\d+)?[-\s]*(ml|g|l|kg|cl|oz|lb|lbs|fl\.?\s*oz)\.?(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?\b/gi;
 
   function extractSizeFromTitle(raw: string): string {
-    const match = raw.match(SIZE_RE);
+    const match = raw.match(TITLE_SIZE_RE);
     if (!match) return '';
     return match[0].replace(/[-\s.]/g, '').toLowerCase();
   }
@@ -568,7 +568,7 @@ export default function UploadPage() {
       // strip parentheticals unless they contain flavour/variant keywords
       .replace(/\([^)]*\)/g, s => /sugar|salt|fat|free|lite|light|flavou?r|variant|original|reduced|low/i.test(s) ? s : '')
       // strip size from name (already in size field)
-      .replace(SIZE_RE, '')
+      .replace(TITLE_SIZE_RE, '')
       // remove filler words
       .replace(FILLER, '')
       // clean punctuation
