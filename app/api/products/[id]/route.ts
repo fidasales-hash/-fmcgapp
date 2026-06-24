@@ -52,17 +52,21 @@ export async function PATCH(
     let photoUrl2 = existing.photoUrl2;
     let photoUrl3 = existing.photoUrl3;
 
+    const ts = Date.now();
+
     if (photo1 && photo1.size > 0) {
+      if (existing.photoUrl) await del(existing.photoUrl);
       const processed = await processProductImage(Buffer.from(await photo1.arrayBuffer()));
-      const { url } = await put(`products/${id}.jpg`, processed, {
+      const { url } = await put(`products/${id}_${ts}.jpg`, processed, {
         access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,
       });
       photoUrl = url;
     }
 
     if (photo2 && photo2.size > 0) {
+      if (existing.photoUrl2) await del(existing.photoUrl2);
       const processed = await processProductImage(Buffer.from(await photo2.arrayBuffer()));
-      const { url } = await put(`products/${id}_2.jpg`, processed, {
+      const { url } = await put(`products/${id}_2_${ts}.jpg`, processed, {
         access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,
       });
       photoUrl2 = url;
@@ -72,8 +76,9 @@ export async function PATCH(
     }
 
     if (photo3 && photo3.size > 0) {
+      if (existing.photoUrl3) await del(existing.photoUrl3);
       const processed = await processProductImage(Buffer.from(await photo3.arrayBuffer()));
-      const { url } = await put(`products/${id}_3.jpg`, processed, {
+      const { url } = await put(`products/${id}_3_${ts}.jpg`, processed, {
         access: 'public', contentType: 'image/jpeg', addRandomSuffix: false,
       });
       photoUrl3 = url;
