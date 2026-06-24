@@ -82,20 +82,9 @@ export async function updateProduct(id: string, u: Partial<Product>) {
       notes        = ${u.notes ?? ''},
       price        = ${u.price ?? 0},
       market_price = ${u.marketPrice ?? 0},
-      barcode      = ${u.barcode ?? ''},
-      photo_url    = COALESCE(${u.photoUrl || null}, photo_url),
-      photo_url_2  = COALESCE(${u.photoUrl2 || null}, photo_url_2),
-      photo_url_3  = COALESCE(${u.photoUrl3 || null}, photo_url_3)
+      barcode      = ${u.barcode ?? ''}
     WHERE id = ${id}
   `;
-}
-
-export async function getProductById(id: string): Promise<{ photoUrl: string; photoUrl2: string; photoUrl3: string } | null> {
-  await ensureTable();
-  const db = getDb();
-  const rows = await db`SELECT photo_url, photo_url_2, photo_url_3 FROM products WHERE id = ${id} LIMIT 1`;
-  if (!rows[0]) return null;
-  return { photoUrl: String(rows[0].photo_url), photoUrl2: String(rows[0].photo_url_2 ?? ''), photoUrl3: String(rows[0].photo_url_3 ?? '') };
 }
 
 export async function getProductByBarcode(barcode: string): Promise<{ id: string; name: string } | null> {

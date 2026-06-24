@@ -47,9 +47,6 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [claudeEnabled, setClaudeEnabled] = useState(true);
-  const [editNewPhotos, setEditNewPhotos] = useState<(File | null)[]>([null, null, null]);
-  const [editPreviews, setEditPreviews] = useState<string[]>(['', '', '']);
-  const [editDragging, setEditDragging] = useState<number | null>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const bbValue = useRef('');
 
@@ -73,48 +70,18 @@ export default function AdminPage() {
     const bb = isNaN(d.getTime()) ? '' : p.bestBefore;
     bbValue.current = bb;
     setEditForm({ name: p.name, size: p.size, bestBefore: bb, category: p.category, notes: p.notes, price: String(p.price ?? 0), marketPrice: String(p.marketPrice ?? 0), barcode: p.barcode ?? '' });
-    setEditNewPhotos([null, null, null]);
-    setEditPreviews([p.photoUrl || '', p.photoUrl2 || '', p.photoUrl3 || '']);
-    setEditDragging(null);
-  }
-
-  function handlePhotoDrop(e: React.DragEvent, slot: number) {
-    e.preventDefault();
-    setEditDragging(null);
-    const file = e.dataTransfer.files[0];
-    if (!file || !file.type.startsWith('image/')) return;
-    const next = [...editNewPhotos];
-    next[slot] = file;
-    setEditNewPhotos(next);
-    const prevUrl = [...editPreviews];
-    prevUrl[slot] = URL.createObjectURL(file);
-    setEditPreviews(prevUrl);
   }
 
   async function saveEdit(id: string) {
     setSaving(true);
     setSaveError('');
     try {
-      const hasPhotos = editNewPhotos.some(f => f !== null);
-      let res: Response;
-      if (hasPhotos) {
-        const fd = new FormData();
-        fd.append('name', editForm.name);
-        fd.append('size', editForm.size);
-        fd.append('bestBefore', bbValue.current);
-        fd.append('category', editForm.category);
-        fd.append('notes', editForm.notes);
-        fd.append('price', editForm.price);
-        fd.append('marketPrice', editForm.marketPrice);
-        fd.append('barcode', editForm.barcode.trim());
-        if (editNewPhotos[0]) fd.append('photo1', editNewPhotos[0]);
-        if (editNewPhotos[1]) fd.append('photo2', editNewPhotos[1]);
-        if (editNewPhotos[2]) fd.append('photo3', editNewPhotos[2]);
-        res = await fetch(`/api/products/${id}`, { method: 'PATCH', body: fd });
-      } else {
-        const payload = { ...editForm, bestBefore: bbValue.current, price: parseFloat(editForm.price) || 0, marketPrice: parseFloat(editForm.marketPrice) || 0, barcode: editForm.barcode.trim() };
-        res = await fetch(`/api/products/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      }
+      const payload = { ...editForm, bestBefore: bbValue.current, price: parseFloat(editForm.price) || 0, marketPrice: parseFloat(editForm.marketPrice) || 0, barcode: editForm.barcode.trim() };
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       if (res.ok) {
         const freshRes = await fetch('/api/products');
         if (freshRes.ok) setProducts(await freshRes.json());
@@ -208,33 +175,6 @@ export default function AdminPage() {
                   <input className="field" type="number" min="0" step="0.01" value={editForm.marketPrice} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, marketPrice: v })); }} placeholder="Market Price (R)" />
                   <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, notes: v })); }} placeholder="Notes" />
                   <input className="field" value={editForm.barcode} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, barcode: v })); }} placeholder="Barcode (optional)" inputMode="numeric" />
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    {[0, 1, 2].map(i => (
-                      <div
-                        key={i}
-                        onDragOver={e => { e.preventDefault(); setEditDragging(i); }}
-                        onDragLeave={() => setEditDragging(null)}
-                        onDrop={e => handlePhotoDrop(e, i)}
-                        style={{
-                          flex: 1, aspectRatio: '1', borderRadius: 8,
-                          border: `2px dashed ${editDragging === i ? 'var(--primary, #2563eb)' : 'var(--border, #ddd)'}`,
-                          background: editDragging === i ? '#eff6ff' : '#fafafa',
-                          overflow: 'hidden', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', cursor: 'default', transition: 'border-color 0.15s, background 0.15s',
-                          position: 'relative',
-                        }}
-                      >
-                        {editPreviews[i] ? (
-                          <img src={editPreviews[i]} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <span style={{ fontSize: '0.72rem', color: '#aaa', textAlign: 'center', padding: '0.25rem' }}>Drop photo {i + 1}</span>
-                        )}
-                        {editNewPhotos[i] && (
-                          <span style={{ position: 'absolute', bottom: 3, right: 3, background: 'var(--primary,#2563eb)', color: '#fff', fontSize: '0.65rem', borderRadius: 4, padding: '1px 4px' }}>new</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
                   {saveError && <p className="error">{saveError}</p>}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="btn-primary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => saveEdit(product.id)} disabled={saving}>
