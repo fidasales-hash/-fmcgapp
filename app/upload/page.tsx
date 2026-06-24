@@ -303,6 +303,7 @@ export default function UploadPage() {
   const [pickedImages, setPickedImages] = useState<string[]>([]);
   const [imagesLoading, setImagesLoading] = useState(false);
   const [groqAnalyzing, setGroqAnalyzing] = useState(false);
+  const [sizeOverride, setSizeOverride] = useState(false);
   const firstPickedImage = pickedImages[0];
 
   const [scanning, setScanning] = useState(false);
@@ -498,6 +499,7 @@ export default function UploadPage() {
     setPickedImages([]);
     setImagesLoading(false);
     setForm({ name: '', size: '', bestBefore: '', notes: '', price: '', marketPrice: '', category: 'Other' });
+    setSizeOverride(false);
     setError('');
     stopScan();
   }
@@ -510,7 +512,7 @@ export default function UploadPage() {
     if (!file1 && !pickedImages[0]) { setError('Please select or take a front photo'); return; }
     if (barcodeDuplicate) { setError(`Barcode already in store — "${barcodeDuplicate.name}"`); return; }
     if (!form.size.trim()) { setError("Size / weight is required (e.g. 330ml, 500g, 2L, 1kg, 10's)"); return; }
-    if (!SIZE_RE.test(form.size.trim())) { setError("Size must be a number with unit — e.g. 330ml, 500g, 2L, 1.5kg, 6 x 330ml, 10's"); return; }
+    if (!sizeOverride && !SIZE_RE.test(form.size.trim())) { setError("Size must be a number with unit — e.g. 330ml, 500g, 2L, 1.5kg, 6 x 330ml, 10's"); return; }
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -730,9 +732,13 @@ export default function UploadPage() {
             {groqAnalyzing ? '⏳ Reading…' : '✦ Improve with AI'}
           </button>
         )}
-        <input type="text" placeholder="Size / weight * (e.g. 330ml, 500g, 2L, 1kg, 10's)" value={form.size}
+        <input type="text" placeholder={sizeOverride ? "Size / weight * (any format)" : "Size / weight * (e.g. 330ml, 500g, 2L, 1kg, 10's)"} value={form.size}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, size: v })); }}
-          required className="field" style={{ opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} />
+          required className="field" style={{ opacity: analyzing ? 0.6 : 1, marginBottom: '0.25rem' }} disabled={analyzing} />
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.75rem', cursor: 'pointer' }}>
+          <input type="checkbox" checked={sizeOverride} onChange={e => setSizeOverride(e.target.checked)} style={{ cursor: 'pointer' }} />
+          Custom format (e.g. Assorted, Various)
+        </label>
         <div className="field-wrap">
           <label className="field-label">Category</label>
           <select className="field" style={{ marginBottom: 0, appearance: 'auto' }} value={form.category} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, category: v })); }}>
