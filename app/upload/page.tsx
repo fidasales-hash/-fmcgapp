@@ -1,7 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { categorize } from '@/lib/categorize';
-import { removeBg } from '@/lib/clientBgRemoval';
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
 
@@ -18,10 +17,7 @@ async function compressImage(file: File): Promise<File> {
       }
       const canvas = document.createElement('canvas');
       canvas.width = width; canvas.height = height;
-      const ctx = canvas.getContext('2d')!;
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
       canvas.toBlob(blob => resolve(new File([blob!], 'photo.jpg', { type: 'image/jpeg' })), 'image/jpeg', 0.95);
     };
@@ -290,7 +286,6 @@ export default function UploadPage() {
   const [analyzingCount, setAnalyzingCount] = useState(0);
   const analyzing = analyzingCount > 0;
   const [submitting, setSubmitting] = useState(false);
-  const [submitStage, setSubmitStage] = useState('');
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
@@ -526,17 +521,12 @@ export default function UploadPage() {
     setSubmitting(true);
     try {
       const fd = new FormData();
-      const toRemoveBg = [!pickedImages[0] && file1, !pickedImages[1] && file2, !pickedImages[2] && file3].filter(Boolean).length;
-      let bgDone = 0;
-      const stageRemoveBg = () => { bgDone++; setSubmitStage(toRemoveBg > 1 ? `Removing background — photo ${bgDone} of ${toRemoveBg} (~30s each)…` : 'Removing background (~30s)…'); };
-
       if (pickedImages[0]) { fd.append('photo1Url', pickedImages[0]); }
-      else if (file1) { stageRemoveBg(); fd.append('photo', await compressImage(await removeBg(file1))); }
+      else if (file1) { fd.append('photo', await compressImage(file1)); }
       if (pickedImages[1]) { fd.append('photo2Url', pickedImages[1]); }
-      else if (file2) { stageRemoveBg(); fd.append('photo2', await compressImage(await removeBg(file2))); }
+      else if (file2) { fd.append('photo2', await compressImage(file2)); }
       if (pickedImages[2]) { fd.append('photo3Url', pickedImages[2]); }
-      else if (file3) { stageRemoveBg(); fd.append('photo3', await compressImage(await removeBg(file3))); }
-      setSubmitStage('Uploading…');
+      else if (file3) { fd.append('photo3', await compressImage(file3)); }
       fd.append('name', form.name);
       fd.append('size', form.size);
       fd.append('bestBefore', form.bestBefore);
@@ -566,7 +556,6 @@ export default function UploadPage() {
       setError('Network error — please try again');
     }
     setSubmitting(false);
-    setSubmitStage('');
   }
 
   function toggleImage(url: string) {
@@ -808,7 +797,7 @@ export default function UploadPage() {
 
         {error && <p className="error">{error}</p>}
         <button type="submit" disabled={submitting || analyzing} className="btn-primary">
-          {submitting ? (submitStage || 'Processing & uploading…') : 'Add to Store'}
+          {submitting ? 'Processing & uploading…' : 'Add to Store'}
         </button>
         <a href="/" className="btn-secondary" style={{ marginTop: '0.75rem' }}>← Back to Store</a>
       </form>

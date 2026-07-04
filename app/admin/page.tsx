@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import type { Product } from '@/lib/types';
-import { removeBg } from '@/lib/clientBgRemoval';
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
 
@@ -127,7 +126,6 @@ export default function AdminPage() {
   const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '', price: '', marketPrice: '', barcode: '', kosher: false, halal: false, vegan: false });
   const [editPhotos, setEditPhotos] = useState<EditPhotos>(EMPTY_PHOTOS);
   const [saving, setSaving] = useState(false);
-  const [saveStage, setSaveStage] = useState('');
   const [saveError, setSaveError] = useState('');
   const [savedOk, setSavedOk] = useState(false);
   const [claudeEnabled, setClaudeEnabled] = useState(true);
@@ -201,16 +199,11 @@ export default function AdminPage() {
       fd.append('kosher', editForm.kosher ? 'true' : 'false');
       fd.append('halal', editForm.halal ? 'true' : 'false');
       fd.append('vegan', editForm.vegan ? 'true' : 'false');
-      const toRemoveBg = [editPhotos.file1, editPhotos.file2, editPhotos.file3].filter(Boolean).length;
-      let bgDone = 0;
-      const stageRemoveBg = () => { bgDone++; setSaveStage(toRemoveBg > 1 ? `Removing background — photo ${bgDone} of ${toRemoveBg} (~30s each)…` : 'Removing background (~30s)…'); };
-
-      if (editPhotos.file1) { stageRemoveBg(); fd.append('photo1', await removeBg(editPhotos.file1)); }
-      if (editPhotos.file2) { stageRemoveBg(); fd.append('photo2', await removeBg(editPhotos.file2)); }
-      if (editPhotos.file3) { stageRemoveBg(); fd.append('photo3', await removeBg(editPhotos.file3)); }
+      if (editPhotos.file1) fd.append('photo1', editPhotos.file1);
+      if (editPhotos.file2) fd.append('photo2', editPhotos.file2);
+      if (editPhotos.file3) fd.append('photo3', editPhotos.file3);
       if (editPhotos.clear2) fd.append('clear2', 'true');
       if (editPhotos.clear3) fd.append('clear3', 'true');
-      setSaveStage('Saving…');
 
       const res = await fetch(`/api/products/${id}`, { method: 'PATCH', body: fd });
       const resData = await res.json().catch(() => ({}));
@@ -239,7 +232,6 @@ export default function AdminPage() {
       setSaveError('Network error — try again');
     }
     setSaving(false);
-    setSaveStage('');
   }
 
   async function removeProduct(id: string) {
@@ -358,7 +350,6 @@ export default function AdminPage() {
 
                   {saveError && <p className="error">{saveError}</p>}
                   {savedOk && <p style={{ color: '#16a34a', fontSize: '0.82rem', margin: '0.25rem 0' }}>Saved ✓</p>}
-                  {saving && saveStage && <p style={{ color: 'var(--muted, #666)', fontSize: '0.78rem', margin: '0.25rem 0' }}>{saveStage}</p>}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="btn-primary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => saveEdit(product.id)} disabled={saving}>
                       {saving ? '…' : 'Save'}
