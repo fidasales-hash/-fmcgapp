@@ -32,7 +32,8 @@ export async function processProductImage(input: Buffer): Promise<Buffer> {
       .resize(MAX, MAX, { fit: 'inside' })
       .sharpen({ sigma: 1.2 })
       .toBuffer();
-  } catch {
+  } catch (e) {
+    console.error('removeBackground failed, falling back to white-flatten:', e);
     // Fallback if Remove.bg fails: use original photo flattened to white
     layer = await sharp(input)
       .rotate()
