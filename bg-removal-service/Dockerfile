@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py .
 
 # Bake the model into the image so it isn't downloaded on the first request.
-RUN python -c "from rembg import new_session; new_session('isnet-general-use')"
+RUN python -c "from rembg import new_session; new_session('u2netp')"
 
 EXPOSE 8000
 CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}

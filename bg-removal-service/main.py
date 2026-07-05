@@ -5,7 +5,7 @@ from fastapi.responses import Response
 from rembg import new_session, remove
 
 API_KEY = os.environ.get("API_KEY", "")
-session = new_session("isnet-general-use")
+session = new_session("u2netp")
 
 app = FastAPI()
 
