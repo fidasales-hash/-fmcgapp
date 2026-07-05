@@ -440,6 +440,14 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
   }, [fetchProducts]);
 
   function addToCart(product: Product) {
+    const isFirstAdd = !cart.find(i => i.product.id === product.id);
+    if (isFirstAdd) {
+      fetch('/api/popular', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: product.id }),
+      }).catch(() => {});
+    }
     setCart(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) return prev.map(i => i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i);
@@ -471,6 +479,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
       );
     })
     .sort((a, b) => {
+      if (sort === 'popular') return b.orderCount - a.orderCount;
       if (sort === 'price-asc' || sort === 'under-100') return a.price - b.price;
       if (sort === 'price-desc') return b.price - a.price;
       return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
@@ -565,6 +574,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
           </select>
           <select className="mobile-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="newest">Newest</option>
+            <option value="popular">Popular</option>
             <option value="price-asc">Low→High</option>
             <option value="price-desc">High→Low</option>
             <option value="under-100">Under R100</option>
@@ -597,7 +607,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
             </div>
             <div className="sidebar-section">
               <p className="sidebar-label">Sort</p>
-              {([['newest', 'Newest'], ['price-asc', 'Price: Low→High'], ['price-desc', 'Price: High→Low'], ['under-100', 'Under R100']] as const).map(([val, label]) => (
+              {([['newest', 'Newest'], ['popular', 'Popular'], ['price-asc', 'Price: Low→High'], ['price-desc', 'Price: High→Low'], ['under-100', 'Under R100']] as const).map(([val, label]) => (
                 <button key={val} className={`sidebar-chip${sort === val ? ' active' : ''}`} onClick={() => setSort(val)}>
                   {label}
                 </button>

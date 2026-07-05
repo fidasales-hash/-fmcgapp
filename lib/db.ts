@@ -35,6 +35,7 @@ async function ensureTable() {
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS kosher BOOLEAN DEFAULT false`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS halal BOOLEAN DEFAULT false`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS vegan BOOLEAN DEFAULT false`;
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS order_count INTEGER DEFAULT 0`;
 }
 
 export async function getAllProducts(): Promise<Product[]> {
@@ -64,6 +65,7 @@ export async function getAllProducts(): Promise<Product[]> {
     halal: Boolean(r.halal),
     vegan: Boolean(r.vegan),
     addedAt: String(r.added_at),
+    orderCount: Number(r.order_count ?? 0),
   }));
 }
 
@@ -135,6 +137,11 @@ export async function getProductByBarcode(barcode: string): Promise<{ id: string
   const rows = await db`SELECT id, name FROM products WHERE barcode = ${barcode} LIMIT 1`;
   if (!rows[0]) return null;
   return { id: String(rows[0].id), name: String(rows[0].name) };
+}
+
+export async function incrementOrderCount(id: string): Promise<void> {
+  const db = getDb();
+  await db`UPDATE products SET order_count = order_count + 1 WHERE id = ${id}`;
 }
 
 export async function deleteProduct(id: string): Promise<{ photoUrl: string; photoUrl2: string; photoUrl3: string } | null> {

@@ -15,4 +15,5 @@ export interface Product {
   halal: boolean;
   vegan: boolean;
   addedAt: string; // ISO
+  orderCount: number;
 }

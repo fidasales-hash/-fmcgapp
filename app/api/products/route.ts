@@ -118,6 +118,7 @@ export async function POST(req: NextRequest) {
       notes, price, marketPrice, photoUrl, photoUrl2, photoUrl3,
       barcode, kosher, halal, vegan,
       addedAt: new Date().toISOString(),
+      orderCount: 0,
     };
 
     await insertProduct(product);
