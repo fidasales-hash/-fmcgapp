@@ -4,20 +4,20 @@ const CARD = 1200;
 const MAX = 1100;
 
 async function removeBackground(input: Buffer): Promise<Buffer> {
-  const apiKey = process.env.REMOVE_BG_API_KEY ?? '';
-  if (!apiKey) throw new Error('REMOVE_BG_API_KEY not set');
+  const url = process.env.BG_REMOVAL_URL ?? '';
+  if (!url) throw new Error('BG_REMOVAL_URL not set');
 
   const form = new FormData();
-  form.append('image_file', new Blob([new Uint8Array(input)], { type: 'image/jpeg' }), 'photo.jpg');
-  form.append('size', 'auto');
+  form.append('file', new Blob([new Uint8Array(input)], { type: 'image/jpeg' }), 'photo.jpg');
 
-  const res = await fetch('https://api.remove.bg/v1.0/removebg', {
+  const res = await fetch(`${url}/remove`, {
     method: 'POST',
-    headers: { 'X-Api-Key': apiKey },
+    headers: { 'X-Api-Key': process.env.BG_REMOVAL_API_KEY ?? '' },
     body: form,
+    signal: AbortSignal.timeout(45_000), // fall back to white-flatten instead of hard-timing out the whole function on a cold start
   });
 
-  if (!res.ok) throw new Error(`Remove.bg ${res.status}`);
+  if (!res.ok) throw new Error(`bg-removal ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
 

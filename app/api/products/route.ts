@@ -19,6 +19,7 @@ async function processWebImage(buf: Buffer): Promise<Buffer> {
 }
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 export async function GET() {
   try {
