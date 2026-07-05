@@ -16,4 +16,17 @@ export interface Product {
   vegan: boolean;
   addedAt: string; // ISO
   orderCount: number;
+  sellerId: string;   // '' = shop's own stock
+  sellerName: string; // '' = shop's own stock
+}
+
+export interface Seller {
+  id: string;
+  businessName: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  token: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string; // ISO
 }

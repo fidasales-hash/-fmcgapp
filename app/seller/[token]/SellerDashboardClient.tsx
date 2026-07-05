@@ -1,0 +1,228 @@
+'use client';
+import { useState, useEffect } from 'react';
+import type { Product } from '@/lib/types';
+import { CameraSlot, compressImage } from '@/components/CameraSlot';
+
+const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
+
+const DENIED_MESSAGES: Record<string, string> = {
+  pending: 'Your seller application is still under review. Check back once it has been approved.',
+  rejected: 'Your seller application was not approved.',
+  invalid: 'This seller link is invalid. Please check the URL you were given.',
+};
+
+type NewProductForm = { name: string; size: string; price: string; marketPrice: string; category: string; notes: string };
+const EMPTY_NEW: NewProductForm = { name: '', size: '', price: '', marketPrice: '', category: 'Other', notes: '' };
+
+type EditForm = { name: string; size: string; price: string; marketPrice: string; category: string; notes: string };
+
+export default function SellerDashboardClient({ token }: { token: string }) {
+  const [loading, setLoading] = useState(true);
+  const [denied, setDenied] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  const [newForm, setNewForm] = useState<NewProductForm>(EMPTY_NEW);
+  const [newPhoto, setNewPhoto] = useState<File | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState('');
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [editPhoto, setEditPhoto] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/seller/products', { headers: { 'x-seller-token': token } })
+      .then(async res => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setDenied(data.status ?? 'invalid');
+          return;
+        }
+        setProducts(await res.json());
+      })
+      .catch(() => setDenied('invalid'))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setAddError('');
+    if (!newForm.name.trim()) return setAddError('Product name required');
+    if (!newPhoto) return setAddError('Photo required');
+
+    setAdding(true);
+    try {
+      const fd = new FormData();
+      fd.append('name', newForm.name.trim());
+      fd.append('size', newForm.size.trim());
+      fd.append('price', newForm.price || '0');
+      fd.append('marketPrice', newForm.marketPrice || '0');
+      fd.append('category', newForm.category);
+      fd.append('notes', newForm.notes.trim());
+      fd.append('photo', await compressImage(newPhoto));
+
+      const res = await fetch('/api/seller/products', {
+        method: 'POST',
+        headers: { 'x-seller-token': token },
+        body: fd,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProducts(prev => [data.product, ...prev]);
+        setNewForm(EMPTY_NEW);
+        setNewPhoto(null);
+      } else {
+        setAddError(data.error ?? 'Failed to add product');
+      }
+    } catch {
+      setAddError('Network error — please try again');
+    }
+    setAdding(false);
+  }
+
+  function startEdit(p: Product) {
+    setEditingId(p.id);
+    setEditForm({ name: p.name, size: p.size, price: String(p.price), marketPrice: String(p.marketPrice), category: p.category, notes: p.notes });
+    setEditPhoto(null);
+  }
+
+  async function saveEdit(id: string) {
+    if (!editForm) return;
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('name', editForm.name.trim());
+      fd.append('size', editForm.size.trim());
+      fd.append('price', editForm.price || '0');
+      fd.append('marketPrice', editForm.marketPrice || '0');
+      fd.append('category', editForm.category);
+      fd.append('notes', editForm.notes.trim());
+      if (editPhoto) fd.append('photo', await compressImage(editPhoto));
+
+      const res = await fetch(`/api/seller/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'x-seller-token': token },
+        body: fd,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(prev => prev.map(p => (p.id === id
+          ? { ...p, ...editForm, price: Number(editForm.price) || 0, marketPrice: Number(editForm.marketPrice) || 0, photoUrl: data.photoUrl || p.photoUrl }
+          : p)));
+        setEditingId(null);
+        setEditForm(null);
+        setEditPhoto(null);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeProduct(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/seller/products/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-seller-token': token },
+      });
+      if (res.ok) setProducts(prev => prev.filter(p => p.id !== id));
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  if (loading) return <main className="upload-page"><p className="loading">Loading…</p></main>;
+
+  if (denied) {
+    return (
+      <main className="success-screen">
+        <h2>Not Available</h2>
+        <p style={{ color: 'var(--muted)' }}>{DENIED_MESSAGES[denied] ?? DENIED_MESSAGES.invalid}</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="admin-page">
+      <div className="admin-header">
+        <h1>Seller Dashboard</h1>
+        <a href="/">View Store</a>
+      </div>
+
+      <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Add Product</h2>
+      {addError && <p className="error">{addError}</p>}
+      <form onSubmit={handleAdd} style={{ marginBottom: '2rem' }}>
+        <CameraSlot label="Product Photo *" tapLabel="Take Photo" analyzing={false} onFile={setNewPhoto} />
+        <div className="field-wrap">
+          <input className="field" value={newForm.name} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, name: v })); }} placeholder="Product name *" />
+        </div>
+        <div className="field-wrap">
+          <input className="field" value={newForm.size} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, size: v })); }} placeholder="Size / weight (e.g. 500g, 1L)" />
+        </div>
+        <div className="field-wrap">
+          <label className="field-label">Category</label>
+          <select className="field" value={newForm.category} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, category: v })); }}>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <input className="field" type="number" min="0" step="0.01" value={newForm.price} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, price: v })); }} placeholder="Price (R) *" />
+          <input className="field" type="number" min="0" step="0.01" value={newForm.marketPrice} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, marketPrice: v })); }} placeholder="Market Price (R)" />
+        </div>
+        <div className="field-wrap">
+          <textarea className="field" rows={2} value={newForm.notes} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, notes: v })); }} placeholder="Notes (optional)" />
+        </div>
+        <button type="submit" className="btn-primary" disabled={adding}>{adding ? 'Adding…' : 'Add to Store'}</button>
+      </form>
+
+      <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>My Products ({products.length})</h2>
+      {products.length === 0 && <p className="empty">You haven&apos;t listed any products yet.</p>}
+      <div className="admin-list">
+        {products.map(p => (
+          <div key={p.id} className="admin-row" style={{ flexWrap: 'wrap' }}>
+            <img src={p.photoUrl} alt={p.name} className="admin-thumb" />
+            {editingId === p.id && editForm ? (
+              <div className="edit-form">
+                <input className="field" value={editForm.name} onChange={e => { const v = e.target.value; setEditForm(f => f && { ...f, name: v }); }} placeholder="Name" />
+                <input className="field" value={editForm.size} onChange={e => { const v = e.target.value; setEditForm(f => f && { ...f, size: v }); }} placeholder="Size / weight" />
+                <select className="field" value={editForm.category} onChange={e => { const v = e.target.value; setEditForm(f => f && { ...f, category: v }); }}>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <input className="field" type="number" min="0" step="0.01" value={editForm.price} onChange={e => { const v = e.target.value; setEditForm(f => f && { ...f, price: v }); }} placeholder="Price (R)" />
+                <input className="field" type="number" min="0" step="0.01" value={editForm.marketPrice} onChange={e => { const v = e.target.value; setEditForm(f => f && { ...f, marketPrice: v }); }} placeholder="Market Price (R)" />
+                <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => f && { ...f, notes: v }); }} placeholder="Notes" />
+                <input type="file" accept="image/*" onChange={e => setEditPhoto(e.target.files?.[0] ?? null)} />
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
+                  <button type="button" className="btn-primary" style={{ flex: 1, marginBottom: 0 }} disabled={saving} onClick={() => saveEdit(p.id)}>
+                    {saving ? '…' : 'Save'}
+                  </button>
+                  <button type="button" className="btn-secondary" style={{ flex: 1, marginBottom: 0 }} onClick={() => { setEditingId(null); setEditForm(null); setEditPhoto(null); }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="admin-info">
+                <strong>{p.name}</strong>
+                <div className="admin-meta">
+                  {p.size ? `${p.size} · ` : ''}{p.category}{' · '}<strong>R {Number(p.price ?? 0).toFixed(2)}</strong>
+                </div>
+                {p.notes && <div className="admin-notes">{p.notes}</div>}
+              </div>
+            )}
+            {editingId !== p.id && (
+              <div className="admin-actions">
+                <button onClick={() => startEdit(p)} className="btn-edit">Edit</button>
+                <button onClick={() => removeProduct(p.id)} disabled={deletingId === p.id} className="btn-delete">
+                  {deletingId === p.id ? '…' : 'Remove'}
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}

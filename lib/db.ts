@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
-import type { Product } from './types';
+import { randomBytes } from 'crypto';
+import type { Product, Seller } from './types';
 
 function getDb() {
   const url =
@@ -36,13 +37,24 @@ async function ensureTable() {
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS halal BOOLEAN DEFAULT false`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS vegan BOOLEAN DEFAULT false`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS order_count INTEGER DEFAULT 0`;
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS seller_id TEXT DEFAULT ''`;
+  await db`CREATE INDEX IF NOT EXISTS idx_products_seller_id ON products(seller_id)`;
+  await db`
+    CREATE TABLE IF NOT EXISTS sellers (
+      id            TEXT PRIMARY KEY,
+      business_name TEXT NOT NULL,
+      contact_name  TEXT DEFAULT '',
+      phone         TEXT DEFAULT '',
+      email         TEXT DEFAULT '',
+      token         TEXT UNIQUE NOT NULL,
+      status        TEXT NOT NULL DEFAULT 'pending',
+      created_at    TEXT NOT NULL
+    )
+  `;
 }
 
-export async function getAllProducts(): Promise<Product[]> {
-  await ensureTable();
-  const db = getDb();
-  const rows = await db`SELECT * FROM products ORDER BY added_at DESC`;
-  return rows.map(r => ({
+function mapProductRow(r: any): Product {
+  return {
     id: String(r.id),
     name: String(r.name),
     size: String(r.size ?? ''),
@@ -66,15 +78,55 @@ export async function getAllProducts(): Promise<Product[]> {
     vegan: Boolean(r.vegan),
     addedAt: String(r.added_at),
     orderCount: Number(r.order_count ?? 0),
-  }));
+    sellerId: String(r.seller_id ?? ''),
+    sellerName: String(r.seller_name ?? ''),
+  };
+}
+
+function mapSellerRow(r: any): Seller {
+  return {
+    id: String(r.id),
+    businessName: String(r.business_name),
+    contactName: String(r.contact_name ?? ''),
+    phone: String(r.phone ?? ''),
+    email: String(r.email ?? ''),
+    token: String(r.token),
+    status: (r.status as Seller['status']) ?? 'pending',
+    createdAt: String(r.created_at),
+  };
+}
+
+export async function getAllProducts(): Promise<Product[]> {
+  await ensureTable();
+  const db = getDb();
+  const rows = await db`
+    SELECT p.*, s.business_name AS seller_name
+    FROM products p
+    LEFT JOIN sellers s ON s.id = p.seller_id
+    ORDER BY p.added_at DESC
+  `;
+  return rows.map(mapProductRow);
+}
+
+export async function getProductsBySeller(sellerId: string): Promise<Product[]> {
+  await ensureTable();
+  const db = getDb();
+  const rows = await db`
+    SELECT p.*, s.business_name AS seller_name
+    FROM products p
+    LEFT JOIN sellers s ON s.id = p.seller_id
+    WHERE p.seller_id = ${sellerId}
+    ORDER BY p.added_at DESC
+  `;
+  return rows.map(mapProductRow);
 }
 
 export async function insertProduct(p: Product) {
   await ensureTable();
   const db = getDb();
   await db`
-    INSERT INTO products (id, name, size, best_before, category, notes, price, market_price, photo_url, photo_url_2, photo_url_3, barcode, kosher, halal, vegan, added_at)
-    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.marketPrice ?? 0}, ${p.photoUrl}, ${p.photoUrl2}, ${p.photoUrl3 ?? ''}, ${p.barcode ?? ''}, ${p.kosher ?? false}, ${p.halal ?? false}, ${p.vegan ?? false}, ${p.addedAt})
+    INSERT INTO products (id, name, size, best_before, category, notes, price, market_price, photo_url, photo_url_2, photo_url_3, barcode, kosher, halal, vegan, seller_id, added_at)
+    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.marketPrice ?? 0}, ${p.photoUrl}, ${p.photoUrl2}, ${p.photoUrl3 ?? ''}, ${p.barcode ?? ''}, ${p.kosher ?? false}, ${p.halal ?? false}, ${p.vegan ?? false}, ${p.sellerId ?? ''}, ${p.addedAt})
   `;
 }
 
@@ -89,11 +141,33 @@ export async function getProductPhotoUrls(id: string): Promise<{ photoUrl: strin
   };
 }
 
-export async function updateProduct(id: string, u: Partial<Product>) {
+// Like getProductPhotoUrls, but includes seller_id so a seller-scoped route can
+// verify ownership BEFORE mutating Blob storage (deleting/replacing a photo).
+// Ownership must be checked here, not left to updateProduct's WHERE clause alone —
+// that clause protects the DB row, but blob deletes happen as a separate step that
+// would otherwise run before the ownership-scoped UPDATE ever executes.
+export async function getProductOwnership(id: string): Promise<{ sellerId: string; photoUrl: string; photoUrl2: string; photoUrl3: string } | null> {
+  const db = getDb();
+  const rows = await db`SELECT seller_id, photo_url, photo_url_2, photo_url_3 FROM products WHERE id = ${id}`;
+  if (!rows[0]) return null;
+  return {
+    sellerId: String(rows[0].seller_id ?? ''),
+    photoUrl: String(rows[0].photo_url ?? ''),
+    photoUrl2: String(rows[0].photo_url_2 ?? ''),
+    photoUrl3: String(rows[0].photo_url_3 ?? ''),
+  };
+}
+
+// sellerId, when passed, scopes the update to that seller's own rows (COALESCE makes
+// it a no-op filter when omitted, so existing admin call sites are unaffected).
+// Returns whether a row actually matched — callers scoped by sellerId use this to
+// tell "not found" apart from "belongs to someone else" (both look like 0 rows).
+export async function updateProduct(id: string, u: Partial<Product>, sellerId?: string): Promise<boolean> {
   await ensureTable();
   const db = getDb();
+  const scope = sellerId ?? null;
   if (u.photoUrl !== undefined) {
-    await db`
+    const rows = await db`
       UPDATE products SET
         name         = ${u.name ?? ''},
         size         = ${u.size ?? ''},
@@ -109,10 +183,12 @@ export async function updateProduct(id: string, u: Partial<Product>) {
         photo_url    = ${u.photoUrl ?? ''},
         photo_url_2  = ${u.photoUrl2 ?? ''},
         photo_url_3  = ${u.photoUrl3 ?? ''}
-      WHERE id = ${id}
+      WHERE id = ${id} AND seller_id = COALESCE(${scope}, seller_id)
+      RETURNING id
     `;
+    return rows.length > 0;
   } else {
-    await db`
+    const rows = await db`
       UPDATE products SET
         name         = ${u.name ?? ''},
         size         = ${u.size ?? ''},
@@ -125,8 +201,10 @@ export async function updateProduct(id: string, u: Partial<Product>) {
         kosher       = ${u.kosher ?? false},
         halal        = ${u.halal ?? false},
         vegan        = ${u.vegan ?? false}
-      WHERE id = ${id}
+      WHERE id = ${id} AND seller_id = COALESCE(${scope}, seller_id)
+      RETURNING id
     `;
+    return rows.length > 0;
   }
 }
 
@@ -144,10 +222,51 @@ export async function incrementOrderCount(id: string): Promise<void> {
   await db`UPDATE products SET order_count = order_count + 1 WHERE id = ${id}`;
 }
 
-export async function deleteProduct(id: string): Promise<{ photoUrl: string; photoUrl2: string; photoUrl3: string } | null> {
+export async function deleteProduct(id: string, sellerId?: string): Promise<{ photoUrl: string; photoUrl2: string; photoUrl3: string } | null> {
   await ensureTable();
   const db = getDb();
-  const rows = await db`DELETE FROM products WHERE id = ${id} RETURNING photo_url, photo_url_2, photo_url_3`;
+  const scope = sellerId ?? null;
+  const rows = await db`
+    DELETE FROM products
+    WHERE id = ${id} AND seller_id = COALESCE(${scope}, seller_id)
+    RETURNING photo_url, photo_url_2, photo_url_3
+  `;
   if (!rows[0]) return null;
   return { photoUrl: String(rows[0].photo_url), photoUrl2: String(rows[0].photo_url_2 ?? ''), photoUrl3: String(rows[0].photo_url_3 ?? '') };
+}
+
+export async function createSeller(input: { businessName: string; contactName: string; phone: string; email: string }): Promise<Seller> {
+  await ensureTable();
+  const db = getDb();
+  const id = Date.now().toString();
+  const token = randomBytes(32).toString('base64url');
+  const createdAt = new Date().toISOString();
+  await db`
+    INSERT INTO sellers (id, business_name, contact_name, phone, email, token, status, created_at)
+    VALUES (${id}, ${input.businessName}, ${input.contactName}, ${input.phone}, ${input.email}, ${token}, 'pending', ${createdAt})
+  `;
+  return { id, businessName: input.businessName, contactName: input.contactName, phone: input.phone, email: input.email, token, status: 'pending', createdAt };
+}
+
+// Admin-only: includes each seller's bearer token. Never expose this via a public route.
+export async function getAllSellers(): Promise<Seller[]> {
+  await ensureTable();
+  const db = getDb();
+  const rows = await db`SELECT * FROM sellers ORDER BY created_at DESC`;
+  return rows.map(mapSellerRow);
+}
+
+export async function getSellerByToken(token: string): Promise<Seller | null> {
+  if (!token) return null;
+  await ensureTable();
+  const db = getDb();
+  const rows = await db`SELECT * FROM sellers WHERE token = ${token} LIMIT 1`;
+  if (!rows[0]) return null;
+  return mapSellerRow(rows[0]);
+}
+
+export async function updateSellerStatus(id: string, status: 'approved' | 'rejected'): Promise<void> {
+  await ensureTable();
+  const db = getDb();
+  await db`UPDATE sellers SET status = ${status} WHERE id = ${id}`;
 }

@@ -254,6 +254,7 @@ export default function AdminPage() {
           >
             Export CSV
           </button>
+          <a href="/admin/sellers">Sellers</a>
           <a href="/">← View Store</a>
         </div>
       </div>

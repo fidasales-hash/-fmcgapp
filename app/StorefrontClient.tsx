@@ -183,6 +183,7 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
         <span className="cat-label">{product.category}</span>
         <h2>{product.name}</h2>
         {product.size && <p className="size">{product.size}</p>}
+        {product.sellerName && <p style={{ fontSize: '0.75rem', color: 'var(--muted)', margin: '0 0 0.3rem' }}>Sold by {product.sellerName}</p>}
         {(product.halal || product.kosher || product.vegan) && (
           <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
             {product.halal  && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dcfce7', color: '#15803d' }}>☪ Halal</span>}
