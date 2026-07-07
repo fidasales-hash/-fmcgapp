@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import Response
 from rembg import new_session, remove
+from starlette.concurrency import run_in_threadpool
 
 API_KEY = os.environ.get("API_KEY", "")
 session = new_session("u2netp")
@@ -26,5 +27,5 @@ async def remove_background(file: UploadFile = File(...), x_api_key: str = Heade
         raise HTTPException(status_code=401, detail="Invalid API key")
 
     input_bytes = await file.read()
-    output_bytes = remove(input_bytes, session=session)
+    output_bytes = await run_in_threadpool(remove, input_bytes, session=session)
     return Response(content=output_bytes, media_type="image/png")
