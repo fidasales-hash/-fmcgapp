@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
@@ -7,6 +8,7 @@ from starlette.concurrency import run_in_threadpool
 
 API_KEY = os.environ.get("API_KEY", "")
 session = new_session("u2netp")
+inference_lock = asyncio.Semaphore(1)
 
 app = FastAPI()
 
@@ -27,5 +29,6 @@ async def remove_background(file: UploadFile = File(...), x_api_key: str = Heade
         raise HTTPException(status_code=401, detail="Invalid API key")
 
     input_bytes = await file.read()
-    output_bytes = await run_in_threadpool(remove, input_bytes, session=session)
+    async with inference_lock:
+        output_bytes = await run_in_threadpool(remove, input_bytes, session=session)
     return Response(content=output_bytes, media_type="image/png")
