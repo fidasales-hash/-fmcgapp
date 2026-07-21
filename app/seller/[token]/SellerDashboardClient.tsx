@@ -11,6 +11,8 @@ const DENIED_MESSAGES: Record<string, string> = {
   invalid: 'This seller link is invalid. Please check the URL you were given.',
 };
 
+const SIZE_RE = /^(\d+(\.\d+)?\s*(ml|g|l|kg)(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?|\d+'?s)$/i;
+
 type NewProductForm = { name: string; size: string; price: string; marketPrice: string; category: string; notes: string; bestBefore: string; barcode: string };
 const EMPTY_NEW: NewProductForm = { name: '', size: '', price: '', marketPrice: '', category: 'Other', notes: '', bestBefore: '', barcode: '' };
 
@@ -24,6 +26,7 @@ export default function SellerDashboardClient({ token }: { token: string }) {
   const [newForm, setNewForm] = useState<NewProductForm>(EMPTY_NEW);
   const [newPhoto, setNewPhoto] = useState<File | null>(null);
   const [newPhoto2, setNewPhoto2] = useState<File | null>(null);
+  const [sizeOverride, setSizeOverride] = useState(false);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
 
@@ -102,6 +105,8 @@ export default function SellerDashboardClient({ token }: { token: string }) {
     setAddError('');
     if (!newForm.name.trim()) return setAddError('Product name required');
     if (!newPhoto) return setAddError('Photo required');
+    if (!newForm.size.trim()) return setAddError("Size / weight is required (e.g. 330ml, 500g, 2L, 1kg, 10's)");
+    if (!sizeOverride && !SIZE_RE.test(newForm.size.trim())) return setAddError("Size must be a number with unit — e.g. 330ml, 500g, 2L, 1.5kg, 6 x 330ml, 10's");
 
     setAdding(true);
     try {
@@ -128,6 +133,7 @@ export default function SellerDashboardClient({ token }: { token: string }) {
         setNewForm(EMPTY_NEW);
         setNewPhoto(null);
         setNewPhoto2(null);
+        setSizeOverride(false);
       } else {
         setAddError(data.error ?? 'Failed to add product');
       }
@@ -240,9 +246,15 @@ export default function SellerDashboardClient({ token }: { token: string }) {
         <div className="field-wrap">
           <input className="field" value={newForm.name} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, name: v })); }} placeholder="Product name *" />
         </div>
-        <div className="field-wrap">
-          <input className="field" value={newForm.size} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, size: v })); }} placeholder="Size / weight (e.g. 500g, 1L)" />
-        </div>
+        <input
+          className="field" style={{ marginBottom: '0.25rem' }}
+          value={newForm.size} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, size: v })); }}
+          placeholder={sizeOverride ? "Size / weight * (any format)" : "Size / weight * (e.g. 330ml, 500g, 2L, 1kg, 10's)"}
+        />
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.75rem', cursor: 'pointer' }}>
+          <input type="checkbox" checked={sizeOverride} onChange={e => setSizeOverride(e.target.checked)} style={{ cursor: 'pointer' }} />
+          Custom format (e.g. Assorted, Various)
+        </label>
         <div className="field-wrap">
           <label className="field-label">Category</label>
           <select className="field" value={newForm.category} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, category: v })); }}>
