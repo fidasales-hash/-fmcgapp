@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     });
 
     const text = response.choices[0].message.content ?? '';
+    console.log('analyze raw response:', JSON.stringify(text));
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return NextResponse.json({ name: '', size: '' });
     const { name = '', size = '', category = '' } = JSON.parse(match[0]);
