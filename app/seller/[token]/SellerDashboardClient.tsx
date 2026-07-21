@@ -119,6 +119,7 @@ export default function SellerDashboardClient({ token }: { token: string }) {
           endpoint="/api/seller/products"
           authHeaders={{ 'x-seller-token': token }}
           onSuccess={product => { setProducts(prev => [product, ...prev]); setFormKey(k => k + 1); }}
+          showDatePhoto={false}
         />
       </div>
 

@@ -78,9 +78,12 @@ export interface ProductUploadFormProps {
   // browser's already-cached Basic Auth credentials, so this is omitted there.
   authHeaders?: Record<string, string>;
   onSuccess: (product: Product) => void;
+  // Photo 3 (auto best-before date reading). Defaults on — the seller
+  // dashboard turns it off. Manual "Best Before" date field is unaffected.
+  showDatePhoto?: boolean;
 }
 
-export default function ProductUploadForm({ endpoint, authHeaders, onSuccess }: ProductUploadFormProps) {
+export default function ProductUploadForm({ endpoint, authHeaders, onSuccess, showDatePhoto = true }: ProductUploadFormProps) {
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
   const [file3, setFile3] = useState<File | null>(null);
@@ -472,25 +475,27 @@ export default function ProductUploadForm({ endpoint, authHeaders, onSuccess }: 
         onFile={file => { setFile2(file); analyzePhoto(file, true); }}
         pendingFile={paste2}
       />
-      <CameraSlot
-        label="Photo 3 — best before date (optional)"
-        tapLabel="Tap to photograph date"
-        compact
-        analyzing={analyzing}
-        onFile={async file => {
-          setFile3(file);
-          try {
-            const fd = new FormData();
-            fd.append('photo', file);
-            const res = await fetch('/api/analyze-date', { method: 'POST', headers: { ...authHeaders }, body: fd });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.bestBefore) setForm(f => ({ ...f, bestBefore: data.bestBefore }));
-            }
-          } catch { /* silent */ }
-        }}
-        pendingFile={paste3}
-      />
+      {showDatePhoto && (
+        <CameraSlot
+          label="Photo 3 — best before date (optional)"
+          tapLabel="Tap to photograph date"
+          compact
+          analyzing={analyzing}
+          onFile={async file => {
+            setFile3(file);
+            try {
+              const fd = new FormData();
+              fd.append('photo', file);
+              const res = await fetch('/api/analyze-date', { method: 'POST', headers: { ...authHeaders }, body: fd });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.bestBefore) setForm(f => ({ ...f, bestBefore: data.bestBefore }));
+              }
+            } catch { /* silent */ }
+          }}
+          pendingFile={paste3}
+        />
+      )}
 
       {analyzing && (
         <p style={{ fontSize: '0.85rem', color: 'var(--primary)', margin: '0.25rem 0 0.75rem', fontWeight: 600 }}>
