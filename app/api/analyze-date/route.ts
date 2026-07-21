@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     const response = await new Groq({ apiKey: process.env.GROQ_API_KEY }).chat.completions.create({
       model: 'qwen/qwen3.6-27b',
       max_tokens: 32,
+      reasoning_effort: 'none',
       messages: [{
         role: 'user',
         content: [
