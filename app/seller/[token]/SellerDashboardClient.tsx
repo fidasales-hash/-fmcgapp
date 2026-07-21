@@ -18,6 +18,7 @@ export default function SellerDashboardClient({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [addOpen, setAddOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -103,29 +104,15 @@ export default function SellerDashboardClient({ token }: { token: string }) {
   }
 
   return (
-    <main className="admin-page">
+    <main className="admin-page" style={{ position: 'relative' }}>
       <div className="admin-header">
         <h1>Seller Dashboard</h1>
         <a href="/">View Store</a>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-        <h2 style={{ fontSize: '1rem', margin: 0 }}>Add Product</h2>
-        <button type="button" onClick={() => setFormKey(k => k + 1)} style={{ background: 'none', border: '1.5px solid var(--muted)', borderRadius: 8, padding: '0.35rem 0.85rem', fontSize: '0.85rem', color: 'var(--muted)', cursor: 'pointer', fontWeight: 600 }}>Clear</button>
-      </div>
-      <div style={{ marginBottom: '2rem' }}>
-        <ProductUploadForm
-          key={formKey}
-          endpoint="/api/seller/products"
-          authHeaders={{ 'x-seller-token': token }}
-          onSuccess={product => { setProducts(prev => [product, ...prev]); setFormKey(k => k + 1); }}
-          showDatePhoto={false}
-        />
-      </div>
-
       <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>My Products ({products.length})</h2>
-      {products.length === 0 && <p className="empty">You haven&apos;t listed any products yet.</p>}
-      <div className="admin-list">
+      {products.length === 0 && <p className="empty">You haven&apos;t listed any products yet — tap + Add Product to get started.</p>}
+      <div className="admin-list" style={{ paddingBottom: '4.5rem' }}>
         {products.map(p => (
           <div key={p.id} className="admin-row" style={{ flexWrap: 'wrap' }}>
             <img src={p.photoUrl} alt={p.name} className="admin-thumb" />
@@ -169,6 +156,43 @@ export default function SellerDashboardClient({ token }: { token: string }) {
           </div>
         ))}
       </div>
+
+      {/* Floating action button — fixed to the viewport, so it's reachable
+          regardless of how long the product list below it gets. */}
+      <button
+        type="button"
+        onClick={() => setAddOpen(true)}
+        style={{
+          position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 900,
+          background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 999,
+          padding: '0.85rem 1.4rem', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', gap: '0.4rem',
+        }}
+      >
+        + Add Product
+      </button>
+
+      {/* Add-product overlay */}
+      {addOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--bg, #fff)', overflowY: 'auto' }}>
+          <div className="upload-page" style={{ maxWidth: 480, margin: '0 auto', padding: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <h2 style={{ fontSize: '1.1rem', margin: 0 }}>Add Product</h2>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button type="button" onClick={() => setFormKey(k => k + 1)} style={{ background: 'none', border: '1.5px solid var(--muted)', borderRadius: 8, padding: '0.35rem 0.85rem', fontSize: '0.85rem', color: 'var(--muted)', cursor: 'pointer', fontWeight: 600 }}>Clear</button>
+                <button type="button" onClick={() => setAddOpen(false)} style={{ background: 'none', border: '1.5px solid var(--muted)', borderRadius: 8, padding: '0.35rem 0.85rem', fontSize: '0.85rem', color: 'var(--muted)', cursor: 'pointer', fontWeight: 600 }}>✕ Close</button>
+              </div>
+            </div>
+            <ProductUploadForm
+              key={formKey}
+              endpoint="/api/seller/products"
+              authHeaders={{ 'x-seller-token': token }}
+              onSuccess={product => { setProducts(prev => [product, ...prev]); setFormKey(k => k + 1); setAddOpen(false); }}
+              showDatePhoto={false}
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 }
