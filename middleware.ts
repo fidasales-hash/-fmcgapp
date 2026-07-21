@@ -36,6 +36,15 @@ export function middleware(req: NextRequest) {
   // token auth inside the handler — never via ADMIN_SECRET.
   if (pathname.startsWith('/api/seller/')) return NextResponse.next();
 
+  // Shared by the staff AND seller upload forms (AI label reading, AI
+  // best-before reading, barcode lookup, web image search). Neither admin
+  // auth nor seller-token auth alone is right here — both must be accepted,
+  // so the check happens inside each handler via requireStaffOrSeller()
+  // instead of middleware. Exact match only, so this can't accidentally
+  // widen to cover an unrelated /api/* route sharing a prefix.
+  const SHARED_UPLOAD_ROUTES = new Set(['/api/analyze', '/api/analyze-date', '/api/barcode', '/api/images']);
+  if (SHARED_UPLOAD_ROUTES.has(pathname)) return NextResponse.next();
+
   // /api/sellers (plural — admin-facing collection) has inverted auth vs.
   // every other /api/* route: POST (public signup) must stay open, GET
   // (admin pending-queue, contains bearer tokens) must require admin auth.

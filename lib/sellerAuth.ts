@@ -23,3 +23,26 @@ export async function requireApprovedSeller(req: NextRequest): Promise<Seller | 
 
   return seller;
 }
+
+// For endpoints shared between the staff and seller upload forms (AI label
+// reading, barcode lookup, web image search) — accepts EITHER admin Basic
+// Auth OR an approved seller token. These routes are exempted from
+// middleware.ts's blanket admin gate specifically so this can run instead;
+// they must never be reachable without passing one of these two checks.
+export async function requireStaffOrSeller(
+  req: NextRequest
+): Promise<{ role: 'staff' } | { role: 'seller'; seller: Seller } | NextResponse> {
+  const secret = process.env.ADMIN_SECRET;
+  const auth = req.headers.get('authorization') ?? '';
+  if (secret && auth.startsWith('Basic ')) {
+    try {
+      const decoded = atob(auth.slice(6));
+      const password = decoded.slice(decoded.indexOf(':') + 1);
+      if (password === secret) return { role: 'staff' };
+    } catch {}
+  }
+
+  const result = await requireApprovedSeller(req);
+  if (result instanceof NextResponse) return result;
+  return { role: 'seller', seller: result };
+}

@@ -1,7 +1,8 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { Product } from '@/lib/types';
-import { CameraSlot, compressImage } from '@/components/CameraSlot';
+import { compressImage } from '@/components/CameraSlot';
+import ProductUploadForm from '@/components/ProductUploadForm';
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
 
@@ -11,80 +12,19 @@ const DENIED_MESSAGES: Record<string, string> = {
   invalid: 'This seller link is invalid. Please check the URL you were given.',
 };
 
-const SIZE_RE = /^(\d+(\.\d+)?\s*(ml|g|l|kg)(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?|\d+'?s)$/i;
-
-type NewProductForm = { name: string; size: string; price: string; marketPrice: string; category: string; notes: string; bestBefore: string; barcode: string };
-const EMPTY_NEW: NewProductForm = { name: '', size: '', price: '', marketPrice: '', category: 'Other', notes: '', bestBefore: '', barcode: '' };
-
 type EditForm = { name: string; size: string; price: string; marketPrice: string; category: string; notes: string };
 
 export default function SellerDashboardClient({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-
-  const [newForm, setNewForm] = useState<NewProductForm>(EMPTY_NEW);
-  const [newPhoto, setNewPhoto] = useState<File | null>(null);
-  const [newPhoto2, setNewPhoto2] = useState<File | null>(null);
-  const [sizeOverride, setSizeOverride] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState('');
+  const [formKey, setFormKey] = useState(0);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [editPhoto, setEditPhoto] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const [scanning, setScanning] = useState(false);
-  const [scanSupported, setScanSupported] = useState(false);
-  const scanVideoRef = useRef<HTMLVideoElement>(null);
-  const scanStreamRef = useRef<MediaStream | null>(null);
-  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    setScanSupported('BarcodeDetector' in window);
-    return () => stopScan();
-  }, []);
-
-  async function startScan() {
-    setScanning(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      scanStreamRef.current = stream;
-      if (scanVideoRef.current) {
-        scanVideoRef.current.srcObject = stream;
-        await scanVideoRef.current.play();
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const detector = new (window as any).BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf'],
-      });
-      let detecting = false;
-      scanIntervalRef.current = setInterval(async () => {
-        if (detecting || !scanVideoRef.current) return;
-        detecting = true;
-        try {
-          const barcodes = await detector.detect(scanVideoRef.current);
-          if (barcodes.length > 0) {
-            const code: string = barcodes[0].rawValue;
-            stopScan();
-            setNewForm(f => ({ ...f, barcode: code }));
-          }
-        } catch { /* frame not ready */ }
-        detecting = false;
-      }, 200);
-    } catch {
-      setScanning(false);
-    }
-  }
-
-  function stopScan() {
-    if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
-    scanStreamRef.current?.getTracks().forEach(t => t.stop());
-    scanStreamRef.current = null;
-    setScanning(false);
-  }
 
   useEffect(() => {
     fetch('/api/seller/products', { headers: { 'x-seller-token': token } })
@@ -99,49 +39,6 @@ export default function SellerDashboardClient({ token }: { token: string }) {
       .catch(() => setDenied('invalid'))
       .finally(() => setLoading(false));
   }, [token]);
-
-  async function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    setAddError('');
-    if (!newForm.name.trim()) return setAddError('Product name required');
-    if (!newPhoto) return setAddError('Photo required');
-    if (!newForm.size.trim()) return setAddError("Size / weight is required (e.g. 330ml, 500g, 2L, 1kg, 10's)");
-    if (!sizeOverride && !SIZE_RE.test(newForm.size.trim())) return setAddError("Size must be a number with unit — e.g. 330ml, 500g, 2L, 1.5kg, 6 x 330ml, 10's");
-
-    setAdding(true);
-    try {
-      const fd = new FormData();
-      fd.append('name', newForm.name.trim());
-      fd.append('size', newForm.size.trim());
-      fd.append('price', newForm.price || '0');
-      fd.append('marketPrice', newForm.marketPrice || '0');
-      fd.append('category', newForm.category);
-      fd.append('notes', newForm.notes.trim());
-      fd.append('bestBefore', newForm.bestBefore);
-      fd.append('barcode', newForm.barcode.trim());
-      fd.append('photo', await compressImage(newPhoto));
-      if (newPhoto2) fd.append('photo2', await compressImage(newPhoto2));
-
-      const res = await fetch('/api/seller/products', {
-        method: 'POST',
-        headers: { 'x-seller-token': token },
-        body: fd,
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setProducts(prev => [data.product, ...prev]);
-        setNewForm(EMPTY_NEW);
-        setNewPhoto(null);
-        setNewPhoto2(null);
-        setSizeOverride(false);
-      } else {
-        setAddError(data.error ?? 'Failed to add product');
-      }
-    } catch {
-      setAddError('Network error — please try again');
-    }
-    setAdding(false);
-  }
 
   function startEdit(p: Product) {
     setEditingId(p.id);
@@ -212,68 +109,18 @@ export default function SellerDashboardClient({ token }: { token: string }) {
         <a href="/">View Store</a>
       </div>
 
-      <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Add Product</h2>
-      {addError && <p className="error">{addError}</p>}
-      <form onSubmit={handleAdd} style={{ marginBottom: '2rem' }}>
-        {scanning && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', flexDirection: 'column', background: '#000' }}>
-            <video ref={scanVideoRef} autoPlay playsInline muted style={{ flex: 1, width: '100%', objectFit: 'cover' }} />
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -60%)', width: '78%', height: 90, border: '3px solid #fff', borderRadius: 8, boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)' }} />
-            <p style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, calc(-60% + 106px))', color: '#fff', fontSize: '0.9rem', textAlign: 'center', width: '80%', margin: 0 }}>
-              Aim barcode at the box
-            </p>
-            <div style={{ padding: '1.25rem', background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center' }}>
-              <button type="button" onClick={stopScan} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.5rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>✕ Cancel</button>
-            </div>
-          </div>
-        )}
-        <div className="field-wrap">
-          <label className="field-label">Barcode</label>
-          {scanSupported && (
-            <button type="button" onClick={startScan} className="btn-primary" style={{ width: '100%', marginBottom: '0.5rem' }}>
-              📷 Scan Barcode
-            </button>
-          )}
-          <input
-            className="field" style={{ marginBottom: 0 }}
-            inputMode="numeric" placeholder="or type barcode number"
-            value={newForm.barcode}
-            onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, barcode: v })); }}
-          />
-        </div>
-        <CameraSlot label="Product Photo *" tapLabel="Take Photo" analyzing={false} onFile={setNewPhoto} />
-        <CameraSlot label="Second Photo (optional)" tapLabel="Take Photo" compact analyzing={false} onFile={setNewPhoto2} />
-        <div className="field-wrap">
-          <input className="field" value={newForm.name} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, name: v })); }} placeholder="Product name *" />
-        </div>
-        <input
-          className="field" style={{ marginBottom: '0.25rem' }}
-          value={newForm.size} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, size: v })); }}
-          placeholder={sizeOverride ? "Size / weight * (any format)" : "Size / weight * (e.g. 330ml, 500g, 2L, 1kg, 10's)"}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+        <h2 style={{ fontSize: '1rem', margin: 0 }}>Add Product</h2>
+        <button type="button" onClick={() => setFormKey(k => k + 1)} style={{ background: 'none', border: '1.5px solid var(--muted)', borderRadius: 8, padding: '0.35rem 0.85rem', fontSize: '0.85rem', color: 'var(--muted)', cursor: 'pointer', fontWeight: 600 }}>Clear</button>
+      </div>
+      <div style={{ marginBottom: '2rem' }}>
+        <ProductUploadForm
+          key={formKey}
+          endpoint="/api/seller/products"
+          authHeaders={{ 'x-seller-token': token }}
+          onSuccess={product => { setProducts(prev => [product, ...prev]); setFormKey(k => k + 1); }}
         />
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.75rem', cursor: 'pointer' }}>
-          <input type="checkbox" checked={sizeOverride} onChange={e => setSizeOverride(e.target.checked)} style={{ cursor: 'pointer' }} />
-          Custom format (e.g. Assorted, Various)
-        </label>
-        <div className="field-wrap">
-          <label className="field-label">Category</label>
-          <select className="field" value={newForm.category} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, category: v })); }}>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input className="field" type="number" min="0" step="0.01" value={newForm.price} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, price: v })); }} placeholder="Price (R) *" />
-          <input className="field" type="number" min="0" step="0.01" value={newForm.marketPrice} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, marketPrice: v })); }} placeholder="Market Price (R)" />
-        </div>
-        <div className="field-wrap">
-          <label className="field-label">Best Before</label>
-          <input className="field" type="date" value={newForm.bestBefore} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, bestBefore: v })); }} />
-        </div>
-        <div className="field-wrap">
-          <textarea className="field" rows={2} value={newForm.notes} onChange={e => { const v = e.target.value; setNewForm(f => ({ ...f, notes: v })); }} placeholder="Notes (optional)" />
-        </div>
-        <button type="submit" className="btn-primary" disabled={adding}>{adding ? 'Adding…' : 'Add to Store'}</button>
-      </form>
+      </div>
 
       <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>My Products ({products.length})</h2>
       {products.length === 0 && <p className="empty">You haven&apos;t listed any products yet.</p>}

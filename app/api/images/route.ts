@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireStaffOrSeller } from '@/lib/sellerAuth';
 
 export const runtime = 'nodejs';
 
@@ -19,6 +20,9 @@ async function serperImages(query: string): Promise<string[]> {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireStaffOrSeller(req);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { name, size } = await req.json();
     if (!name) return NextResponse.json({ frontImages: [], backImages: [] });

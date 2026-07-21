@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import sharp from 'sharp';
+import { requireStaffOrSeller } from '@/lib/sellerAuth';
 
 export const runtime = 'nodejs';
 
@@ -19,6 +20,9 @@ function lastDayOfMonth(month: number, year: number): string {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireStaffOrSeller(req);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const formData = await req.formData();
     const photo = formData.get('photo') as File;

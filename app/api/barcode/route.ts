@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProductByBarcode } from '@/lib/db';
+import { requireStaffOrSeller } from '@/lib/sellerAuth';
 
 export const runtime = 'nodejs';
 
@@ -151,6 +152,9 @@ async function lookupTavilyPrice(query: string): Promise<{ price: number; source
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireStaffOrSeller(req);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { barcode } = await req.json();
     if (!barcode) return NextResponse.json({ error: 'No barcode' }, { status: 400 });
