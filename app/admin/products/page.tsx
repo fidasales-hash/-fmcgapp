@@ -4,6 +4,7 @@ import type { Product } from '@/lib/types';
 import StockSwitch from '@/components/StockSwitch';
 import EditableCell from '@/components/EditableCell';
 import { isExpired, exportCSV } from '@/lib/productUtils';
+import { useNewProduct, NewProductRow, NewProductPanel } from '@/components/NewProductDraft';
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
 
@@ -141,7 +142,40 @@ export default function AdminPage() {
   const photoProduct = photosFor ? products.find(p => p.id === photosFor) ?? null : null;
   const photosChanged = !!(editPhotos.file1 || editPhotos.file2 || editPhotos.file3 || editPhotos.clear2 || editPhotos.clear3);
 
+  // Scan to add: yellow row on top of the table + photo panel beside it.
+  const [scanValue, setScanValue] = useState('');
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const scanRef = useRef<HTMLInputElement>(null);
+  const np = useNewProduct(
+    added => {
+      setProducts(prev => [added, ...prev]);
+      setFlashId(added.id);
+      setTimeout(() => scanRef.current?.focus(), 50);
+    },
+    dupId => {
+      // Already in the shop: clear filters and point at the existing row.
+      setSearch(''); setCatFilter(''); setStatusFilter('all');
+      setFlashId(dupId);
+    },
+  );
+  useEffect(() => { scanRef.current?.focus(); }, []);
+  useEffect(() => {
+    if (!flashId) return;
+    setTimeout(() => document.getElementById(`p-${flashId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+    const t = setTimeout(() => setFlashId(null), 2500);
+    return () => clearTimeout(t);
+  }, [flashId]);
+
+  function scanToAdd() {
+    const code = scanValue.trim();
+    if (!code) return;
+    closePhotos(); setEditing(null);
+    setScanValue('');
+    np.startFromBarcode(code);
+  }
+
   function openPhotos(p: Product) {
+    np.cancel();
     startEdit(p);
     setEditing(null);
     setSavedOk(false);
@@ -368,7 +402,13 @@ export default function AdminPage() {
           <button type="button" className="dash-btn" onClick={() => exportCSV(filtered)} disabled={filtered.length === 0}>
             Export CSV
           </button>
-          <a href="/upload" className="dash-btn dash-btn-primary">+ Add product</a>
+          <label className="scan-add">
+            <span>Scan to add</span>
+            <input ref={scanRef} inputMode="numeric" placeholder="barcode…" value={scanValue}
+              onChange={e => setScanValue(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); scanToAdd(); } }} />
+          </label>
+          <button type="button" className="dash-btn dash-btn-primary" onClick={() => { closePhotos(); setEditing(null); np.startEmpty(); }}>+ Add product</button>
         </div>
       </div>
 
@@ -398,8 +438,8 @@ export default function AdminPage() {
       {!loading && products.length === 0 && <p className="empty">No products listed yet.</p>}
       {!loading && products.length > 0 && filtered.length === 0 && <p className="empty">No products match your search.</p>}
 
-      {filtered.length > 0 && (
-        <div className={`prod-split${photoProduct ? ' with-panel' : ''}`}>
+      {(filtered.length > 0 || np.draft) && (
+        <div className={`prod-split${photoProduct || np.draft ? ' with-panel' : ''}`}>
         <section className="prod-table-wrap" aria-label="Product list">
           <table className="prod-table">
             <colgroup>
@@ -425,6 +465,7 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
+              {np.draft && <NewProductRow api={np} expired={isExpired(np.draft.bestBefore)} />}
               {filtered.map(product => {
                 const expired = isExpired(product.bestBefore);
                 if (editing === product.id) {
@@ -496,7 +537,7 @@ export default function AdminPage() {
                   );
                 }
                 return (
-                  <tr key={product.id}>
+                  <tr key={product.id} id={`p-${product.id}`} className={flashId === product.id ? 'row-flash' : undefined}>
                     <td className="prod-name-cell">
                       <div className="prod-name">
                         {product.photoUrl
@@ -555,7 +596,8 @@ export default function AdminPage() {
             </tbody>
           </table>
         </section>
-        {photoProduct && (
+        {np.draft && <NewProductPanel api={np} />}
+        {!np.draft && photoProduct && (
           <aside className="photo-panel" aria-label="Edit photos">
             <div className="photo-panel-head">
               <b title={photoProduct.name}>Photos · {photoProduct.name}</b>
