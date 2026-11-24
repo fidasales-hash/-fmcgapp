@@ -1,17 +1,9 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import type { Product } from '@/lib/types';
+import { isExpired, exportCSV } from '@/lib/productUtils';
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
-
-function isExpired(bestBefore: string) {
-  if (!bestBefore) return false;
-  const d = new Date(bestBefore + 'T00:00:00');
-  if (isNaN(d.getTime())) return true;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return d < today;
-}
 
 type EditForm = { name: string; size: string; bestBefore: string; category: string; notes: string; price: string; marketPrice: string; barcode: string; kosher: boolean; halal: boolean; vegan: boolean };
 type EditPhotos = { file1: File | null; preview1: string; file2: File | null; preview2: string; clear2: boolean; file3: File | null; preview3: string; clear3: boolean };
@@ -93,27 +85,6 @@ function DropZone({ preview, label, onFile, onClear }: { preview: string; label:
       )}
     </div>
   );
-}
-
-function exportCSV(products: Product[]) {
-  const headers = ['Name', 'Size', 'Category', 'Best Before', 'Status', 'Price (R)', 'Added'];
-  const rows = products.map(p => {
-    const d = new Date((p.bestBefore ?? '') + 'T00:00:00');
-    const bb = isNaN(d.getTime()) ? '' : p.bestBefore;
-    const status = isExpired(p.bestBefore) ? 'Past Best Before' : 'In Date';
-    const added = new Date(p.addedAt).toLocaleDateString('en-GB');
-    return [p.name, p.size, p.category, bb, status, Number(p.price).toFixed(2), added];
-  });
-  const csv = [headers, ...rows]
-    .map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
-    .join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `clearanceshop-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 const EMPTY_PHOTOS: EditPhotos = { file1: null, preview1: '', file2: null, preview2: '', clear2: false, file3: null, preview3: '', clear3: false };
