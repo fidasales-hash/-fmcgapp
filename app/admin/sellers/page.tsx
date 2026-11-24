@@ -44,7 +44,7 @@ export default function AdminSellersPage() {
     <main className="admin-page">
       <div className="admin-header">
         <h1>Sellers</h1>
-        <a href="/admin">← Manage Products</a>
+        <a href="/admin">← Dashboard</a>
       </div>
 
       {loading && <p className="loading">Loading…</p>}
