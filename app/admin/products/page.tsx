@@ -510,12 +510,14 @@ export default function AdminPage() {
                   );
                 }
                 return (
-                  <tr key={product.id} id={`p-${product.id}`} className={flashId === product.id ? 'row-flash' : undefined}>
+                  <tr key={product.id} id={`p-${product.id}`} className={flashId === product.id ? 'row-flash' : photosFor === product.id ? 'row-selected' : undefined}>
                     <td className="prod-name-cell">
                       <div className="prod-name">
-                        {product.photoUrl
-                          ? <img src={product.photoUrl} alt="" />
-                          : <span className="dash-noimg" aria-hidden="true" />}
+                        <button type="button" className="thumb-btn" title="Edit photos" aria-label={`Edit photos: ${product.name}`} onClick={() => openPhotos(product)}>
+                          {product.photoUrl
+                            ? <img src={product.photoUrl} alt="" />
+                            : <span className="dash-noimg" aria-hidden="true" />}
+                        </button>
                         <EditableCell value={product.name} display={product.name}
                           onSave={v => v ? quickSave(product, { name: v }) : Promise.resolve(false)} />
                       </div>

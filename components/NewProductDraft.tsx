@@ -242,7 +242,9 @@ export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) 
       <tr className="new-row">
         <td className="prod-name-cell">
           <div className="prod-name">
-            {thumb ? <img src={thumb} alt="" /> : <span className={`dash-noimg${bad('photo')}`} aria-hidden="true" />}
+            <button type="button" className="thumb-btn" title="Add photos" aria-label="Add photos" onClick={() => api.patch({ panelOpen: true })}>
+              {thumb ? <img src={thumb} alt="" /> : <span className={`dash-noimg${bad('photo')}`} aria-hidden="true" />}
+            </button>
             <div className="new-row-name">
               <input autoFocus={!d.barcode} className={`inl-input${bad('name')}`} placeholder={namePh}
                 value={d.name} onChange={e => api.patch({ name: e.target.value })} onKeyDown={onKey} />

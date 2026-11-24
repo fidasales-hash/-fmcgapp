@@ -1152,3 +1152,8 @@ body {
 .stock-switch.new { background: #BDBDBD; }
 .stock-switch.new::after { left: 3px; }
 .np-main-bad { outline: 2px solid var(--red); outline-offset: 2px; border-radius: 8px; }
+
+/* ── Admin products: click a photo to open the photo panel ── */
+.thumb-btn { flex-shrink: 0; padding: 0; border: 0; background: none; border-radius: 6px; cursor: pointer; display: flex; }
+.thumb-btn:hover img, .thumb-btn:hover .dash-noimg, .thumb-btn:focus-visible img, .thumb-btn:focus-visible .dash-noimg { outline: 2px solid var(--primary); outline-offset: 1px; }
+.prod-table tr.row-selected td { background: #FFF8E1; }
