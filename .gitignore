@@ -5,3 +5,6 @@ node_modules/
 next-env.d.ts
 tsconfig.tsbuildinfo
 .env*.local
+
+# Local design sketches (not deployed)
+.scratch-*.html

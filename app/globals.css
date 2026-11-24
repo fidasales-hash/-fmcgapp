@@ -1041,3 +1041,47 @@ body {
 }
 .row-menu button:hover { background: #F5F5F5; }
 .row-menu button.danger { color: var(--red); }
+
+/* ── Seller dashboard: inline editing ──────────── */
+.sd-page { max-width: 1040px; }
+.sd-tip { font-size: 0.8rem; color: #0D47A1; background: #E3F2FD; border-radius: 8px; padding: 0.45rem 0.7rem; margin: 0 0 0.75rem; }
+.sd-table { display: none; margin-bottom: 5rem; }
+.sd-cards { display: flex; flex-direction: column; gap: 0.65rem; }
+.sd-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 0.65rem; }
+.sd-card-top { display: flex; align-items: center; gap: 0.6rem; }
+.sd-card-img { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); background: #EEEEEE; }
+.sd-card-name { flex: 1; min-width: 0; font-weight: 700; }
+.sd-card-name .inl-cell { white-space: normal; font-weight: 700; }
+.sd-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.5rem; }
+.sd-field { background: #F7F8F6; border-radius: 8px; padding: 0.3rem 0.4rem 0.2rem; min-width: 0; }
+.sd-field small { display: block; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; padding-left: 0.4rem; }
+.sd-field .inl-cell { font-weight: 600; min-height: 28px; padding: 0.15rem 0.4rem; }
+.sd-field .inl-select { font-weight: 600; color: var(--text); padding: 0.15rem 0.2rem; }
+.sd-price .inl-cell { color: var(--primary); font-weight: 800; }
+.sd-full { grid-column: 1 / -1; }
+.sd-card .row-menu-wrap { position: relative; }
+.sd-card .row-menu { right: 0; top: 34px; }
+@media (min-width: 768px) {
+  .sd-table { display: block; }
+  .sd-cards { display: none; }
+}
+
+/* ── Admin products: side photo panel ──────────── */
+.prod-split { display: flex; gap: 1rem; align-items: flex-start; }
+.prod-split > .prod-table-wrap { flex: 1; min-width: 0; }
+.photo-panel {
+  width: 340px; flex-shrink: 0; position: sticky; top: 1rem; background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 0.9rem; display: flex; flex-direction: column; gap: 0.6rem;
+}
+.photo-panel-head { display: flex; align-items: center; gap: 0.5rem; }
+.photo-panel-head b { flex: 1; min-width: 0; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.photo-panel-head button { background: none; border: 0; font-size: 1.1rem; color: var(--muted); cursor: pointer; padding: 0.1rem 0.3rem; }
+.photo-panel-btn { font: inherit; font-size: 0.82rem; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem; cursor: pointer; }
+.photo-panel-btn:disabled { opacity: 0.5; cursor: default; }
+.photo-panel-row { display: flex; gap: 0.5rem; }
+.photo-panel-hint { font-size: 0.75rem; color: var(--muted); margin: 0; }
+.prod-split.with-panel .dash, .dash:has(.prod-split.with-panel) { max-width: 1440px; }
+@media (max-width: 900px) {
+  .prod-split { flex-direction: column; }
+  .photo-panel { width: 100%; position: static; }
+}

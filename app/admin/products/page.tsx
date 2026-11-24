@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Product } from '@/lib/types';
 import StockSwitch from '@/components/StockSwitch';
+import EditableCell from '@/components/EditableCell';
 import { isExpired, exportCSV } from '@/lib/productUtils';
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
@@ -11,48 +12,6 @@ type EditPhotos = { file1: File | null; preview1: string; file2: File | null; pr
 
 const CLAUDE_KEY = 'claudeApiEnabled';
 
-// A table cell that turns into an input when clicked. Enter or clicking away
-// saves; Esc cancels. onSave resolves false when the save failed.
-function EditableCell({ value, display, type = 'text', align, onSave }: {
-  value: string; display: string; type?: 'text' | 'number' | 'date'; align?: 'right';
-  onSave: (v: string) => Promise<boolean>;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const [flash, setFlash] = useState<'' | 'ok' | 'err'>('');
-  const doneRef = useRef(false);
-
-  function open() { setDraft(value); doneRef.current = false; setEditing(true); }
-  async function finish(save: boolean) {
-    if (doneRef.current) return;
-    doneRef.current = true;
-    setEditing(false);
-    if (!save || draft.trim() === value) return;
-    const ok = await onSave(draft.trim());
-    setFlash(ok ? 'ok' : 'err');
-    setTimeout(() => setFlash(''), 1200);
-  }
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        className={`inl-input${align === 'right' ? ' num' : ''}`}
-        type={type} step={type === 'number' ? '0.01' : undefined} min={type === 'number' ? '0' : undefined}
-        value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onFocus={e => { if (type !== 'date') e.currentTarget.select(); }}
-        onKeyDown={e => { if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); }}
-        onBlur={() => finish(true)}
-      />
-    );
-  }
-  return (
-    <button type="button" className={`inl-cell${align === 'right' ? ' num' : ''}${flash ? ` inl-${flash}` : ''}`} onClick={open} title={display}>
-      {display}
-    </button>
-  );
-}
 
 function DropZone({ preview, label, onFile, onClear }: { preview: string; label: string; onFile: (f: File) => void; onClear?: () => void }) {
   const [dragging, setDragging] = useState(false);
@@ -174,6 +133,72 @@ export default function AdminPage() {
     setEditPhotos({ file1: null, preview1: p.photoUrl, file2: null, preview2: p.photoUrl2 ?? '', clear2: false, file3: null, preview3: p.photoUrl3 ?? '', clear3: false });
     setSaveError('');
   }
+
+  // Side photo panel: reuses the edit state (startEdit fills every field, so
+  // saveEdit sends the product unchanged apart from the photos).
+  const [photosFor, setPhotosFor] = useState<string | null>(null);
+  const [rotating, setRotating] = useState(false);
+  const photoProduct = photosFor ? products.find(p => p.id === photosFor) ?? null : null;
+  const photosChanged = !!(editPhotos.file1 || editPhotos.file2 || editPhotos.file3 || editPhotos.clear2 || editPhotos.clear3);
+
+  function openPhotos(p: Product) {
+    startEdit(p);
+    setEditing(null);
+    setSavedOk(false);
+    setPhotosFor(p.id);
+  }
+
+  function closePhotos() {
+    setPhotosFor(null);
+    setEditPhotos(EMPTY_PHOTOS);
+    setSaveError('');
+    setSavedOk(false);
+  }
+
+  async function rotateMain() {
+    const src = editPhotos.preview1;
+    if (!src) return;
+    setRotating(true);
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(); img.src = src; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalHeight;
+      canvas.height = img.naturalWidth;
+      const ctx = canvas.getContext('2d')!;
+      ctx.translate(0, canvas.height);
+      ctx.rotate(-Math.PI / 2);
+      ctx.drawImage(img, 0, 0);
+      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+      if (!blob) throw new Error();
+      handlePhotoFile(1, new File([blob], 'rotated.jpg', { type: 'image/jpeg' }));
+    } catch {
+      alert("Couldn't rotate this photo. Download it, rotate it, and drop it back in.");
+    } finally {
+      setRotating(false);
+    }
+  }
+
+  // Ctrl+V while the panel is open: fills the first empty extra slot,
+  // otherwise replaces the main photo.
+  useEffect(() => {
+    if (!photosFor) return;
+    function onPaste(e: ClipboardEvent) {
+      const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'));
+      const file = item?.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      setEditPhotos(cur => {
+        const slot: 1 | 2 | 3 = !cur.preview2 ? 2 : !cur.preview3 ? 3 : 1;
+        setTimeout(() => handlePhotoFile(slot, file), 0);
+        return cur;
+      });
+    }
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photosFor]);
 
   function handlePhotoFile(slot: 1 | 2 | 3, file: File) {
     const url = URL.createObjectURL(file);
@@ -374,6 +399,7 @@ export default function AdminPage() {
       {!loading && products.length > 0 && filtered.length === 0 && <p className="empty">No products match your search.</p>}
 
       {filtered.length > 0 && (
+        <div className={`prod-split${photoProduct ? ' with-panel' : ''}`}>
         <section className="prod-table-wrap" aria-label="Product list">
           <table className="prod-table">
             <colgroup>
@@ -517,7 +543,8 @@ export default function AdminPage() {
                       </button>
                       {menuOpen === product.id && (
                         <div className="row-menu" role="menu">
-                          <button type="button" role="menuitem" onClick={() => { setMenuOpen(null); startEdit(product); }}>✎ Edit photos, notes and more</button>
+                          <button type="button" role="menuitem" onClick={() => { setMenuOpen(null); openPhotos(product); }}>📷 Edit photos</button>
+                          <button type="button" role="menuitem" onClick={() => { setMenuOpen(null); closePhotos(); startEdit(product); }}>✎ Edit other details</button>
                           <button type="button" role="menuitem" className="danger" onClick={() => { setMenuOpen(null); removeProduct(product.id); }}>🗑 Remove</button>
                         </div>
                       )}
@@ -528,6 +555,31 @@ export default function AdminPage() {
             </tbody>
           </table>
         </section>
+        {photoProduct && (
+          <aside className="photo-panel" aria-label="Edit photos">
+            <div className="photo-panel-head">
+              <b title={photoProduct.name}>Photos · {photoProduct.name}</b>
+              <button type="button" onClick={closePhotos} aria-label="Close photos">✕</button>
+            </div>
+            <DropZone preview={editPhotos.preview1} label="Main photo" onFile={f => handlePhotoFile(1, f)} />
+            <button type="button" className="photo-panel-btn" onClick={rotateMain} disabled={!editPhotos.preview1 || rotating}>
+              {rotating ? '…' : '↺ Rotate main photo'}
+            </button>
+            <div className="photo-panel-row">
+              <DropZone preview={editPhotos.preview2} label="Photo 2" onFile={f => handlePhotoFile(2, f)}
+                onClear={editPhotos.preview2 ? () => clearPhoto(2) : undefined} />
+              <DropZone preview={editPhotos.preview3} label="Photo 3" onFile={f => handlePhotoFile(3, f)}
+                onClear={editPhotos.preview3 ? () => clearPhoto(3) : undefined} />
+            </div>
+            <p className="photo-panel-hint">Click a photo to choose a file, drag one in, or paste with Ctrl+V.</p>
+            {saveError && <p className="error" style={{ margin: '0 0 0.5rem' }}>{saveError}</p>}
+            <button type="button" className="btn-primary" style={{ marginBottom: 0 }} disabled={saving || !photosChanged}
+              onClick={() => saveEdit(photoProduct.id)}>
+              {saving ? 'Saving…' : savedOk && !photosChanged ? 'Saved ✓' : 'Save photos'}
+            </button>
+          </aside>
+        )}
+        </div>
       )}
     </main>
   );
