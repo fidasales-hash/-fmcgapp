@@ -100,6 +100,9 @@ export default function AdminPage() {
   const [saveError, setSaveError] = useState('');
   const [savedOk, setSavedOk] = useState(false);
   const [claudeEnabled, setClaudeEnabled] = useState(true);
+  const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'in' | 'past'>('all');
   const dateRef = useRef<HTMLInputElement>(null);
   const bbValue = useRef('');
 
@@ -213,154 +216,181 @@ export default function AdminPage() {
     setDeleting(null);
   }
 
+  const q = search.trim().toLowerCase();
+  const filtered = products.filter(p => {
+    if (q && !p.name.toLowerCase().includes(q) && !(p.barcode ?? '').includes(q)) return false;
+    if (catFilter && p.category !== catFilter) return false;
+    if (statusFilter === 'in' && isExpired(p.bestBefore)) return false;
+    if (statusFilter === 'past' && !isExpired(p.bestBefore)) return false;
+    return true;
+  });
+
+  function formatBB(bb: string) {
+    const d = new Date((bb ?? '') + 'T00:00:00');
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
+  }
+
   return (
-    <main className="admin-page">
-      <div className="admin-header">
-        <h1>Manage Products</h1>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button
-            onClick={() => exportCSV(products)}
-            disabled={products.length === 0}
-            style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.4rem 0.8rem', borderRadius: 7, border: '1.5px solid var(--border)', background: '#fff', color: 'var(--text)', cursor: 'pointer' }}
-          >
+    <main className="dash">
+      <div className="dash-head">
+        <h1>Products <span className="dash-count">({filtered.length === products.length ? products.length : `${filtered.length} of ${products.length}`})</span></h1>
+        <div className="dash-actions">
+          <div className="ai-pill">
+            <span>AI auto-fill</span>
+            <button type="button" onClick={toggleClaude} aria-pressed={claudeEnabled} className={claudeEnabled ? 'dash-toggle on' : 'dash-toggle'}>
+              {claudeEnabled ? 'On' : 'Off'}
+            </button>
+          </div>
+          <button type="button" className="dash-btn" onClick={() => exportCSV(filtered)} disabled={filtered.length === 0}>
             Export CSV
           </button>
-          <a href="/admin">← Dashboard</a>
-          <a href="/admin/sellers">Sellers</a>
-          <a href="/">← View Store</a>
+          <a href="/upload" className="dash-btn dash-btn-primary">+ Add product</a>
         </div>
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0.75rem 1rem', marginBottom: '1rem',
-        background: claudeEnabled ? 'var(--surface, #f4f4f4)' : '#fff3cd',
-        borderRadius: 10, border: '1px solid',
-        borderColor: claudeEnabled ? 'var(--border, #ddd)' : '#ffc107',
-      }}>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Groq AI Auto-fill</div>
-          <div style={{ fontSize: '0.8rem', color: '#666', marginTop: 2 }}>
-            {claudeEnabled ? 'On — product fields filled automatically from photos' : 'Off — staff enter details manually'}
-          </div>
-        </div>
-        <button
-          onClick={toggleClaude}
-          style={{
-            position: 'relative', width: 52, height: 28, borderRadius: 14,
-            border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
-            background: claudeEnabled ? 'var(--primary, #2563eb)' : '#ccc',
-            transition: 'background 0.2s',
-          }}
-          aria-label={claudeEnabled ? 'Disable Gemini API auto-fill' : 'Enable Gemini API auto-fill'}
-        >
-          <span style={{
-            position: 'absolute', top: 3, left: claudeEnabled ? 27 : 3,
-            width: 22, height: 22, borderRadius: '50%', background: '#fff',
-            transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
-          }} />
-        </button>
+      <div className="prod-filters">
+        <label className="prod-search">
+          <span className="sr-only">Search products</span>
+          <input type="search" placeholder="Search name or barcode" value={search} onChange={e => setSearch(e.target.value)} />
+        </label>
+        <label>
+          <span className="sr-only">Category</span>
+          <select value={catFilter} onChange={e => setCatFilter(e.target.value)}>
+            <option value="">All categories</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        <label>
+          <span className="sr-only">Status</span>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'all' | 'in' | 'past')}>
+            <option value="all">All statuses</option>
+            <option value="in">In date</option>
+            <option value="past">Past BB</option>
+          </select>
+        </label>
       </div>
 
       {loading && <p className="loading">Loading…</p>}
       {!loading && products.length === 0 && <p className="empty">No products listed yet.</p>}
+      {!loading && products.length > 0 && filtered.length === 0 && <p className="empty">No products match your search.</p>}
 
-      <div className="admin-list">
-        {products.map(product => {
-          const expired = isExpired(product.bestBefore);
-          const isEditing = editing === product.id;
+      {filtered.length > 0 && (
+        <section className="prod-table-wrap" aria-label="Product list">
+          <table className="prod-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Status</th>
+                <th>Best before</th>
+                <th>Size</th>
+                <th>Category</th>
+                <th className="num">Price</th>
+                <th className="num">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(product => {
+                const expired = isExpired(product.bestBefore);
+                if (editing === product.id) {
+                  return (
+                    <tr key={product.id} className="prod-editing">
+                      <td colSpan={7}>
+                        <div className="prod-edit">
+                          <img src={product.photoUrl} alt={product.name} className="admin-thumb" />
+                          <div className="edit-form">
+                    <input className="field" value={editForm.name} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, name: v })); }} placeholder="Name" />
+                    <input className="field" value={editForm.size} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, size: v })); }} placeholder="Size / weight" />
+                    <input className="field" type="date" ref={dateRef} defaultValue={editForm.bestBefore} onChange={e => { bbValue.current = e.target.value; }} />
+                    <select className="field" value={editForm.category} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, category: v })); }}>
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <input className="field" type="number" min="0" step="0.01" value={editForm.price} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, price: v })); }} placeholder="Price (R)" />
+                    <input className="field" type="number" min="0" step="0.01" value={editForm.marketPrice} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, marketPrice: v })); }} placeholder="Market Price (R)" />
+                    <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, notes: v })); }} placeholder="Notes" />
+                    <input className="field" value={editForm.barcode} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, barcode: v })); }} placeholder="Barcode (optional)" inputMode="numeric" />
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                      {([['halal', '☪ Halal', '#16a34a'], ['kosher', '✡ Kosher', '#2563eb'], ['vegan', '🌱 Vegan', '#15803d']] as const).map(([key, label, color]) => {
+                        const on = editForm[key];
+                        return (
+                          <button key={key} type="button" onClick={() => setEditForm(f => ({ ...f, [key]: !f[key] }))}
+                            style={{ padding: '0.3rem 0.7rem', borderRadius: 20, border: `1.5px solid ${color}`, background: on ? color : 'transparent', color: on ? '#fff' : color, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.15s' }}>
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-          return (
-            <div key={product.id} className="admin-row" style={{ flexWrap: 'wrap' }}>
-              <img src={product.photoUrl} alt={product.name} className="admin-thumb" />
+                    <div style={{ borderTop: '1px solid var(--border, #eee)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#999', marginBottom: '0.5rem' }}>Photos</div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <DropZone
+                          preview={editPhotos.preview1}
+                          label="Main"
+                          onFile={f => handlePhotoFile(1, f)}
+                        />
+                        <DropZone
+                          preview={editPhotos.preview2}
+                          label="Photo 2"
+                          onFile={f => handlePhotoFile(2, f)}
+                          onClear={editPhotos.preview2 ? () => clearPhoto(2) : undefined}
+                        />
+                        <DropZone
+                          preview={editPhotos.preview3}
+                          label="Photo 3"
+                          onFile={f => handlePhotoFile(3, f)}
+                          onClear={editPhotos.preview3 ? () => clearPhoto(3) : undefined}
+                        />
+                      </div>
+                    </div>
 
-              {isEditing ? (
-                <div className="edit-form">
-                  <input className="field" value={editForm.name} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, name: v })); }} placeholder="Name" />
-                  <input className="field" value={editForm.size} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, size: v })); }} placeholder="Size / weight" />
-                  <input className="field" type="date" ref={dateRef} defaultValue={editForm.bestBefore} onChange={e => { bbValue.current = e.target.value; }} />
-                  <select className="field" value={editForm.category} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, category: v })); }}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <input className="field" type="number" min="0" step="0.01" value={editForm.price} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, price: v })); }} placeholder="Price (R)" />
-                  <input className="field" type="number" min="0" step="0.01" value={editForm.marketPrice} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, marketPrice: v })); }} placeholder="Market Price (R)" />
-                  <textarea className="field" rows={2} value={editForm.notes} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, notes: v })); }} placeholder="Notes" />
-                  <input className="field" value={editForm.barcode} onChange={e => { const v = e.target.value; setEditForm(f => ({ ...f, barcode: v })); }} placeholder="Barcode (optional)" inputMode="numeric" />
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                    {([['halal', '☪ Halal', '#16a34a'], ['kosher', '✡ Kosher', '#2563eb'], ['vegan', '🌱 Vegan', '#15803d']] as const).map(([key, label, color]) => {
-                      const on = editForm[key];
-                      return (
-                        <button key={key} type="button" onClick={() => setEditForm(f => ({ ...f, [key]: !f[key] }))}
-                          style={{ padding: '0.3rem 0.7rem', borderRadius: 20, border: `1.5px solid ${color}`, background: on ? color : 'transparent', color: on ? '#fff' : color, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.15s' }}>
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div style={{ borderTop: '1px solid var(--border, #eee)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#999', marginBottom: '0.5rem' }}>Photos</div>
+                    {saveError && <p className="error">{saveError}</p>}
+                    {savedOk && <p style={{ color: '#16a34a', fontSize: '0.82rem', margin: '0.25rem 0' }}>Saved ✓</p>}
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <DropZone
-                        preview={editPhotos.preview1}
-                        label="Main"
-                        onFile={f => handlePhotoFile(1, f)}
-                      />
-                      <DropZone
-                        preview={editPhotos.preview2}
-                        label="Photo 2"
-                        onFile={f => handlePhotoFile(2, f)}
-                        onClear={editPhotos.preview2 ? () => clearPhoto(2) : undefined}
-                      />
-                      <DropZone
-                        preview={editPhotos.preview3}
-                        label="Photo 3"
-                        onFile={f => handlePhotoFile(3, f)}
-                        onClear={editPhotos.preview3 ? () => clearPhoto(3) : undefined}
-                      />
+                      <button className="btn-primary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => saveEdit(product.id)} disabled={saving}>
+                        {saving ? '…' : 'Save'}
+                      </button>
+                      <button className="btn-secondary" style={{ flex: 1, padding: '0.5rem', marginTop: 0 }} onClick={() => { setEditing(null); setSaveError(''); setSavedOk(false); setEditPhotos(EMPTY_PHOTOS); }}>
+                        {savedOk ? 'Done' : 'Cancel'}
+                      </button>
                     </div>
                   </div>
-
-                  {saveError && <p className="error">{saveError}</p>}
-                  {savedOk && <p style={{ color: '#16a34a', fontSize: '0.82rem', margin: '0.25rem 0' }}>Saved ✓</p>}
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn-primary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => saveEdit(product.id)} disabled={saving}>
-                      {saving ? '…' : 'Save'}
-                    </button>
-                    <button className="btn-secondary" style={{ flex: 1, padding: '0.5rem', marginTop: 0 }} onClick={() => { setEditing(null); setSaveError(''); setSavedOk(false); setEditPhotos(EMPTY_PHOTOS); }}>
-                      {savedOk ? 'Done' : 'Cancel'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="admin-info">
-                  <strong>{product.name}</strong>
-                  <span className={`badge-small ${expired ? 'badge-expired' : 'badge-fresh'}`}>
-                    {expired ? 'Past BB' : 'In Date'}
-                  </span>
-                  <div className="admin-meta">
-                    BB: {(() => { const d = new Date((product.bestBefore ?? '') + 'T00:00:00'); return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB'); })()}
-                    {product.size ? ` · ${product.size}` : ''}
-                    {' · '}{product.category}
-                    {' · '}<strong>R {Number(product.price ?? 0).toFixed(2)}</strong>
-                  </div>
-                  {product.notes && <div className="admin-notes">{product.notes}</div>}
-                  {product.barcode && <div className="admin-notes" style={{ color: 'var(--muted)', fontFamily: 'monospace', fontSize: '0.78rem' }}>Barcode: {product.barcode}</div>}
-                </div>
-              )}
-
-              {!isEditing && (
-                <div className="admin-actions">
-                  <button onClick={() => startEdit(product)} className="btn-edit">Edit</button>
-                  <button onClick={() => removeProduct(product.id)} disabled={deleting === product.id} className="btn-delete">
-                    {deleting === product.id ? '…' : 'Remove'}
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+                return (
+                  <tr key={product.id}>
+                    <td className="prod-name-cell">
+                      <div className="prod-name">
+                        {product.photoUrl
+                          ? <img src={product.photoUrl} alt="" />
+                          : <span className="dash-noimg" aria-hidden="true" />}
+                        <span title={product.name}>{product.name}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge-small ${expired ? 'badge-expired' : 'badge-fresh'}`}>
+                        {expired ? 'Past BB' : 'In Date'}
+                      </span>
+                    </td>
+                    <td className="muted">{formatBB(product.bestBefore)}</td>
+                    <td className="muted">{product.size || '—'}</td>
+                    <td className="muted">{product.category}</td>
+                    <td className="num"><strong>R {Number(product.price ?? 0).toFixed(2)}</strong></td>
+                    <td className="num prod-actions">
+                      <button onClick={() => startEdit(product)} className="btn-edit">Edit</button>
+                      <button onClick={() => removeProduct(product.id)} disabled={deleting === product.id} className="btn-delete">
+                        {deleting === product.id ? '…' : 'Remove'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+      )}
     </main>
   );
 }
