@@ -977,3 +977,27 @@ body {
 .stock-switch.off::after { left: 3px; }
 .stock-switch:disabled { opacity: 0.6; cursor: wait; }
 .stock-switch:focus-visible { outline: 2px solid #222; outline-offset: 2px; }
+
+/* ── Add-product form (ProductUploadForm) ──────── */
+.puf-small-btn {
+  flex-shrink: 0; background: #fff; color: var(--primary); border: 2px solid var(--primary);
+  border-radius: 8px; padding: 0 0.8rem; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit;
+}
+.puf-small-btn:disabled { opacity: 0.6; cursor: wait; }
+.puf-tiles { display: grid; gap: 0.6rem; }
+.puf-chip {
+  border: 1.5px solid var(--border); background: #fff; color: var(--muted); border-radius: 16px;
+  padding: 0.3rem 0.75rem; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.puf-chip.on { background: var(--red-bg); border-color: var(--primary); color: var(--primary); }
+.puf-aside { margin: 0.5rem 0 1rem; }
+.puf-aside .card { max-width: 230px; }
+.puf-savebar {
+  position: sticky; bottom: 0; z-index: 5; background: #fff; border-top: 1px solid var(--border);
+  padding: 0.75rem 0 calc(0.75rem + env(safe-area-inset-bottom, 0px)); margin-top: 0.5rem;
+}
+@media (min-width: 900px) {
+  .upload-page { max-width: 860px; }
+  .puf-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 1.75rem; align-items: start; }
+  .puf-aside { position: sticky; top: 1rem; margin: 0; }
+}

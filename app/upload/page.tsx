@@ -27,7 +27,7 @@ export default function UploadPage() {
       <ProductUploadForm
         key={formKey}
         endpoint="/api/products"
-        onSuccess={(_product: Product) => setSuccess(true)}
+        onSuccess={(_product: Product, continuing?: boolean) => { if (!continuing) setSuccess(true); }}
       />
       <a href="/" className="btn-secondary" style={{ marginTop: '0.75rem' }}>← Back to Store</a>
     </main>

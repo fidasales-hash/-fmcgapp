@@ -77,7 +77,9 @@ export interface ProductUploadFormProps {
   // calls) — e.g. { 'x-seller-token': token }. Staff auth rides on the
   // browser's already-cached Basic Auth credentials, so this is omitted there.
   authHeaders?: Record<string, string>;
-  onSuccess: (product: Product) => void;
+  // continuing = true when "Add and next" was used: the form has already reset
+  // itself for the next product, so the caller should NOT close or remount it.
+  onSuccess: (product: Product, continuing?: boolean) => void;
   // Photo 3 (auto best-before date reading). Defaults on — the seller
   // dashboard turns it off. Manual "Best Before" date field is unaffected.
   showDatePhoto?: boolean;
@@ -116,6 +118,25 @@ export default function ProductUploadForm({ endpoint, authHeaders, onSuccess, sh
   const [kosher, setKosher] = useState(false);
   const [halal, setHalal] = useState(false);
   const [vegan, setVegan] = useState(false);
+
+  const [lastAdded, setLastAdded] = useState('');
+  const continueRef = useRef(false);
+  const barcodeRef = useRef<HTMLInputElement>(null);
+
+  // Front-photo preview URL for the live card (web pick wins over own photo).
+  const [file1Url, setFile1Url] = useState('');
+  useEffect(() => {
+    if (!file1) { setFile1Url(''); return; }
+    const u = URL.createObjectURL(file1);
+    setFile1Url(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file1]);
+
+  // Desktop (mouse) only: put the cursor in the barcode field so a handheld
+  // scanner or typing works straight away. On phones this would pop the keyboard.
+  useEffect(() => {
+    if (window.matchMedia('(pointer: fine)').matches) barcodeRef.current?.focus();
+  }, []);
 
   const [scanning, setScanning] = useState(false);
   const [scanSupported, setScanSupported] = useState(false);
@@ -349,8 +370,18 @@ export default function ProductUploadForm({ endpoint, authHeaders, onSuccess, sh
       const res = await fetch(endpoint, { method: 'POST', headers: { ...authHeaders }, body: fd });
       if (res.ok) {
         const data = await res.json();
-        clearForm();
-        onSuccess(data.product);
+        if (continueRef.current) {
+          const keepCategory = form.category;
+          clearForm();
+          setForm(f => ({ ...f, category: keepCategory }));
+          setLastAdded(form.name);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(() => barcodeRef.current?.focus(), 50);
+          onSuccess(data.product, true);
+        } else {
+          clearForm();
+          onSuccess(data.product);
+        }
       } else {
         const data = await res.json();
         setError(data.error ?? 'Upload failed');
@@ -362,10 +393,44 @@ export default function ProductUploadForm({ endpoint, authHeaders, onSuccess, sh
   }
 
   function toggleImage(url: string) {
+    const adding = !pickedImages.includes(url) && pickedImages.length < 3;
     setPickedImages(prev =>
       prev.includes(url) ? prev.filter(u => u !== url) : prev.length < 3 ? [...prev, url] : prev
     );
+    // With AI reading switched off, fill name/size from the site the image came
+    // from (with AI on, the effect on firstPickedImage reads the image instead).
+    if (adding && !form.name && localStorage.getItem('claudeApiEnabled') === 'false') {
+      if (offImgs.includes(url) && offSource.name) applySource(offSource);
+      else if (upcImgs.includes(url) && upcSource.name) applySource(upcSource);
+      else if (serperImgs.includes(url) && serperSource.name) applySource(serperSource);
+    }
   }
+
+  // All web images in one row: barcode-exact sources first, then Google.
+  const allImgs = Array.from(new Set([...offImgs, ...upcImgs, ...serperImgs]));
+
+  // Best-before quick picks: last day of this month and the next three.
+  function monthEnd(offset: number) {
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { iso, label: d.toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' }) };
+  }
+  const bbPicks = [0, 1, 2, 3].map(monthEnd);
+
+  const priceNum = parseFloat(form.price) || 0;
+  const marketNum = parseFloat(form.marketPrice) || 0;
+  const savePct = marketNum > priceNum && priceNum > 0 ? Math.round((1 - priceNum / marketNum) * 100) : 0;
+  const bbDate = form.bestBefore ? new Date(form.bestBefore + 'T23:59:59') : null;
+  const bbValid = bbDate && !isNaN(bbDate.getTime());
+  const expired = !!(bbValid && bbDate!.getTime() < Date.now());
+  const previewImg = pickedImages[0] || file1Url;
+  const checklist: [string, boolean][] = [
+    ['Front photo', !!previewImg],
+    ['Name', !!form.name.trim()],
+    ['Size', !!form.size.trim()],
+    ['Price', priceNum > 0],
+  ];
 
   const TITLE_SIZE_RE = /\b\d+(\.\d+)?[-\s]*(ml|g|l|kg|cl|oz|lb|lbs|fl\.?\s*oz)\.?(\s*x\s*\d+(\.\d+)?\s*(ml|g|l|kg))?\b/gi;
 
@@ -428,58 +493,78 @@ export default function ProductUploadForm({ endpoint, authHeaders, onSuccess, sh
         </div>
       )}
 
-      {/* Barcode input */}
+      <div className="puf-layout">
+      <div className="puf-main">
+
+      {lastAdded && (
+        <p style={{ background: 'var(--green-bg)', color: 'var(--green)', borderRadius: 8, padding: '0.5rem 0.75rem', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 0.75rem' }}>
+          ✓ Added “{lastAdded}”. Scan the next one.
+        </p>
+      )}
+
+      {/* Barcode: Enter (or a handheld scanner, which sends Enter) looks it up */}
       <div style={{ marginBottom: '1.25rem' }}>
         <label className="field-label">Barcode</label>
-        {scanSupported && (
-          <button type="button" onClick={startScan} disabled={barcodeLoading} className="btn-primary"
-            style={{ width: '100%', marginBottom: '0.5rem' }}>
-            📷 Scan Barcode
-          </button>
-        )}
-        <input
-          type="text" inputMode="numeric" placeholder="or type barcode number"
-          value={barcode}
-          onChange={e => setBarcode(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookupBarcodeCode(barcode.trim()); } }}
-          className="field" style={{ marginBottom: '0.5rem' }}
-          disabled={barcodeLoading}
-        />
-        <button type="button" onClick={() => lookupBarcodeCode(barcode.trim())} disabled={!barcode.trim() || barcodeLoading}
-          className="btn-primary" style={{ width: '100%', marginBottom: 0 }}>
-          {barcodeLoading ? '…' : 'Look Up'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <input
+            ref={barcodeRef}
+            type="text" inputMode="numeric" enterKeyHint="search" placeholder="Scan or type barcode, then Enter"
+            value={barcode}
+            onChange={e => setBarcode(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookupBarcodeCode(barcode.trim()); } }}
+            className="field" style={{ marginBottom: 0, flex: 1, minWidth: 0 }}
+            disabled={barcodeLoading}
+          />
+          {barcode.trim() && (
+            <button type="button" onClick={() => lookupBarcodeCode(barcode.trim())} disabled={barcodeLoading}
+              className="puf-small-btn">
+              {barcodeLoading ? '…' : 'Go'}
+            </button>
+          )}
+          {scanSupported && (
+            <button type="button" onClick={startScan} disabled={barcodeLoading} className="puf-small-btn" aria-label="Scan barcode with camera">
+              📷 Scan
+            </button>
+          )}
+        </div>
         {barcodeStatus === 'found' && !barcodeDuplicate && <p style={{ color: 'var(--green)', fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 600 }}>✓ {form.name || 'Product found'}{form.size ? ` — ${form.size}` : ''}</p>}
-        {barcodeStatus === 'notfound' && <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>Not found — fill in manually or take photos below</p>}
-        {barcodeDuplicate && <p style={{ color: '#c00', fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 600 }}>⚠ Already in store — "{barcodeDuplicate.name}"</p>}
+        {barcodeStatus === 'notfound' && <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>Not found. Take a photo below and the details will be read from it.</p>}
+        {barcodeDuplicate && (
+          <div style={{ background: '#FFF4D6', color: '#8A5A00', borderRadius: 8, padding: '0.55rem 0.75rem', marginTop: '0.4rem', fontSize: '0.85rem' }}>
+            <b>⚠ Already in the store:</b> “{barcodeDuplicate.name}”. Change the stock or price on that product instead.
+            <button type="button" onClick={clearForm} style={{ display: 'block', marginTop: '0.35rem', background: 'none', border: '1px solid currentColor', color: 'inherit', borderRadius: 6, padding: '0.2rem 0.6rem', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
+              Clear and scan another
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Image source comparison — tap up to 3 images; badges show which slot (1/2/3) each fills */}
-      <ImagePicker label="Google Images (Serper)" subtitle={serperSource.name || undefined} onUseSource={!form.name && !groqAnalyzing && pickedImages.length > 0 && serperSource.name ? () => applySource(serperSource) : undefined} images={serperImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !serperImgs.includes(u)))} loading={imagesLoading} />
-      <ImagePicker label="Open Food Facts" subtitle={[offSource.name, offSource.size].filter(Boolean).join(' ') || undefined} onUseSource={!form.name && !groqAnalyzing && pickedImages.length > 0 && offSource.name ? () => applySource(offSource) : undefined} images={offImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !offImgs.includes(u)))} />
-      <ImagePicker label="UPCitemdb" subtitle={[upcSource.name, upcSource.size].filter(Boolean).join(' ') || undefined} onUseSource={!form.name && !groqAnalyzing && pickedImages.length > 0 && upcSource.name ? () => applySource(upcSource) : undefined} images={upcImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages(p => p.filter(u => !upcImgs.includes(u)))} />
+      {/* Web images, all sources in one row. Tap up to 3; badge = photo slot it fills */}
+      <ImagePicker label="Pick photos from the web (tap up to 3, first is the front)" images={allImgs} picked={pickedImages} onToggle={toggleImage} onClearRow={() => setPickedImages([])} loading={imagesLoading && !allImgs.length} />
 
-      {/* Camera slots */}
+      {/* Own photos: small tiles in one row */}
+      <div className="puf-tiles" style={{ gridTemplateColumns: `repeat(${showDatePhoto ? 3 : 2}, minmax(0, 1fr))` }}>
       <CameraSlot
-        label={serperImgs.length || offImgs.length || upcImgs.length ? `Or take your own front photo${pickedImages[0] ? ' (slot 1 filled)' : ' *'}` : 'Photo 1 — front *'}
-        tapLabel="Tap to open camera"
+        tile
+        label={pickedImages[0] ? 'Front ✓ (web)' : 'Front *'}
+        tapLabel="Photograph the front"
         analyzing={analyzing}
         onFile={file => { setFile1(file); analyzePhoto(file); }}
         pendingFile={paste1}
       />
       <CameraSlot
-        label="Photo 2 — back / side (optional)"
-        tapLabel="Tap to open camera"
-        compact
+        tile
+        label="Back / side"
+        tapLabel="Photograph the back or side"
         analyzing={analyzing}
         onFile={file => { setFile2(file); analyzePhoto(file, true); }}
         pendingFile={paste2}
       />
       {showDatePhoto && (
         <CameraSlot
-          label="Photo 3 — best before date (optional)"
-          tapLabel="Tap to photograph date"
-          compact
+          tile
+          label="Date label"
+          tapLabel="Photograph the best-before date"
           analyzing={analyzing}
           onFile={async file => {
             setFile3(file);
@@ -496,6 +581,8 @@ export default function ProductUploadForm({ endpoint, authHeaders, onSuccess, sh
           pendingFile={paste3}
         />
       )}
+      </div>
+      <p style={{ fontSize: '0.75rem', color: 'var(--muted)', margin: '0.35rem 0 1rem' }}>Each tile also takes drag and drop, or Ctrl+V to paste.</p>
 
       {analyzing && (
         <p style={{ fontSize: '0.85rem', color: 'var(--primary)', margin: '0.25rem 0 0.75rem', fontWeight: 600 }}>
@@ -558,10 +645,20 @@ export default function ProductUploadForm({ endpoint, authHeaders, onSuccess, sh
         <input type="number" min="0" step="0.01" placeholder="0.00" value={form.marketPrice}
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, marketPrice: v })); }}
           className="field" style={{ marginBottom: 0 }} />
+        {savePct > 0 && <p style={{ fontSize: '0.8rem', color: 'var(--green)', fontWeight: 600, margin: '0.3rem 0 0' }}>Customers will see: {savePct}% off</p>}
       </div>
       <div className="field-wrap">
         <label className="field-label">Best Before</label>
-        <input type="date" className="field" value={form.bestBefore} style={{ marginBottom: 0 }}
+        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.45rem' }}>
+          <button type="button" className={`puf-chip${!form.bestBefore ? ' on' : ''}`} onClick={() => setForm(f => ({ ...f, bestBefore: '' }))}>No date</button>
+          {bbPicks.map(p => (
+            <button key={p.iso} type="button" className={`puf-chip${form.bestBefore === p.iso ? ' on' : ''}`}
+              onClick={() => setForm(f => ({ ...f, bestBefore: p.iso }))}>
+              End {p.label}
+            </button>
+          ))}
+        </div>
+        <input type="date" className="field" value={form.bestBefore} style={{ marginBottom: 0 }} aria-label="Exact best-before date"
           onChange={e => { const v = e.target.value; setForm(f => ({ ...f, bestBefore: v })); }} />
       </div>
       <textarea placeholder="Notes  (optional)" value={form.notes}
@@ -584,10 +681,54 @@ export default function ProductUploadForm({ endpoint, authHeaders, onSuccess, sh
         </div>
       </div>
 
-      {error && <p className="error">{error}</p>}
-      <button type="submit" disabled={submitting || analyzing} className="btn-primary">
-        {submitting ? 'Processing & uploading…' : 'Add to Store'}
-      </button>
+      </div>{/* /puf-main */}
+
+      {/* Live preview of the storefront card */}
+      <aside className="puf-aside">
+        <p className="field-label" style={{ marginBottom: '0.4rem' }}>Preview in shop</p>
+        <div className={`card ${expired ? 'expired' : 'fresh'}`} style={{ pointerEvents: 'none' }}>
+          <div className="photo-wrap">
+            {previewImg
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={previewImg} alt="" />
+              : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '0.8rem' }}>No photo yet</div>}
+            <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>{expired ? 'Past Best Before' : 'In Date'}</span>
+          </div>
+          <div className="card-body">
+            <span className="cat-label">{form.category}</span>
+            <h2>{form.name || 'Product name'}</h2>
+            {form.size && <p className="size">{form.size}</p>}
+            <div className="price-wrap">
+              {savePct > 0 && <span className="market-price">R {marketNum.toFixed(2)}</span>}
+              <p className="price">R {priceNum.toFixed(2)}</p>
+              {savePct > 0 && <span className="savings-badge">{savePct}% off</span>}
+            </div>
+            <p className="best-before">Best Before: {bbValid ? bbDate!.toLocaleDateString('en-GB') : '—'}</p>
+            <button type="button" className="btn-add-cart" tabIndex={-1}>+ Add to Order</button>
+          </div>
+        </div>
+        <ul style={{ listStyle: 'none', padding: 0, margin: '0.6rem 0 0', fontSize: '0.8rem' }}>
+          {checklist.map(([label, ok]) => (
+            <li key={label} style={{ color: ok ? 'var(--green)' : 'var(--muted)', fontWeight: ok ? 600 : 400 }}>{ok ? '✓' : '○'} {label}</li>
+          ))}
+        </ul>
+      </aside>
+      </div>{/* /puf-layout */}
+
+      {/* Save bar stays on screen */}
+      <div className="puf-savebar">
+        {error && <p className="error" style={{ margin: '0 0 0.5rem' }}>{error}</p>}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button type="submit" disabled={submitting || analyzing} className="btn-primary" style={{ marginBottom: 0, flex: 1 }}
+            onClick={() => { continueRef.current = false; }}>
+            {submitting && !continueRef.current ? 'Uploading…' : 'Add to store'}
+          </button>
+          <button type="submit" disabled={submitting || analyzing} className="btn-primary" style={{ marginBottom: 0, flex: 1, background: 'var(--green)' }}
+            onClick={() => { continueRef.current = true; }}>
+            {submitting && continueRef.current ? 'Uploading…' : 'Add and next'}
+          </button>
+        </div>
+      </div>
     </form>
   );
 }

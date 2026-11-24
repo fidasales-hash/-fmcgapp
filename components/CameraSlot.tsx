@@ -46,9 +46,12 @@ export async function rotateCW(file: File): Promise<{ file: File; preview: strin
 type SlotMode = 'idle' | 'camera' | 'preview';
 
 export function CameraSlot({
-  label, tapLabel, compact, analyzing, onFile, pendingFile,
+  label, tapLabel, compact, tile, analyzing, onFile, pendingFile,
 }: {
-  label: string; tapLabel: string; compact?: boolean; analyzing: boolean; onFile: (file: File) => void; pendingFile?: File | null;
+  label: string; tapLabel: string; compact?: boolean;
+  // Small square tile, for laying several slots out in a row.
+  tile?: boolean;
+  analyzing: boolean; onFile: (file: File) => void; pendingFile?: File | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -157,8 +160,8 @@ export function CameraSlot({
   }
 
   return (
-    <div style={{ marginBottom: '1rem' }}>
-      <p className="field-label" style={{ marginBottom: '0.4rem' }}>{label}</p>
+    <div style={{ marginBottom: tile ? 0 : '1rem', minWidth: 0 }}>
+      <p className="field-label" style={{ marginBottom: '0.4rem', ...(tile ? { fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}) }}>{label}</p>
       <div style={{ display: mode === 'camera' ? 'flex' : 'none', position: 'fixed', inset: 0, zIndex: 1000, flexDirection: 'column', background: '#000' }}>
         <video ref={videoRef} autoPlay playsInline muted style={{ flex: 1, width: '100%', objectFit: 'cover' }} />
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.25rem', padding: '1.25rem 1rem', background: 'rgba(0,0,0,0.6)' }}>
@@ -175,13 +178,18 @@ export function CameraSlot({
         <>
           <div
             className={`photo-placeholder${compact ? ' photo-placeholder-opt' : ''}`}
-            style={{ cursor: 'pointer', border: dragging ? '2px dashed var(--primary)' : undefined, background: dragging ? 'var(--surface)' : undefined, transition: 'border 0.15s, background 0.15s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}
+            style={{ ...(tile ? { height: 'auto', aspectRatio: '1', padding: '0.4rem', justifyContent: 'center' } : {}), cursor: 'pointer', border: dragging ? '2px dashed var(--primary)' : undefined, background: dragging ? 'var(--surface)' : undefined, transition: 'border 0.15s, background 0.15s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragEnter={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
           >
-            {dragging ? <span>⬇ Drop image here</span> : (
+            {dragging ? <span>⬇ Drop{tile ? '' : ' image here'}</span> : tile ? (
+              <>
+                <button type="button" onClick={openCamera} aria-label={tapLabel} title={tapLabel} style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.4rem 0.7rem', fontSize: '1.2rem', cursor: 'pointer' }}>📷</button>
+                <button type="button" onClick={() => browseRef.current?.click()} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}>📁 Browse</button>
+              </>
+            ) : (
               <>
                 <button type="button" onClick={openCamera} style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.45rem 1.1rem', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}>📷 {tapLabel}</button>
                 <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
@@ -198,10 +206,10 @@ export function CameraSlot({
       )}
       {mode === 'preview' && preview && (
         <>
-          <img src={preview} alt="preview" className="photo-preview" style={{ opacity: analyzing ? 0.65 : 1, transition: 'opacity 0.2s' }} />
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
-            <button type="button" className="btn-rotate" style={{ flex: 1, marginBottom: 0 }} onClick={rotate}>↺ Rotate Left</button>
-            <button type="button" className="btn-rotate" style={{ flex: 1, marginBottom: 0 }} onClick={retake}>↺ Retake</button>
+          <img src={preview} alt="preview" className="photo-preview" style={{ opacity: analyzing ? 0.65 : 1, transition: 'opacity 0.2s', ...(tile ? { aspectRatio: '1', maxHeight: 'none', borderColor: 'var(--green)' } : {}) }} />
+          <div style={{ display: 'flex', gap: tile ? '0.25rem' : '0.5rem', marginTop: '0.4rem' }}>
+            <button type="button" className="btn-rotate" style={{ flex: 1, marginBottom: 0, ...(tile ? { padding: '0.3rem 0', fontSize: '0.75rem' } : {}) }} onClick={rotate} title="Rotate left">↺{tile ? '' : ' Rotate Left'}</button>
+            <button type="button" className="btn-rotate" style={{ flex: 1, marginBottom: 0, ...(tile ? { padding: '0.3rem 0', fontSize: '0.75rem' } : {}) }} onClick={retake} title="Retake">{tile ? '✕' : '↺ Retake'}</button>
           </div>
         </>
       )}

@@ -200,7 +200,7 @@ export default function SellerDashboardClient({ token }: { token: string }) {
       {/* Add-product overlay */}
       {addOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--bg, #fff)', overflowY: 'auto' }}>
-          <div className="upload-page" style={{ maxWidth: 480, margin: '0 auto', padding: '1rem' }}>
+          <div className="upload-page" style={{ margin: '0 auto', padding: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '1.1rem', margin: 0 }}>Add Product</h2>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -212,7 +212,7 @@ export default function SellerDashboardClient({ token }: { token: string }) {
               key={formKey}
               endpoint="/api/seller/products"
               authHeaders={{ 'x-seller-token': token }}
-              onSuccess={product => { setProducts(prev => [product, ...prev]); setFormKey(k => k + 1); setAddOpen(false); }}
+              onSuccess={(product, continuing) => { setProducts(prev => [product, ...prev]); if (!continuing) { setFormKey(k => k + 1); setAddOpen(false); } }}
               showDatePhoto={false}
             />
           </div>
