@@ -1157,3 +1157,12 @@ body {
 .thumb-btn { flex-shrink: 0; padding: 0; border: 0; background: none; border-radius: 6px; cursor: pointer; display: flex; }
 .thumb-btn:hover img, .thumb-btn:hover .dash-noimg, .thumb-btn:focus-visible img, .thumb-btn:focus-visible .dash-noimg { outline: 2px solid var(--primary); outline-offset: 1px; }
 .prod-table tr.row-selected td { background: #FFF8E1; }
+
+/* ── Admin products: one-row header ─────────────── */
+.prod-bar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.prod-bar h1 { margin: 0 0.5rem 0 0; white-space: nowrap; }
+.prod-bar label { display: flex; }
+.prod-bar .prod-search { flex: 1 1 260px; min-width: 200px; }
+.prod-bar input, .prod-bar select { flex: 1; font: inherit; font-size: 0.9rem; padding: 0.6rem 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); }
+.prod-bar input:focus { outline: none; border-color: #1565C0; }
+.prod-bar input::placeholder { color: #9E9E9E; }

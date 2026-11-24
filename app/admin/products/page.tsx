@@ -72,7 +72,6 @@ export default function AdminPage() {
 
   // Barcode box: a scan (or Enter / Search) drops a yellow row on top of the
   // table + the Add photos panel beside it. Already in the shop: that row flashes.
-  const [scanValue, setScanValue] = useState('');
   const [flashId, setFlashId] = useState<string | null>(null);
   const [inShopMsg, setInShopMsg] = useState('');
   useEffect(() => {
@@ -102,13 +101,17 @@ export default function AdminPage() {
     return () => clearTimeout(t);
   }, [flashId]);
 
-  function scanToAdd() {
-    const code = scanValue.trim();
+  // Enter in the one box: a barcode (digits only) finds it or starts a new
+  // product; an empty box starts an empty new row; words just stay a filter.
+  function searchEnter() {
+    const text = search.trim();
+    if (text && !/^\d{6,14}$/.test(text)) return;
     closePhotos(); setEditing(null); setInShopMsg('');
-    if (!code) { np.startEmpty(); return; }  // no barcode: empty row to fill in
-    setScanValue('');
-    np.startFromBarcode(code);
+    setSearch('');
+    if (!text) { np.startEmpty(); return; }
+    np.startFromBarcode(text);
   }
+
 
   function openPhotos(p: Product) {
     np.cancel();
@@ -361,34 +364,14 @@ export default function AdminPage() {
 
   return (
     <main className="dash dash-wide">
-      <div className="dash-head">
+      {/* One row: title, one box (filter by name, or a barcode + Enter), filters, actions */}
+      <div className="prod-bar">
         <h1>Products <span className="dash-count">({filtered.length === products.length ? products.length : `${filtered.length} of ${products.length}`})</span></h1>
-        <div className="dash-actions">
-          <div className="ai-pill">
-            <span>AI auto-fill</span>
-            <button type="button" onClick={toggleClaude} aria-pressed={claudeEnabled} className={claudeEnabled ? 'dash-toggle on' : 'dash-toggle'}>
-              {claudeEnabled ? 'On' : 'Off'}
-            </button>
-          </div>
-          <button type="button" className="dash-btn" onClick={() => exportCSV(filtered)} disabled={filtered.length === 0}>
-            Export CSV
-          </button>
-          <label className="scan-add">
-            <span className="sr-only">Barcode</span>
-            <input ref={scanRef} inputMode="numeric" placeholder="Type or scan barcode" value={scanValue}
-              onChange={e => setScanValue(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); scanToAdd(); } }} />
-          </label>
-          <button type="button" className="dash-btn dash-btn-primary" onClick={scanToAdd}>Search</button>
-        </div>
-      </div>
-
-      {inShopMsg && <p className="in-shop-msg">✓ Already in your shop: {inShopMsg}</p>}
-
-      <div className="prod-filters">
         <label className="prod-search">
-          <span className="sr-only">Search products</span>
-          <input type="search" placeholder="Search name or barcode" value={search} onChange={e => setSearch(e.target.value)} />
+          <span className="sr-only">Search name, or scan a barcode</span>
+          <input ref={scanRef} type="search" placeholder="Search name, or scan a barcode" value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchEnter(); } }} />
         </label>
         <label>
           <span className="sr-only">Category</span>
@@ -405,7 +388,18 @@ export default function AdminPage() {
             <option value="past">Past BB</option>
           </select>
         </label>
+        <button type="button" className="dash-btn" onClick={() => exportCSV(filtered)} disabled={filtered.length === 0}>
+          Export CSV
+        </button>
+        <div className="ai-pill">
+          <span>AI auto-fill</span>
+          <button type="button" onClick={toggleClaude} aria-pressed={claudeEnabled} className={claudeEnabled ? 'dash-toggle on' : 'dash-toggle'}>
+            {claudeEnabled ? 'On' : 'Off'}
+          </button>
+        </div>
       </div>
+
+      {inShopMsg && <p className="in-shop-msg">✓ Already in your shop: {inShopMsg}</p>}
 
       {loading && <p className="loading">Loading…</p>}
       {!loading && products.length === 0 && <p className="empty">No products listed yet.</p>}
