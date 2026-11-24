@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Product } from '@/lib/types';
 import StockSwitch from '@/components/StockSwitch';
+import DietChips from '@/components/DietChips';
 import EditableCell from '@/components/EditableCell';
 import DropZone from '@/components/PhotoDropZone';
 import { isExpired, exportCSV } from '@/lib/productUtils';
@@ -14,7 +15,7 @@ type EditPhotos = { file1: File | null; preview1: string; file2: File | null; pr
 
 const CLAUDE_KEY = 'claudeApiEnabled';
 
-type SortKey = 'name' | 'status' | 'bb' | 'category' | 'price' | 'stock';
+type SortKey = 'name' | 'status' | 'bb' | 'category' | 'price' | 'mkt' | 'stock';
 
 
 
@@ -332,6 +333,7 @@ export default function AdminPage() {
         case 'bb': return p.bestBefore || '';
         case 'category': return p.category.toLowerCase();
         case 'price': return Number(p.price) || 0;
+        case 'mkt': return Number(p.marketPrice) || 0;
         case 'stock': return p.inStock === false ? 1 : 0;
       }
     };
@@ -412,12 +414,14 @@ export default function AdminPage() {
             <colgroup>
               <col />
               <col style={{ width: 84 }} />
-              <col style={{ width: 128 }} />
+              <col style={{ width: 112 }} />
+              <col style={{ width: 84 }} />
+              <col style={{ width: 176 }} />
               <col style={{ width: 96 }} />
-              <col style={{ width: 186 }} />
+              <col style={{ width: 112 }} />
               <col style={{ width: 104 }} />
-              <col style={{ width: 128 }} />
-              <col style={{ width: 52 }} />
+              <col style={{ width: 84 }} />
+              <col style={{ width: 72 }} />
             </colgroup>
             <thead>
               <tr>
@@ -427,8 +431,10 @@ export default function AdminPage() {
                 <th>Size</th>
                 {sortTh('category', 'Category')}
                 {sortTh('price', 'Price')}
+                {sortTh('mkt', 'Normal price')}
+                <th>Dietary</th>
                 {sortTh('stock', 'Status')}
-                <th><span className="sr-only">More</span></th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -438,7 +444,7 @@ export default function AdminPage() {
                 if (editing === product.id) {
                   return (
                     <tr key={product.id} className="prod-editing">
-                      <td colSpan={8}>
+                      <td colSpan={10}>
                         <div className="prod-edit">
                           <img src={product.photoUrl} alt={product.name} className="admin-thumb" />
                           <div className="edit-form">
@@ -539,8 +545,18 @@ export default function AdminPage() {
                       <EditableCell type="number" value={String(Number(product.price ?? 0))} display={`R ${Number(product.price ?? 0).toFixed(2)}`}
                         onSave={v => quickSave(product, { price: parseFloat(v) || 0 })} />
                     </td>
+                    <td className="mkt-cell">
+                      <EditableCell type="number" value={product.marketPrice ? String(Number(product.marketPrice)) : ''}
+                        display={product.marketPrice ? `R ${Number(product.marketPrice).toFixed(2)}` : '—'}
+                        onSave={v => quickSave(product, { marketPrice: parseFloat(v) || 0 })} />
+                    </td>
+                    <td>
+                      <DietChips value={{ halal: !!product.halal, kosher: !!product.kosher, vegan: !!product.vegan }}
+                        onToggle={d => quickSave(product, { [d]: !product[d] })} />
+                    </td>
                     <td>
                       <StockSwitch
+                        compact
                         inStock={product.inStock !== false}
                         busy={stockBusy === product.id}
                         onToggle={() => toggleStock(product.id, product.inStock === false)}

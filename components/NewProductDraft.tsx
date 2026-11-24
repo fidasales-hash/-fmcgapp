@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Product } from '@/lib/types';
 import { compressImage } from '@/components/CameraSlot';
 import DropZone from '@/components/PhotoDropZone';
+import DietChips from '@/components/DietChips';
 
 // Adding a product from the admin Products page: a yellow row at the top of
 // the table plus an "Add photos" panel beside it (same layout as Edit photos).
@@ -24,6 +25,9 @@ export interface Draft {
   price: string;
   marketPrice: string;
   bestBefore: string;
+  halal: boolean;
+  kosher: boolean;
+  vegan: boolean;
   webImgs: string[];
   slots: Slot[];                  // [main, photo 2, date label]
   found: '' | 'found' | 'notfound';
@@ -37,7 +41,7 @@ export interface Draft {
 
 function emptyDraft(barcode = ''): Draft {
   return {
-    barcode, name: '', size: '', category: 'Other', price: '', marketPrice: '', bestBefore: '',
+    barcode, name: '', size: '', category: 'Other', price: '', marketPrice: '', bestBefore: '', halal: false, kosher: false, vegan: false,
     webImgs: [], slots: [EMPTY_SLOT, EMPTY_SLOT, EMPTY_SLOT],
     found: '', lookingUp: !!barcode, reading: false, saving: false, error: '', missing: [], panelOpen: true,
   };
@@ -189,6 +193,9 @@ export function useNewProduct(onAdded: (p: Product) => void, onDuplicate: (id: s
       fd.append('bestBefore', d.bestBefore);
       fd.append('barcode', d.barcode);
       fd.append('notes', '');
+      fd.append('halal', d.halal ? 'true' : 'false');
+      fd.append('kosher', d.kosher ? 'true' : 'false');
+      fd.append('vegan', d.vegan ? 'true' : 'false');
       const res = await fetch('/api/products', { method: 'POST', body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { patch({ saving: false, error: data.error ?? `Couldn't add it (${res.status}).` }); return false; }
@@ -266,11 +273,14 @@ export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) 
         </td>
         <td><input autoFocus={!!d.barcode} type="number" min="0" step="0.01" className={`inl-input${bad('price')}`} placeholder="0.00"
           value={d.price} onChange={e => api.patch({ price: e.target.value, missing: d.missing.filter(m => m !== 'price') })} onKeyDown={onKey} /></td>
+        <td><input type="number" min="0" step="0.01" className="inl-input" placeholder="optional"
+          value={d.marketPrice} onChange={e => api.patch({ marketPrice: e.target.value })} onKeyDown={onKey} /></td>
+        <td><DietChips value={{ halal: d.halal, kosher: d.kosher, vegan: d.vegan }} onToggle={k => api.patch({ [k]: !d[k] })} /></td>
         <td>
-          <div className="stock-switch-wrap">
-            <span className="stock-label stock-new">{d.saving ? 'Adding…' : 'Not added'}</span>
-            <button type="button" role="switch" aria-checked={false} aria-label="Not added — tap to add to the shop"
+          <div className="stock-switch-wrap compact">
+            <button type="button" role="switch" aria-checked={false} aria-label="Not added — tap to add to the shop" title="Add to the shop"
               className="stock-switch new" onClick={() => api.save()} disabled={d.saving} />
+            <span className="stock-label stock-new">{d.saving ? '…' : 'Add'}</span>
           </div>
         </td>
         <td className="row-menu-wrap">
@@ -284,7 +294,7 @@ export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) 
         </td>
       </tr>
       {d.error && (
-        <tr className="new-row new-row-msg"><td colSpan={8}>{d.error}</td></tr>
+        <tr className="new-row new-row-msg"><td colSpan={10}>{d.error}</td></tr>
       )}
     </>
   );
@@ -328,11 +338,6 @@ export function NewProductPanel({ api }: { api: Api }) {
         <DropZone preview={p3.src} label="Date label" onFile={f => api.setFile(2, f)} onClear={p3.src ? () => api.putSlot(2, { src: '', file: null }) : undefined} />
       </div>
       <p className="photo-panel-hint">Click a photo to choose a file, drag one in, or paste with Ctrl+V. A date label photo fills in Best before.</p>
-      <div className="np-more">
-        <label>Normal price (R)
-          <input type="number" min="0" step="0.01" value={d.marketPrice} placeholder="optional" onChange={e => api.patch({ marketPrice: e.target.value })} />
-        </label>
-      </div>
       <p className="photo-panel-hint">Saved together with the product when you flip its switch.</p>
     </aside>
   );

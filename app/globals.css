@@ -1166,3 +1166,14 @@ body {
 .prod-bar input, .prod-bar select { flex: 1; font: inherit; font-size: 0.9rem; padding: 0.6rem 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); }
 .prod-bar input:focus { outline: none; border-color: #1565C0; }
 .prod-bar input::placeholder { color: #9E9E9E; }
+
+/* ── Admin products: On/Off status, normal price, dietary ── */
+.stock-switch-wrap.compact { justify-content: flex-start; }
+.mkt-cell .inl-cell { color: var(--muted); text-decoration: line-through; }
+.mkt-cell .inl-cell:hover { text-decoration: none; }
+.diet-chips { display: flex; gap: 3px; }
+.diet-chip { font-size: 0.8rem; line-height: 1; border: 1px solid var(--border); background: #fff; color: #BDBDBD; border-radius: 10px; padding: 3px 6px; cursor: pointer; filter: grayscale(1); opacity: 0.6; }
+.diet-chip:hover { opacity: 1; }
+.diet-chip.on { filter: none; opacity: 1; }
+.diet-chip.halal.on, .diet-chip.vegan.on { background: #DCFCE7; border-color: #15803D; color: #15803D; }
+.diet-chip.kosher.on { background: #DBEAFE; border-color: #1D4ED8; color: #1D4ED8; }
