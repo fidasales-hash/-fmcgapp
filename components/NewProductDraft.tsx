@@ -216,7 +216,7 @@ export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) 
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </td>
-        <td><input autoFocus={!!d.barcode} type="number" min="0" step="0.01" className={`inl-input num${bad('price')}`} placeholder="0.00"
+        <td><input autoFocus={!!d.barcode} type="number" min="0" step="0.01" className={`inl-input${bad('price')}`} placeholder="0.00"
           value={d.price} onChange={e => api.patch({ price: e.target.value, missing: d.missing.filter(m => m !== 'price') })} onKeyDown={onKey} /></td>
         <td className="muted" style={{ fontSize: '0.8rem' }}>New</td>
         <td><button type="button" className="new-row-add" onClick={api.save} disabled={d.saving}>{d.saving ? '…' : 'Add'}</button></td>

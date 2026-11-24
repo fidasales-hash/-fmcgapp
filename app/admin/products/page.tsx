@@ -497,7 +497,7 @@ export default function AdminPage() {
                 {sortTh('bb', 'Best before')}
                 <th>Size</th>
                 {sortTh('category', 'Category')}
-                {sortTh('price', 'Price', 'num')}
+                {sortTh('price', 'Price')}
                 {sortTh('stock', 'Stock')}
                 <th><span className="sr-only">More</span></th>
               </tr>
@@ -604,8 +604,8 @@ export default function AdminPage() {
                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </td>
-                    <td className="num">
-                      <EditableCell type="number" align="right" value={String(Number(product.price ?? 0))} display={`R ${Number(product.price ?? 0).toFixed(2)}`}
+                    <td>
+                      <EditableCell type="number" value={String(Number(product.price ?? 0))} display={`R ${Number(product.price ?? 0).toFixed(2)}`}
                         onSave={v => quickSave(product, { price: parseFloat(v) || 0 })} />
                     </td>
                     <td>
