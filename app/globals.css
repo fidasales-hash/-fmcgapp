@@ -1135,3 +1135,20 @@ body {
 .sort-btn:hover { color: var(--text); }
 .prod-table th.sort-on, .prod-table th.sort-on .sort-btn span { color: var(--primary); }
 .prod-table th.num .sort-btn { flex-direction: row; }
+
+/* ── Admin products: barcode box, new row, full width ── */
+.dash.dash-wide, .dash.dash-wide:has(.prod-split.with-panel) { max-width: 1800px; padding-left: 24px; padding-right: 24px; }
+.scan-add { border-color: var(--border); }
+.scan-add:focus-within { border-color: #1565C0; }
+.scan-add input { width: 170px; }
+.scan-add input::placeholder { color: #BDBDBD; }
+.in-shop-msg { align-self: flex-end; margin: -1rem 0 0; background: var(--green-bg); color: var(--green); font-weight: 600; font-size: 0.85rem; border-radius: 8px; padding: 0.4rem 0.75rem; }
+.new-row-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.new-row-tag { font-size: 0.7rem; font-weight: 700; }
+.new-row-tag.ok { color: var(--green); }
+.new-row-tag.no { color: var(--red); }
+.new-row .inl-input::placeholder { color: #BDBDBD; }
+.stock-label.stock-new { color: var(--muted); }
+.stock-switch.new { background: #BDBDBD; }
+.stock-switch.new::after { left: 3px; }
+.np-main-bad { outline: 2px solid var(--red); outline-offset: 2px; border-radius: 8px; }

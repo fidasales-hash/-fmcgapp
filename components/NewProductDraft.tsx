@@ -2,12 +2,19 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Product } from '@/lib/types';
 import { compressImage } from '@/components/CameraSlot';
+import DropZone from '@/components/PhotoDropZone';
 
-// "Scan to add" on the admin Products page: a yellow row at the top of the
-// table plus a photo panel beside it. Uses the same routes as the Add product
-// form (/api/barcode, /api/analyze, /api/analyze-date, POST /api/products).
+// Adding a product from the admin Products page: a yellow row at the top of
+// the table plus an "Add photos" panel beside it (same layout as Edit photos).
+// Uses the same routes as the Add product form (/api/barcode, /api/analyze,
+// /api/analyze-date, POST /api/products). Nothing is saved until the row's
+// switch is flipped (or Enter is pressed).
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
+
+// A photo slot holds either a web image URL or a file the user added.
+interface Slot { src: string; file: File | null }
+const EMPTY_SLOT: Slot = { src: '', file: null };
 
 export interface Draft {
   barcode: string;
@@ -18,28 +25,28 @@ export interface Draft {
   marketPrice: string;
   bestBefore: string;
   webImgs: string[];
-  picked: string[];               // web images, in slot order (max 3)
-  files: (File | null)[];         // own photos: [front, back, date label]
-  previews: string[];
+  slots: Slot[];                  // [main, photo 2, date label]
   found: '' | 'found' | 'notfound';
   lookingUp: boolean;
   reading: boolean;
   saving: boolean;
   error: string;
   missing: string[];              // fields to mark red
+  panelOpen: boolean;
 }
 
 function emptyDraft(barcode = ''): Draft {
   return {
     barcode, name: '', size: '', category: 'Other', price: '', marketPrice: '', bestBefore: '',
-    webImgs: [], picked: [], files: [null, null, null], previews: ['', '', ''],
-    found: '', lookingUp: !!barcode, reading: false, saving: false, error: '', missing: [],
+    webImgs: [], slots: [EMPTY_SLOT, EMPTY_SLOT, EMPTY_SLOT],
+    found: '', lookingUp: !!barcode, reading: false, saving: false, error: '', missing: [], panelOpen: true,
   };
 }
 
 const aiOn = () => { try { return localStorage.getItem('claudeApiEnabled') !== 'false'; } catch { return true; } };
+const revoke = (s: Slot) => { if (s.src.startsWith('blob:')) URL.revokeObjectURL(s.src); };
 
-export function useNewProduct(onAdded: (p: Product) => void, onDuplicate: (id: string) => void) {
+export function useNewProduct(onAdded: (p: Product) => void, onDuplicate: (id: string, name: string) => void) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const draftRef = useRef<Draft | null>(null);
   draftRef.current = draft;
@@ -48,11 +55,12 @@ export function useNewProduct(onAdded: (p: Product) => void, onDuplicate: (id: s
   async function startFromBarcode(code: string) {
     code = code.trim();
     if (!code) return;
+    draftRef.current?.slots.forEach(revoke);
     setDraft(emptyDraft(code));
     try {
       const res = await fetch('/api/barcode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ barcode: code }) });
       const data = res.ok ? await res.json() : {};
-      if (data.duplicate) { setDraft(null); onDuplicate(data.duplicate.id); return; }
+      if (data.duplicate) { setDraft(null); onDuplicate(data.duplicate.id, data.duplicate.name); return; }
       const s = data.sources ?? {};
       const imgs: string[] = Array.from(new Set([...(s.off?.images ?? []), ...(s.upc?.images ?? []), ...(s.serper?.images ?? [])]));
       setDraft(d => d && d.barcode === code ? {
@@ -67,11 +75,8 @@ export function useNewProduct(onAdded: (p: Product) => void, onDuplicate: (id: s
     }
   }
 
-  function startEmpty() { setDraft(emptyDraft()); }
-  function cancel() {
-    draftRef.current?.previews.forEach(u => u.startsWith('blob:') && URL.revokeObjectURL(u));
-    setDraft(null);
-  }
+  function startEmpty() { draftRef.current?.slots.forEach(revoke); setDraft(emptyDraft()); }
+  function cancel() { draftRef.current?.slots.forEach(revoke); setDraft(null); }
 
   // Fill name/size/category from a photo when they're still empty.
   async function readPhoto(body: FormData | string) {
@@ -95,63 +100,86 @@ export function useNewProduct(onAdded: (p: Product) => void, onDuplicate: (id: s
     patch({ reading: false });
   }
 
-  function togglePick(url: string) {
+  function putSlot(i: number, slot: Slot) {
     const d = draftRef.current;
     if (!d) return;
-    const has = d.picked.includes(url);
-    const picked = has ? d.picked.filter(u => u !== url) : d.picked.length < 3 ? [...d.picked, url] : d.picked;
-    patch({ picked, missing: d.missing.filter(m => m !== 'photo') });
-    if (!has && picked[0] === url && !d.name) readPhoto(url);
+    revoke(d.slots[i]);
+    const slots = [...d.slots]; slots[i] = slot;
+    patch({ slots, missing: i === 0 ? d.missing.filter(m => m !== 'photo') : d.missing });
   }
 
-  async function setFile(slot: 0 | 1 | 2, file: File) {
+  // Tap a web photo: into the main slot if empty, else the next empty slot.
+  // Tap a used one again to take it out.
+  function toggleWeb(url: string) {
     const d = draftRef.current;
     if (!d) return;
-    if (d.previews[slot].startsWith('blob:')) URL.revokeObjectURL(d.previews[slot]);
-    const files = [...d.files]; files[slot] = file;
-    const previews = [...d.previews]; previews[slot] = URL.createObjectURL(file);
-    patch({ files, previews, missing: d.missing.filter(m => m !== 'photo') });
-    if (slot === 2) {
+    const at = d.slots.findIndex(s => s.src === url && !s.file);
+    if (at >= 0) { putSlot(at, EMPTY_SLOT); return; }
+    const free = d.slots.findIndex(s => !s.src);
+    if (free < 0) return;
+    putSlot(free, { src: url, file: null });
+    if (free === 0 && !d.name) readPhoto(url);
+  }
+
+  async function setFile(i: 0 | 1 | 2, file: File) {
+    putSlot(i, { src: URL.createObjectURL(file), file });
+    const fd = new FormData(); fd.append('photo', file);
+    if (i === 2) {
       try {
-        const fd = new FormData(); fd.append('photo', file);
         const res = await fetch('/api/analyze-date', { method: 'POST', body: fd });
         const data = res.ok ? await res.json() : null;
         if (data?.bestBefore) setDraft(x => x && { ...x, bestBefore: x.bestBefore || data.bestBefore });
       } catch { /* type it */ }
     } else {
-      const fd = new FormData(); fd.append('photo', file);
       readPhoto(fd);
     }
   }
 
-  function clearFile(slot: 0 | 1 | 2) {
-    const d = draftRef.current;
-    if (!d) return;
-    if (d.previews[slot].startsWith('blob:')) URL.revokeObjectURL(d.previews[slot]);
-    const files = [...d.files]; files[slot] = null;
-    const previews = [...d.previews]; previews[slot] = '';
-    patch({ files, previews });
+  const [rotating, setRotating] = useState(false);
+  async function rotateMain() {
+    const src = draftRef.current?.slots[0].src;
+    if (!src) return;
+    setRotating(true);
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(); img.src = src; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalHeight; canvas.height = img.naturalWidth;
+      const ctx = canvas.getContext('2d')!;
+      ctx.translate(0, canvas.height); ctx.rotate(-Math.PI / 2); ctx.drawImage(img, 0, 0);
+      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+      if (!blob) throw new Error();
+      const file = new File([blob], 'rotated.jpg', { type: 'image/jpeg' });
+      putSlot(0, { src: URL.createObjectURL(file), file });
+    } catch {
+      alert("Couldn't rotate this photo. Save it, rotate it, and drop it back in.");
+    } finally {
+      setRotating(false);
+    }
   }
 
-  async function save() {
+  async function save(): Promise<boolean> {
     const d = draftRef.current;
-    if (!d || d.saving) return;
+    if (!d || d.saving) return false;
     const missing: string[] = [];
-    if (!d.picked[0] && !d.files[0]) missing.push('photo');
+    if (!d.slots[0].src) missing.push('photo');
     if (!d.name.trim()) missing.push('name');
     if (!d.size.trim()) missing.push('size');
     if (!(parseFloat(d.price) > 0)) missing.push('price');
     if (missing.length) {
-      patch({ missing, error: missing.includes('photo') ? 'Pick a web photo or add a front photo.' : 'Fill in the red boxes.' });
-      return;
+      patch({ missing, panelOpen: missing.includes('photo') ? true : d.panelOpen,
+        error: missing.includes('photo') ? 'Add a main photo (tap a web photo or drop one in).' : 'Fill in the red boxes.' });
+      return false;
     }
     patch({ saving: true, error: '', missing: [] });
     try {
       const fd = new FormData();
-      const slotKeys: [string, string][] = [['photo1Url', 'photo'], ['photo2Url', 'photo2'], ['photo3Url', 'photo3']];
+      const keys: [string, string][] = [['photo1Url', 'photo'], ['photo2Url', 'photo2'], ['photo3Url', 'photo3']];
       for (let i = 0; i < 3; i++) {
-        if (d.picked[i]) fd.append(slotKeys[i][0], d.picked[i]);
-        else if (d.files[i]) fd.append(slotKeys[i][1], await compressImage(d.files[i]!));
+        const s = d.slots[i];
+        if (s.file) fd.append(keys[i][1], await compressImage(s.file));
+        else if (s.src) fd.append(keys[i][0], s.src);
       }
       fd.append('name', d.name.trim());
       fd.append('size', d.size.trim());
@@ -163,15 +191,17 @@ export function useNewProduct(onAdded: (p: Product) => void, onDuplicate: (id: s
       fd.append('notes', '');
       const res = await fetch('/api/products', { method: 'POST', body: fd });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { patch({ saving: false, error: data.error ?? `Couldn't add it (${res.status}).` }); return; }
+      if (!res.ok) { patch({ saving: false, error: data.error ?? `Couldn't add it (${res.status}).` }); return false; }
       cancel();
       onAdded(data.product);
+      return true;
     } catch {
       patch({ saving: false, error: 'Network error. Try again.' });
+      return false;
     }
   }
 
-  // Ctrl+V while adding: first empty own-photo slot (front, then back).
+  // Ctrl+V while adding: first empty photo slot.
   useEffect(() => {
     if (!draft) return;
     function onPaste(e: ClipboardEvent) {
@@ -181,31 +211,47 @@ export function useNewProduct(onAdded: (p: Product) => void, onDuplicate: (id: s
       const d = draftRef.current;
       if (!file || !d) return;
       e.preventDefault();
-      setFile(!d.files[0] ? 0 : !d.files[1] ? 1 : 2, file);
+      const free = d.slots.findIndex(s => !s.src);
+      setFile((free < 0 ? 0 : free) as 0 | 1 | 2, file);
     }
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!draft]);
 
-  return { draft, patch, startFromBarcode, startEmpty, cancel, togglePick, setFile, clearFile, save };
+  return { draft, patch, startFromBarcode, startEmpty, cancel, toggleWeb, setFile, putSlot, rotateMain, rotating, save };
 }
 
 type Api = ReturnType<typeof useNewProduct>;
 
 export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) {
   const d = api.draft!;
+  const [menu, setMenu] = useState(false);
   const bad = (f: string) => d.missing.includes(f) ? ' inl-bad' : '';
   const onKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); api.save(); } if (e.key === 'Escape') api.cancel(); };
-  const thumb = d.picked[0] || d.previews[0];
+  const thumb = d.slots[0].src;
+  const namePh = d.lookingUp ? 'Looking up…' : d.found === 'notfound' ? 'Product not found: type the name' : 'Product name';
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest('.row-menu-wrap')) setMenu(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [menu]);
   return (
     <>
       <tr className="new-row">
         <td className="prod-name-cell">
           <div className="prod-name">
             {thumb ? <img src={thumb} alt="" /> : <span className={`dash-noimg${bad('photo')}`} aria-hidden="true" />}
-            <input autoFocus={!d.barcode} className={`inl-input${bad('name')}`} placeholder={d.lookingUp ? 'Looking up…' : 'Product name'}
-              value={d.name} onChange={e => api.patch({ name: e.target.value })} onKeyDown={onKey} />
+            <div className="new-row-name">
+              <input autoFocus={!d.barcode} className={`inl-input${bad('name')}`} placeholder={namePh}
+                value={d.name} onChange={e => api.patch({ name: e.target.value })} onKeyDown={onKey} />
+              {d.barcode && !d.lookingUp && (
+                <span className={`new-row-tag ${d.found === 'found' ? 'ok' : 'no'}`}>
+                  {d.found === 'found' ? '✓ Found online' : 'Not found online'} · {d.barcode}
+                </span>
+              )}
+            </div>
           </div>
         </td>
         <td><span className={`badge-small ${expired ? 'badge-expired' : 'badge-fresh'}`}>{expired ? 'Past BB' : 'In Date'}</span></td>
@@ -218,57 +264,49 @@ export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) 
         </td>
         <td><input autoFocus={!!d.barcode} type="number" min="0" step="0.01" className={`inl-input${bad('price')}`} placeholder="0.00"
           value={d.price} onChange={e => api.patch({ price: e.target.value, missing: d.missing.filter(m => m !== 'price') })} onKeyDown={onKey} /></td>
-        <td className="muted" style={{ fontSize: '0.8rem' }}>New</td>
-        <td><button type="button" className="new-row-add" onClick={api.save} disabled={d.saving}>{d.saving ? '…' : 'Add'}</button></td>
+        <td>
+          <div className="stock-switch-wrap">
+            <span className="stock-label stock-new">{d.saving ? 'Adding…' : 'Not added'}</span>
+            <button type="button" role="switch" aria-checked={false} aria-label="Not added — tap to add to the shop"
+              className="stock-switch new" onClick={() => api.save()} disabled={d.saving} />
+          </div>
+        </td>
+        <td className="row-menu-wrap">
+          <button type="button" className="row-menu-btn" aria-label="More actions" aria-expanded={menu} onClick={() => setMenu(m => !m)}>⋯</button>
+          {menu && (
+            <div className="row-menu" role="menu">
+              <button type="button" role="menuitem" onClick={() => { setMenu(false); api.patch({ panelOpen: true }); }}>📷 Add photos</button>
+              <button type="button" role="menuitem" className="danger" onClick={() => { setMenu(false); api.cancel(); }}>🗑 Remove</button>
+            </div>
+          )}
+        </td>
       </tr>
       {d.error && (
-        <tr className="new-row new-row-msg"><td colSpan={8}>{d.error} <button type="button" onClick={api.cancel}>Cancel</button></td></tr>
+        <tr className="new-row new-row-msg"><td colSpan={8}>{d.error}</td></tr>
       )}
     </>
   );
 }
 
-function PhotoTile({ label, preview, onFile, onClear }: { label: string; preview: string; onFile: (f: File) => void; onClear: () => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  const [over, setOver] = useState(false);
-  return (
-    <div className="np-tile-wrap">
-      <div className={`np-tile${preview ? ' has' : ''}${over ? ' over' : ''}`} role="button" tabIndex={0}
-        onClick={() => ref.current?.click()}
-        onKeyDown={e => { if (e.key === 'Enter') ref.current?.click(); }}
-        onDragOver={e => { e.preventDefault(); setOver(true); }}
-        onDragLeave={() => setOver(false)}
-        onDrop={e => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) onFile(f); }}>
-        {preview ? <img src={preview} alt="" /> : <span>{over ? 'Drop' : `+ ${label}`}</span>}
-      </div>
-      {preview ? <button type="button" className="np-x" onClick={onClear}>✕ remove</button> : <span className="np-lbl">{label}</span>}
-      <input ref={ref} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
-    </div>
-  );
-}
-
 export function NewProductPanel({ api }: { api: Api }) {
   const d = api.draft!;
+  const [main, p2, p3] = d.slots;
   return (
-    <aside className="photo-panel" aria-label="New product photos">
+    <aside className="photo-panel" aria-label="Add photos">
       <div className="photo-panel-head">
-        <b>New product · photos</b>
-        <button type="button" onClick={api.cancel} aria-label="Cancel new product">✕</button>
+        <b title={d.name}>Add photos{d.name ? ` · ${d.name}` : ''}</b>
+        <button type="button" onClick={() => api.patch({ panelOpen: false })} aria-label="Close photos">✕</button>
       </div>
-      {d.barcode && (
-        <p className="np-found">
-          {d.lookingUp ? `Looking up ${d.barcode}…` : d.found === 'found' ? `✓ Found online · ${d.barcode}` : `Not found online · ${d.barcode}. Add a front photo and the details are read from it.`}
-        </p>
-      )}
+      {d.lookingUp && <p className="np-found">Looking up {d.barcode}…</p>}
       {d.reading && <p className="np-found" style={{ color: 'var(--primary)' }}>Reading the photo…</p>}
       {d.webImgs.length > 0 && (
         <>
-          <p className="np-sec">Web photos (tap up to 3)</p>
+          <p className="np-sec">Found online (tap to use)</p>
           <div className="np-web">
             {d.webImgs.map(url => {
-              const i = d.picked.indexOf(url);
+              const i = d.slots.findIndex(s => s.src === url && !s.file);
               return (
-                <button type="button" key={url} className={`np-web-img${i >= 0 ? ' on' : ''}`} onClick={() => api.togglePick(url)}>
+                <button type="button" key={url} className={`np-web-img${i >= 0 ? ' on' : ''}`} onClick={() => api.toggleWeb(url)}>
                   <img src={url} alt="" onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }} />
                   {i >= 0 && <span>{i + 1}</span>}
                 </button>
@@ -277,18 +315,23 @@ export function NewProductPanel({ api }: { api: Api }) {
           </div>
         </>
       )}
-      <p className={`np-sec${d.missing.includes('photo') ? ' np-bad' : ''}`}>{d.webImgs.length ? 'Or your own' : 'Your photos'}</p>
-      <div className="np-own">
-        {(['Front', 'Back', 'Date label'] as const).map((label, i) => (
-          <PhotoTile key={label} label={label} preview={d.previews[i]} onFile={f => api.setFile(i as 0 | 1 | 2, f)} onClear={() => api.clearFile(i as 0 | 1 | 2)} />
-        ))}
+      <div className={d.missing.includes('photo') ? 'np-main-bad' : undefined}>
+        <DropZone preview={main.src} label="Main photo" onFile={f => api.setFile(0, f)} />
       </div>
-      <p className="photo-panel-hint">Click a tile to browse, drag a photo in, or paste with Ctrl+V.</p>
+      <button type="button" className="photo-panel-btn" onClick={api.rotateMain} disabled={!main.src || api.rotating}>
+        {api.rotating ? '…' : '↺ Rotate main photo'}
+      </button>
+      <div className="photo-panel-row">
+        <DropZone preview={p2.src} label="Photo 2" onFile={f => api.setFile(1, f)} onClear={p2.src ? () => api.putSlot(1, { src: '', file: null }) : undefined} />
+        <DropZone preview={p3.src} label="Date label" onFile={f => api.setFile(2, f)} onClear={p3.src ? () => api.putSlot(2, { src: '', file: null }) : undefined} />
+      </div>
+      <p className="photo-panel-hint">Click a photo to choose a file, drag one in, or paste with Ctrl+V. A date label photo fills in Best before.</p>
       <div className="np-more">
         <label>Normal price (R)
           <input type="number" min="0" step="0.01" value={d.marketPrice} placeholder="optional" onChange={e => api.patch({ marketPrice: e.target.value })} />
         </label>
       </div>
+      <p className="photo-panel-hint">Saved together with the product when you flip its switch.</p>
     </aside>
   );
 }
