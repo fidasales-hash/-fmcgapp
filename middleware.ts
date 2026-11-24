@@ -36,10 +36,6 @@ export function middleware(req: NextRequest) {
   // token auth inside the handler — never via ADMIN_SECRET.
   if (pathname.startsWith('/api/seller/')) return NextResponse.next();
 
-  // ChatGPT custom GPT listing endpoint: authenticates itself with a Bearer
-  // GPT_API_KEY inside the handler. Exact match only.
-  if (pathname === '/api/gpt/products') return NextResponse.next();
-
   // Shared by the staff AND seller upload forms (AI label reading, AI
   // best-before reading, barcode lookup, web image search). Neither admin
   // auth nor seller-token auth alone is right here — both must be accepted,
