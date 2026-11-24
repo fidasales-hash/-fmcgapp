@@ -946,3 +946,34 @@ body {
 .prod-actions button { display: inline-block; width: auto; margin-left: 0.4rem; }
 .prod-editing td { white-space: normal; background: #FFFDF5; padding: 0.85rem; }
 .prod-edit { display: flex; gap: 0.85rem; align-items: flex-start; max-width: 640px; }
+/* ── Sold out / Not available ─────────────────────────── */
+.card.sold-out .photo-wrap img { filter: grayscale(1) opacity(0.55); }
+.card.sold-out .price { color: var(--muted); text-decoration: line-through; }
+.sold-out-ribbon {
+  position: absolute; left: -10%; right: -10%; top: 50%;
+  transform: translateY(-50%) rotate(-8deg);
+  background: #CC2020; color: #fff; text-align: center;
+  font-size: 0.85rem; font-weight: 800; letter-spacing: 1px;
+  padding: 0.4rem 0; pointer-events: none; z-index: 1;
+}
+.btn-add-cart.btn-sold-out,
+.btn-add-cart.btn-sold-out:hover { background: #ddd; color: #777; cursor: not-allowed; }
+
+.stock-switch-wrap { display: flex; align-items: center; gap: 0.4rem; justify-content: flex-end; }
+.stock-label { font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+.stock-in { color: var(--green); }
+.stock-out { color: #CC2020; }
+.stock-switch {
+  position: relative; width: 42px; height: 24px; flex-shrink: 0;
+  border: none; border-radius: 12px; padding: 0; cursor: pointer;
+  background: var(--green); transition: background 0.15s;
+}
+.stock-switch::after {
+  content: ''; position: absolute; top: 3px; left: 21px;
+  width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  transition: left 0.15s;
+}
+.stock-switch.off { background: #CC2020; }
+.stock-switch.off::after { left: 3px; }
+.stock-switch:disabled { opacity: 0.6; cursor: wait; }
+.stock-switch:focus-visible { outline: 2px solid #222; outline-offset: 2px; }

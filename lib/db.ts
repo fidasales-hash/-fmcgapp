@@ -38,6 +38,7 @@ async function ensureTable() {
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS vegan BOOLEAN DEFAULT false`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS order_count INTEGER DEFAULT 0`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS seller_id TEXT DEFAULT ''`;
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS in_stock BOOLEAN DEFAULT true`;
   await db`CREATE INDEX IF NOT EXISTS idx_products_seller_id ON products(seller_id)`;
   await db`
     CREATE TABLE IF NOT EXISTS sellers (
@@ -78,6 +79,7 @@ function mapProductRow(r: any): Product {
     vegan: Boolean(r.vegan),
     addedAt: String(r.added_at),
     orderCount: Number(r.order_count ?? 0),
+    inStock: r.in_stock !== false,
     sellerId: String(r.seller_id ?? ''),
     sellerName: String(r.seller_name ?? ''),
   };
@@ -206,6 +208,20 @@ export async function updateProduct(id: string, u: Partial<Product>, sellerId?: 
     `;
     return rows.length > 0;
   }
+}
+
+// Stock-only toggle — kept separate from updateProduct, which overwrites every field.
+// sellerId scopes to that seller's own rows (same COALESCE trick as updateProduct).
+export async function setProductStock(id: string, inStock: boolean, sellerId?: string): Promise<boolean> {
+  await ensureTable();
+  const db = getDb();
+  const scope = sellerId ?? null;
+  const rows = await db`
+    UPDATE products SET in_stock = ${inStock}
+    WHERE id = ${id} AND seller_id = COALESCE(${scope}, seller_id)
+    RETURNING id
+  `;
+  return rows.length > 0;
 }
 
 export async function getProductByBarcode(barcode: string): Promise<{ id: string; name: string } | null> {

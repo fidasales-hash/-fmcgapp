@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import type { Product } from '@/lib/types';
 import { compressImage } from '@/components/CameraSlot';
 import ProductUploadForm from '@/components/ProductUploadForm';
+import StockSwitch from '@/components/StockSwitch';
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
 
@@ -26,6 +27,25 @@ export default function SellerDashboardClient({ token }: { token: string }) {
   const [editPhoto, setEditPhoto] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [stockBusy, setStockBusy] = useState<string | null>(null);
+
+  async function toggleStock(id: string, inStock: boolean) {
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, inStock } : p));
+    setStockBusy(id);
+    try {
+      const res = await fetch(`/api/seller/products/${id}/stock`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-seller-token': token },
+        body: JSON.stringify({ inStock }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, inStock: !inStock } : p));
+      alert("Couldn't update stock. Try again.");
+    } finally {
+      setStockBusy(null);
+    }
+  }
 
   useEffect(() => {
     fetch('/api/seller/products', { headers: { 'x-seller-token': token } })
@@ -147,6 +167,11 @@ export default function SellerDashboardClient({ token }: { token: string }) {
             )}
             {editingId !== p.id && (
               <div className="admin-actions">
+                <StockSwitch
+                  inStock={p.inStock !== false}
+                  busy={stockBusy === p.id}
+                  onToggle={() => toggleStock(p.id, p.inStock === false)}
+                />
                 <button onClick={() => startEdit(p)} className="btn-edit">Edit</button>
                 <button onClick={() => removeProduct(p.id)} disabled={deletingId === p.id} className="btn-delete">
                   {deletingId === p.id ? '…' : 'Remove'}

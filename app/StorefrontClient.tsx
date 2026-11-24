@@ -122,6 +122,7 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   const didSwipe = useRef(false);
 
   const expired = isExpired(product.bestBefore);
+  const soldOut = product.inStock === false;
   const photos = [product.photoUrl, product.photoUrl2, product.photoUrl3].filter(Boolean) as string[];
   const activeUrl = photos[photoIndex] ?? product.photoUrl;
 
@@ -146,7 +147,7 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   }
 
   return (
-    <div className={`card ${expired ? 'expired' : 'fresh'}`}>
+    <div className={`card ${expired ? 'expired' : 'fresh'}${soldOut ? ' sold-out' : ''}`}>
       <div
         className="photo-wrap"
         style={{ cursor: 'pointer' }}
@@ -156,6 +157,7 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={activeUrl} alt={product.name} loading="lazy" />
+        {soldOut && <div className="sold-out-ribbon">NOT AVAILABLE</div>}
         <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>
           {expired ? 'Past Best Before' : 'In Date'}
         </span>
@@ -204,7 +206,9 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
         )}
         <p className="best-before">Best Before: {formatBB(product.bestBefore)}</p>
         {product.notes && <p className="notes">{product.notes}</p>}
-        {cartQty === 0 ? (
+        {soldOut ? (
+          <button className="btn-add-cart btn-sold-out" disabled>Not available</button>
+        ) : cartQty === 0 ? (
           <button className="btn-add-cart" onClick={() => onAddToCart(product)}>+ Add to Order</button>
         ) : (
           <div className="card-stepper">
@@ -440,7 +444,16 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
     return () => window.removeEventListener('focus', fetchProducts);
   }, [fetchProducts]);
 
+  // Drop anything from a saved cart that has since been marked sold out.
+  useEffect(() => {
+    if (!products.length) return;
+    const soldOut = new Set(products.filter(p => p.inStock === false).map(p => p.id));
+    if (!soldOut.size) return;
+    setCart(prev => prev.some(i => soldOut.has(i.product.id)) ? prev.filter(i => !soldOut.has(i.product.id)) : prev);
+  }, [products]);
+
   function addToCart(product: Product) {
+    if (product.inStock === false) return;
     const isFirstAdd = !cart.find(i => i.product.id === product.id);
     if (isFirstAdd) {
       fetch('/api/popular', {
@@ -480,6 +493,10 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
       );
     })
     .sort((a, b) => {
+      // Sold-out items always sit at the end, whatever the chosen sort.
+      const aOut = a.inStock === false ? 1 : 0;
+      const bOut = b.inStock === false ? 1 : 0;
+      if (aOut !== bOut) return aOut - bOut;
       if (sort === 'popular') return b.orderCount - a.orderCount;
       if (sort === 'price-asc' || sort === 'under-100') return a.price - b.price;
       if (sort === 'price-desc') return b.price - a.price;

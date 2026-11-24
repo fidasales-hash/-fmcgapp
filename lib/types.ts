@@ -16,6 +16,7 @@ export interface Product {
   vegan: boolean;
   addedAt: string; // ISO
   orderCount: number;
+  inStock: boolean;   // false = sold out, shown as "Not available"
   sellerId: string;   // '' = shop's own stock
   sellerName: string; // '' = shop's own stock
 }

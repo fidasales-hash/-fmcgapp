@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import type { Product } from '@/lib/types';
+import StockSwitch from '@/components/StockSwitch';
 import { isExpired, exportCSV } from '@/lib/productUtils';
 
 const CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
@@ -93,6 +94,7 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [stockBusy, setStockBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({ name: '', size: '', bestBefore: '', category: 'Other', notes: '', price: '', marketPrice: '', barcode: '', kosher: false, halal: false, vegan: false });
   const [editPhotos, setEditPhotos] = useState<EditPhotos>(EMPTY_PHOTOS);
@@ -208,6 +210,24 @@ export default function AdminPage() {
     setSaving(false);
   }
 
+  async function toggleStock(id: string, inStock: boolean) {
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, inStock } : p));
+    setStockBusy(id);
+    try {
+      const res = await fetch(`/api/products/${id}/stock`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inStock }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, inStock: !inStock } : p));
+      alert("Couldn't update stock. Try again.");
+    } finally {
+      setStockBusy(null);
+    }
+  }
+
   async function removeProduct(id: string) {
     if (!confirm('Remove this product from the store?')) return;
     setDeleting(id);
@@ -285,6 +305,7 @@ export default function AdminPage() {
                 <th>Size</th>
                 <th>Category</th>
                 <th className="num">Price</th>
+                <th>Stock</th>
                 <th className="num">Actions</th>
               </tr>
             </thead>
@@ -294,7 +315,7 @@ export default function AdminPage() {
                 if (editing === product.id) {
                   return (
                     <tr key={product.id} className="prod-editing">
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <div className="prod-edit">
                           <img src={product.photoUrl} alt={product.name} className="admin-thumb" />
                           <div className="edit-form">
@@ -378,6 +399,13 @@ export default function AdminPage() {
                     <td className="muted">{product.size || '—'}</td>
                     <td className="muted">{product.category}</td>
                     <td className="num"><strong>R {Number(product.price ?? 0).toFixed(2)}</strong></td>
+                    <td>
+                      <StockSwitch
+                        inStock={product.inStock !== false}
+                        busy={stockBusy === product.id}
+                        onToggle={() => toggleStock(product.id, product.inStock === false)}
+                      />
+                    </td>
                     <td className="num prod-actions">
                       <button onClick={() => startEdit(product)} className="btn-edit">Edit</button>
                       <button onClick={() => removeProduct(product.id)} disabled={deleting === product.id} className="btn-delete">

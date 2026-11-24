@@ -112,6 +112,7 @@ export async function buildProductFromFormData(formData: FormData, sellerId: str
     barcode, kosher, halal, vegan,
     addedAt: new Date().toISOString(),
     orderCount: 0,
+    inStock: true, // new products start in stock (DB column defaults to true)
     sellerId,
     sellerName: '',
   };
