@@ -1128,3 +1128,10 @@ body {
 .np-x { background: none; border: 0; cursor: pointer; padding: 0; }
 .np-more label { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.8rem; color: var(--muted); font-weight: 600; }
 .np-more input { width: 110px; font: inherit; padding: 0.3rem 0.5rem; border: 1.5px solid var(--border); border-radius: 6px; text-align: right; }
+
+/* ── Admin products: sortable headings ─────────── */
+.sort-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem; }
+.sort-btn span { color: #BDBDBD; font-size: 0.8em; }
+.sort-btn:hover { color: var(--text); }
+.prod-table th.sort-on, .prod-table th.sort-on .sort-btn span { color: var(--primary); }
+.prod-table th.num .sort-btn { flex-direction: row; }

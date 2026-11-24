@@ -13,6 +13,8 @@ type EditPhotos = { file1: File | null; preview1: string; file2: File | null; pr
 
 const CLAUDE_KEY = 'claudeApiEnabled';
 
+type SortKey = 'name' | 'status' | 'bb' | 'category' | 'price' | 'stock';
+
 
 function DropZone({ preview, label, onFile, onClear }: { preview: string; label: string; onFile: (f: File) => void; onClear?: () => void }) {
   const [dragging, setDragging] = useState(false);
@@ -108,6 +110,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'in' | 'past'>('all');
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' } | null>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const bbValue = useRef('');
 
@@ -383,6 +386,41 @@ export default function AdminPage() {
     return true;
   });
 
+  // Column sorting. null = default order (newest first, as loaded).
+  // Products without a best-before date always go last.
+  if (sort) {
+    const val = (p: Product): string | number => {
+      switch (sort.key) {
+        case 'name': return p.name.toLowerCase();
+        case 'status': return isExpired(p.bestBefore) ? 1 : 0;
+        case 'bb': return p.bestBefore || '';
+        case 'category': return p.category.toLowerCase();
+        case 'price': return Number(p.price) || 0;
+        case 'stock': return p.inStock === false ? 1 : 0;
+      }
+    };
+    filtered.sort((a, b) => {
+      if (sort.key === 'bb' && !a.bestBefore !== !b.bestBefore) return a.bestBefore ? -1 : 1;
+      const x = val(a), y = val(b);
+      const c = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y));
+      return sort.dir === 'asc' ? c : -c;
+    });
+  }
+
+  function sortBy(key: SortKey) {
+    setSort(s => s?.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'price' ? 'desc' : 'asc' });
+  }
+  function sortTh(k: SortKey, label: string, className?: string) {
+    const on = sort?.key === k;
+    return (
+      <th className={`${className ?? ''}${on ? ' sort-on' : ''}`} aria-sort={on ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+        <button type="button" className="sort-btn" onClick={() => sortBy(k)}>
+          {label}<span aria-hidden="true">{on ? (sort!.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+        </button>
+      </th>
+    );
+  }
+
   function formatBB(bb: string) {
     const d = new Date((bb ?? '') + 'T00:00:00');
     return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
@@ -454,13 +492,13 @@ export default function AdminPage() {
             </colgroup>
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Status</th>
-                <th>Best before</th>
+                {sortTh('name', 'Product')}
+                {sortTh('status', 'Status')}
+                {sortTh('bb', 'Best before')}
                 <th>Size</th>
-                <th>Category</th>
-                <th className="num">Price</th>
-                <th>Stock</th>
+                {sortTh('category', 'Category')}
+                {sortTh('price', 'Price', 'num')}
+                {sortTh('stock', 'Stock')}
                 <th><span className="sr-only">More</span></th>
               </tr>
             </thead>
