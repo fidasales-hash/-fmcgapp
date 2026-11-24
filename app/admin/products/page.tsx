@@ -11,6 +11,49 @@ type EditPhotos = { file1: File | null; preview1: string; file2: File | null; pr
 
 const CLAUDE_KEY = 'claudeApiEnabled';
 
+// A table cell that turns into an input when clicked. Enter or clicking away
+// saves; Esc cancels. onSave resolves false when the save failed.
+function EditableCell({ value, display, type = 'text', align, onSave }: {
+  value: string; display: string; type?: 'text' | 'number' | 'date'; align?: 'right';
+  onSave: (v: string) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [flash, setFlash] = useState<'' | 'ok' | 'err'>('');
+  const doneRef = useRef(false);
+
+  function open() { setDraft(value); doneRef.current = false; setEditing(true); }
+  async function finish(save: boolean) {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    setEditing(false);
+    if (!save || draft.trim() === value) return;
+    const ok = await onSave(draft.trim());
+    setFlash(ok ? 'ok' : 'err');
+    setTimeout(() => setFlash(''), 1200);
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        className={`inl-input${align === 'right' ? ' num' : ''}`}
+        type={type} step={type === 'number' ? '0.01' : undefined} min={type === 'number' ? '0' : undefined}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onFocus={e => { if (type !== 'date') e.currentTarget.select(); }}
+        onKeyDown={e => { if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); }}
+        onBlur={() => finish(true)}
+      />
+    );
+  }
+  return (
+    <button type="button" className={`inl-cell${align === 'right' ? ' num' : ''}${flash ? ` inl-${flash}` : ''}`} onClick={open} title={display}>
+      {display}
+    </button>
+  );
+}
+
 function DropZone({ preview, label, onFile, onClear }: { preview: string; label: string; onFile: (f: File) => void; onClear?: () => void }) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -228,6 +271,42 @@ export default function AdminPage() {
     }
   }
 
+  // Saves one changed field from the table row. The PATCH route overwrites every
+  // field, so the whole product goes along with the change applied.
+  async function quickSave(p: Product, changes: Partial<Product>): Promise<boolean> {
+    const next = { ...p, ...changes };
+    setProducts(prev => prev.map(x => x.id === p.id ? next : x));
+    try {
+      const fd = new FormData();
+      fd.append('name', next.name);
+      fd.append('size', next.size ?? '');
+      fd.append('bestBefore', next.bestBefore ?? '');
+      fd.append('category', next.category);
+      fd.append('notes', next.notes ?? '');
+      fd.append('price', String(Number(next.price) || 0));
+      fd.append('marketPrice', String(Number(next.marketPrice) || 0));
+      fd.append('barcode', next.barcode ?? '');
+      fd.append('kosher', next.kosher ? 'true' : 'false');
+      fd.append('halal', next.halal ? 'true' : 'false');
+      fd.append('vegan', next.vegan ? 'true' : 'false');
+      const res = await fetch(`/api/products/${p.id}`, { method: 'PATCH', body: fd });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error);
+      return true;
+    } catch (e) {
+      setProducts(prev => prev.map(x => x.id === p.id ? p : x));
+      alert(`Couldn't save. ${e instanceof Error && e.message ? e.message : 'Try again.'}`);
+      return false;
+    }
+  }
+
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest('.row-menu-wrap')) setMenuOpen(null); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [menuOpen]);
+
   async function removeProduct(id: string) {
     if (!confirm('Remove this product from the store?')) return;
     setDeleting(id);
@@ -297,6 +376,16 @@ export default function AdminPage() {
       {filtered.length > 0 && (
         <section className="prod-table-wrap" aria-label="Product list">
           <table className="prod-table">
+            <colgroup>
+              <col />
+              <col style={{ width: 84 }} />
+              <col style={{ width: 128 }} />
+              <col style={{ width: 96 }} />
+              <col style={{ width: 186 }} />
+              <col style={{ width: 104 }} />
+              <col style={{ width: 128 }} />
+              <col style={{ width: 52 }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Product</th>
@@ -306,7 +395,7 @@ export default function AdminPage() {
                 <th>Category</th>
                 <th className="num">Price</th>
                 <th>Stock</th>
-                <th className="num">Actions</th>
+                <th><span className="sr-only">More</span></th>
               </tr>
             </thead>
             <tbody>
@@ -387,7 +476,8 @@ export default function AdminPage() {
                         {product.photoUrl
                           ? <img src={product.photoUrl} alt="" />
                           : <span className="dash-noimg" aria-hidden="true" />}
-                        <span title={product.name}>{product.name}</span>
+                        <EditableCell value={product.name} display={product.name}
+                          onSave={v => v ? quickSave(product, { name: v }) : Promise.resolve(false)} />
                       </div>
                     </td>
                     <td>
@@ -395,10 +485,24 @@ export default function AdminPage() {
                         {expired ? 'Past BB' : 'In Date'}
                       </span>
                     </td>
-                    <td className="muted">{formatBB(product.bestBefore)}</td>
-                    <td className="muted">{product.size || '—'}</td>
-                    <td className="muted">{product.category}</td>
-                    <td className="num"><strong>R {Number(product.price ?? 0).toFixed(2)}</strong></td>
+                    <td className="muted">
+                      <EditableCell type="date" value={product.bestBefore ?? ''} display={formatBB(product.bestBefore)}
+                        onSave={v => quickSave(product, { bestBefore: v })} />
+                    </td>
+                    <td className="muted">
+                      <EditableCell value={product.size ?? ''} display={product.size || '—'}
+                        onSave={v => quickSave(product, { size: v })} />
+                    </td>
+                    <td>
+                      <select className="inl-select" value={product.category} aria-label="Category"
+                        onChange={e => quickSave(product, { category: e.target.value })}>
+                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </td>
+                    <td className="num">
+                      <EditableCell type="number" align="right" value={String(Number(product.price ?? 0))} display={`R ${Number(product.price ?? 0).toFixed(2)}`}
+                        onSave={v => quickSave(product, { price: parseFloat(v) || 0 })} />
+                    </td>
                     <td>
                       <StockSwitch
                         inStock={product.inStock !== false}
@@ -406,11 +510,17 @@ export default function AdminPage() {
                         onToggle={() => toggleStock(product.id, product.inStock === false)}
                       />
                     </td>
-                    <td className="num prod-actions">
-                      <button onClick={() => startEdit(product)} className="btn-edit">Edit</button>
-                      <button onClick={() => removeProduct(product.id)} disabled={deleting === product.id} className="btn-delete">
-                        {deleting === product.id ? '…' : 'Remove'}
+                    <td className="row-menu-wrap">
+                      <button type="button" className="row-menu-btn" aria-label="More actions" aria-expanded={menuOpen === product.id}
+                        onClick={() => setMenuOpen(m => m === product.id ? null : product.id)}>
+                        {deleting === product.id ? '…' : '⋯'}
                       </button>
+                      {menuOpen === product.id && (
+                        <div className="row-menu" role="menu">
+                          <button type="button" role="menuitem" onClick={() => { setMenuOpen(null); startEdit(product); }}>✎ Edit photos, notes and more</button>
+                          <button type="button" role="menuitem" className="danger" onClick={() => { setMenuOpen(null); removeProduct(product.id); }}>🗑 Remove</button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );

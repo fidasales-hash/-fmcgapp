@@ -1001,3 +1001,43 @@ body {
   .puf-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 1.75rem; align-items: start; }
   .puf-aside { position: sticky; top: 1rem; margin: 0; }
 }
+
+/* ── Admin products table: inline editing ──────── */
+.prod-table { table-layout: fixed; }
+.prod-name-cell { max-width: none; }
+.prod-name .inl-cell, .prod-name .inl-input { flex: 1; min-width: 0; font-weight: 600; }
+.inl-cell {
+  display: block; width: 100%; min-height: 30px; text-align: left; font: inherit; color: inherit;
+  background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 0.3rem 0.4rem;
+  cursor: text; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.3s;
+}
+.inl-cell:hover { border-color: var(--border); background: #fff; }
+.inl-cell.num { text-align: right; font-weight: 700; color: var(--text); }
+.inl-cell.inl-ok { background: var(--green-bg); }
+.inl-cell.inl-err { background: var(--red-bg); }
+.inl-input {
+  display: block; width: 100%; font: inherit; padding: 0.25rem 0.4rem; border: 2px solid #1565C0;
+  border-radius: 6px; background: #fff; color: var(--text); outline: none;
+}
+.inl-input.num { text-align: right; }
+.inl-select {
+  width: 100%; font: inherit; color: #616161; background: transparent; border: 1px solid transparent;
+  border-radius: 6px; padding: 0.3rem 0.2rem; cursor: pointer; appearance: auto;
+}
+.inl-select:hover, .inl-select:focus { border-color: var(--border); background: #fff; color: var(--text); }
+.row-menu-wrap { position: relative; text-align: right; }
+.row-menu-btn {
+  width: 32px; height: 30px; border: 1px solid var(--border); background: #fff; border-radius: 6px;
+  font-size: 1.1rem; line-height: 1; cursor: pointer; color: var(--text);
+}
+.row-menu-btn:hover { border-color: var(--primary); color: var(--primary); }
+.row-menu {
+  position: absolute; right: calc(100% - 0.85rem + 4px); top: 0.3rem; z-index: 20; min-width: 210px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); padding: 4px;
+}
+.row-menu button {
+  display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px;
+  padding: 0.5rem 0.65rem; font: inherit; font-size: 0.85rem; cursor: pointer; color: var(--text);
+}
+.row-menu button:hover { background: #F5F5F5; }
+.row-menu button.danger { color: var(--red); }
