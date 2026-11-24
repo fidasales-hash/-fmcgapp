@@ -39,6 +39,7 @@ async function ensureTable() {
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS order_count INTEGER DEFAULT 0`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS seller_id TEXT DEFAULT ''`;
   await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS in_stock BOOLEAN DEFAULT true`;
+  await db`ALTER TABLE products ADD COLUMN IF NOT EXISTS quantity INTEGER`;
   await db`CREATE INDEX IF NOT EXISTS idx_products_seller_id ON products(seller_id)`;
   await db`
     CREATE TABLE IF NOT EXISTS sellers (
@@ -80,6 +81,7 @@ function mapProductRow(r: any): Product {
     addedAt: String(r.added_at),
     orderCount: Number(r.order_count ?? 0),
     inStock: r.in_stock !== false,
+    quantity: r.quantity == null ? null : Number(r.quantity),
     sellerId: String(r.seller_id ?? ''),
     sellerName: String(r.seller_name ?? ''),
   };
@@ -127,8 +129,8 @@ export async function insertProduct(p: Product) {
   await ensureTable();
   const db = getDb();
   await db`
-    INSERT INTO products (id, name, size, best_before, category, notes, price, market_price, photo_url, photo_url_2, photo_url_3, barcode, kosher, halal, vegan, seller_id, added_at)
-    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.marketPrice ?? 0}, ${p.photoUrl}, ${p.photoUrl2}, ${p.photoUrl3 ?? ''}, ${p.barcode ?? ''}, ${p.kosher ?? false}, ${p.halal ?? false}, ${p.vegan ?? false}, ${p.sellerId ?? ''}, ${p.addedAt})
+    INSERT INTO products (id, name, size, best_before, category, notes, price, market_price, photo_url, photo_url_2, photo_url_3, barcode, kosher, halal, vegan, seller_id, added_at, quantity)
+    VALUES (${p.id}, ${p.name}, ${p.size}, ${p.bestBefore || null}, ${p.category}, ${p.notes}, ${p.price}, ${p.marketPrice ?? 0}, ${p.photoUrl}, ${p.photoUrl2}, ${p.photoUrl3 ?? ''}, ${p.barcode ?? ''}, ${p.kosher ?? false}, ${p.halal ?? false}, ${p.vegan ?? false}, ${p.sellerId ?? ''}, ${p.addedAt}, ${p.quantity ?? null})
   `;
 }
 
@@ -221,6 +223,14 @@ export async function setProductStock(id: string, inStock: boolean, sellerId?: s
     WHERE id = ${id} AND seller_id = COALESCE(${scope}, seller_id)
     RETURNING id
   `;
+  return rows.length > 0;
+}
+
+// Quantity-only update — like setProductStock, kept apart from updateProduct.
+export async function setProductQuantity(id: string, quantity: number | null): Promise<boolean> {
+  await ensureTable();
+  const db = getDb();
+  const rows = await db`UPDATE products SET quantity = ${quantity} WHERE id = ${id} RETURNING id`;
   return rows.length > 0;
 }
 

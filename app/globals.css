@@ -1209,3 +1209,8 @@ body {
 .photo-panel-btns { display: flex; gap: 0.4rem; }
 .photo-panel-btns .photo-panel-btn { flex: 1; }
 .photo-panel-hint.center { text-align: center; margin-top: -0.2rem; }
+
+/* Qty column: bold number, orange when 3 or fewer, grey dash when not entered */
+.qty-cell .inl-cell { font-weight: 700; }
+.qty-cell.low .inl-cell { color: #E65100; }
+.qty-cell.none .inl-cell { color: #bdbdbd; font-weight: 400; }

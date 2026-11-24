@@ -24,6 +24,7 @@ export interface Draft {
   category: string;
   price: string;
   marketPrice: string;
+  quantity: string;
   bestBefore: string;
   halal: boolean;
   kosher: boolean;
@@ -41,7 +42,7 @@ export interface Draft {
 
 function emptyDraft(barcode = ''): Draft {
   return {
-    barcode, name: '', size: '', category: 'Other', price: '', marketPrice: '', bestBefore: '', halal: false, kosher: false, vegan: false,
+    barcode, name: '', size: '', category: 'Other', price: '', marketPrice: '', quantity: '', bestBefore: '', halal: false, kosher: false, vegan: false,
     webImgs: [], slots: [EMPTY_SLOT, EMPTY_SLOT, EMPTY_SLOT],
     found: '', lookingUp: !!barcode, reading: false, saving: false, error: '', missing: [], panelOpen: true,
   };
@@ -190,6 +191,7 @@ export function useNewProduct(onAdded: (p: Product) => void, onDuplicate: (id: s
       fd.append('category', d.category);
       fd.append('price', d.price);
       fd.append('marketPrice', d.marketPrice || '0');
+      fd.append('quantity', d.quantity);
       fd.append('bestBefore', d.bestBefore);
       fd.append('barcode', d.barcode);
       fd.append('notes', '');
@@ -275,6 +277,8 @@ export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) 
           value={d.price} onChange={e => api.patch({ price: e.target.value, missing: d.missing.filter(m => m !== 'price') })} onKeyDown={onKey} /></td>
         <td><input type="number" min="0" step="0.01" className="inl-input" placeholder="optional"
           value={d.marketPrice} onChange={e => api.patch({ marketPrice: e.target.value })} onKeyDown={onKey} /></td>
+        <td><input type="number" min="0" step="1" className="inl-input" placeholder="—"
+          value={d.quantity} onChange={e => api.patch({ quantity: e.target.value })} onKeyDown={onKey} /></td>
         <td><DietChips value={{ halal: d.halal, kosher: d.kosher, vegan: d.vegan }} onToggle={k => api.patch({ [k]: !d[k] })} /></td>
         <td>
           <div className="stock-switch-wrap compact">
@@ -294,7 +298,7 @@ export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) 
         </td>
       </tr>
       {d.error && (
-        <tr className="new-row new-row-msg"><td colSpan={10}>{d.error}</td></tr>
+        <tr className="new-row new-row-msg"><td colSpan={11}>{d.error}</td></tr>
       )}
     </>
   );

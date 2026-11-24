@@ -15,7 +15,7 @@ type EditPhotos = { file1: File | null; preview1: string; file2: File | null; pr
 
 const CLAUDE_KEY = 'claudeApiEnabled';
 
-type SortKey = 'name' | 'status' | 'bb' | 'category' | 'price' | 'mkt' | 'stock';
+type SortKey = 'name' | 'status' | 'bb' | 'category' | 'price' | 'mkt' | 'qty' | 'stock';
 
 
 
@@ -272,6 +272,27 @@ export default function AdminPage() {
     }
   }
 
+  // Qty has its own small route (like the stock switch), so it never rides
+  // along with the full-product PATCH. Blank clears it.
+  async function saveQuantity(p: Product, v: string): Promise<boolean> {
+    const n = v === '' ? null : parseInt(v, 10);
+    if (n !== null && (isNaN(n) || n < 0)) return false;
+    const before = p.quantity ?? null;
+    setProducts(prev => prev.map(x => x.id === p.id ? { ...x, quantity: n } : x));
+    try {
+      const res = await fetch(`/api/products/${p.id}/quantity`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: n }),
+      });
+      if (!res.ok) throw new Error();
+      return true;
+    } catch {
+      setProducts(prev => prev.map(x => x.id === p.id ? { ...x, quantity: before } : x));
+      return false;
+    }
+  }
+
   // Saves one changed field from the table row. The PATCH route overwrites every
   // field, so the whole product goes along with the change applied.
   async function quickSave(p: Product, changes: Partial<Product>): Promise<boolean> {
@@ -336,6 +357,7 @@ export default function AdminPage() {
         case 'category': return p.category.toLowerCase();
         case 'price': return Number(p.price) || 0;
         case 'mkt': return Number(p.marketPrice) || 0;
+        case 'qty': return p.quantity ?? -1;
         case 'stock': return p.inStock === false ? 1 : 0;
       }
     };
@@ -421,6 +443,7 @@ export default function AdminPage() {
               <col style={{ width: 176 }} />
               <col style={{ width: 96 }} />
               <col style={{ width: 112 }} />
+              <col style={{ width: 64 }} />
               <col style={{ width: 104 }} />
               <col style={{ width: 84 }} />
               <col style={{ width: 72 }} />
@@ -434,6 +457,7 @@ export default function AdminPage() {
                 {sortTh('category', 'Category')}
                 {sortTh('price', 'Price')}
                 {sortTh('mkt', 'Normal price')}
+                {sortTh('qty', 'Qty')}
                 <th>Dietary</th>
                 {sortTh('stock', 'Status')}
                 <th>Actions</th>
@@ -446,7 +470,7 @@ export default function AdminPage() {
                 if (editing === product.id) {
                   return (
                     <tr key={product.id} className="prod-editing">
-                      <td colSpan={10}>
+                      <td colSpan={11}>
                         <div className="prod-edit">
                           <img src={product.photoUrl} alt={product.name} className="admin-thumb" />
                           <div className="edit-form">
@@ -551,6 +575,11 @@ export default function AdminPage() {
                       <EditableCell type="number" value={product.marketPrice ? String(Number(product.marketPrice)) : ''}
                         display={product.marketPrice ? `R ${Number(product.marketPrice).toFixed(2)}` : '—'}
                         onSave={v => quickSave(product, { marketPrice: parseFloat(v) || 0 })} />
+                    </td>
+                    <td className={`qty-cell${product.quantity != null && product.quantity <= 3 ? ' low' : ''}${product.quantity == null ? ' none' : ''}`}>
+                      <EditableCell type="number" value={product.quantity != null ? String(product.quantity) : ''}
+                        display={product.quantity != null ? String(product.quantity) : '—'}
+                        onSave={v => saveQuantity(product, v)} />
                     </td>
                     <td>
                       <DietChips value={{ halal: !!product.halal, kosher: !!product.kosher, vegan: !!product.vegan }}

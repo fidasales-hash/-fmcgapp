@@ -34,6 +34,8 @@ export async function buildProductFromFormData(formData: FormData, sellerId: str
   const notes = (formData.get('notes') as string | null)?.trim() ?? '';
   const price = parseFloat((formData.get('price') as string | null) ?? '0') || 0;
   const marketPrice = parseFloat((formData.get('marketPrice') as string | null) ?? '0') || 0;
+  const qtyRaw = ((formData.get('quantity') as string | null) ?? '').trim();
+  const quantity = qtyRaw === '' || isNaN(parseInt(qtyRaw, 10)) ? null : Math.max(0, parseInt(qtyRaw, 10));
   const category = (formData.get('category') as string | null)?.trim() || categorize(name);
   const barcode = (formData.get('barcode') as string | null)?.trim() ?? '';
   const kosher = formData.get('kosher') === 'true';
@@ -112,6 +114,7 @@ export async function buildProductFromFormData(formData: FormData, sellerId: str
     barcode, kosher, halal, vegan,
     addedAt: new Date().toISOString(),
     orderCount: 0,
+    quantity,
     inStock: true, // new products start in stock (DB column defaults to true)
     sellerId,
     sellerName: '',
