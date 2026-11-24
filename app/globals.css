@@ -1177,3 +1177,35 @@ body {
 .diet-chip.on { filter: none; opacity: 1; }
 .diet-chip.halal.on, .diet-chip.vegan.on { background: #DCFCE7; border-color: #15803D; color: #15803D; }
 .diet-chip.kosher.on { background: #DBEAFE; border-color: #1D4ED8; color: #1D4ED8; }
+
+/* ── Photo boxes (PhotoDropZone) ───────────────── */
+.dz-wrap { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.dz {
+  position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer;
+  border: 1.5px dashed var(--border); background: #FAFAFA; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; transition: border-color 0.15s;
+}
+.dz.has { border: 1px solid var(--border); background: #fff; }
+.dz:hover, .dz:focus-visible { border-color: var(--primary); outline: none; }
+.dz img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.dz-main img { object-fit: contain; }
+.dz-main { aspect-ratio: 4 / 3; }
+.dz-plus { font-size: 1.25rem; color: #BDBDBD; pointer-events: none; }
+.dz-label { font-size: 0.72rem; color: #9E9E9E; pointer-events: none; }
+.dz-hover {
+  position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: rgba(0, 0, 0, 0.45); color: #fff; font-weight: 700; font-size: 0.8rem; pointer-events: none;
+}
+.dz-main .dz-hover { font-size: 0.95rem; }
+.dz-hover small { font-weight: 400; font-size: 0.75rem; }
+.dz:hover .dz-hover, .dz:focus-visible .dz-hover { display: flex; }
+.dz.dragging { border: 3px dashed #1565C0; background: rgba(21, 101, 192, 0.08); }
+.dz-drop {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0.5rem;
+  background: rgba(21, 101, 192, 0.12); color: #1565C0; font-weight: 700; font-size: 0.85rem; pointer-events: none;
+}
+.dz-remove { align-self: center; background: none; border: 0; font: inherit; font-size: 0.72rem; color: var(--muted); cursor: pointer; padding: 0; }
+.dz-remove:hover { color: var(--red); }
+.photo-panel-btns { display: flex; gap: 0.4rem; }
+.photo-panel-btns .photo-panel-btn { flex: 1; }
+.photo-panel-hint.center { text-align: center; margin-top: -0.2rem; }

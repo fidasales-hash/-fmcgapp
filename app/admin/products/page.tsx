@@ -129,6 +129,8 @@ export default function AdminPage() {
     setSavedOk(false);
   }
 
+  const mainBrowse = useRef<(() => void) | null>(null);
+
   async function rotateMain() {
     const src = editPhotos.preview1;
     if (!src) return;
@@ -587,17 +589,20 @@ export default function AdminPage() {
               <b title={photoProduct.name}>Photos · {photoProduct.name}</b>
               <button type="button" onClick={closePhotos} aria-label="Close photos">✕</button>
             </div>
-            <DropZone preview={editPhotos.preview1} label="Main photo" onFile={f => handlePhotoFile(1, f)} />
-            <button type="button" className="photo-panel-btn" onClick={rotateMain} disabled={!editPhotos.preview1 || rotating}>
-              {rotating ? '…' : '↺ Rotate main photo'}
-            </button>
+            <DropZone main browseRef={mainBrowse} preview={editPhotos.preview1} label="main photo" onFile={f => handlePhotoFile(1, f)} />
+            <p className="photo-panel-hint center">Drag a new photo onto it, click it to browse, or paste (Ctrl+V)</p>
+            <div className="photo-panel-btns">
+              <button type="button" className="photo-panel-btn" onClick={() => mainBrowse.current?.()}>📁 Replace</button>
+              <button type="button" className="photo-panel-btn" onClick={rotateMain} disabled={!editPhotos.preview1 || rotating}>
+                {rotating ? '…' : '↺ Rotate'}
+              </button>
+            </div>
             <div className="photo-panel-row">
               <DropZone preview={editPhotos.preview2} label="Photo 2" onFile={f => handlePhotoFile(2, f)}
                 onClear={editPhotos.preview2 ? () => clearPhoto(2) : undefined} />
               <DropZone preview={editPhotos.preview3} label="Photo 3" onFile={f => handlePhotoFile(3, f)}
                 onClear={editPhotos.preview3 ? () => clearPhoto(3) : undefined} />
             </div>
-            <p className="photo-panel-hint">Click a photo to choose a file, drag one in, or paste with Ctrl+V.</p>
             {saveError && <p className="error" style={{ margin: '0 0 0.5rem' }}>{saveError}</p>}
             <button type="button" className="btn-primary" style={{ marginBottom: 0 }} disabled={saving || !photosChanged}
               onClick={() => saveEdit(photoProduct.id)}>

@@ -303,6 +303,7 @@ export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) 
 export function NewProductPanel({ api }: { api: Api }) {
   const d = api.draft!;
   const [main, p2, p3] = d.slots;
+  const mainBrowse = useRef<(() => void) | null>(null);
   return (
     <aside className="photo-panel" aria-label="Add photos">
       <div className="photo-panel-head">
@@ -328,16 +329,20 @@ export function NewProductPanel({ api }: { api: Api }) {
         </>
       )}
       <div className={d.missing.includes('photo') ? 'np-main-bad' : undefined}>
-        <DropZone preview={main.src} label="Main photo" onFile={f => api.setFile(0, f)} />
+        <DropZone main browseRef={mainBrowse} preview={main.src} label="main photo" onFile={f => api.setFile(0, f)} />
       </div>
-      <button type="button" className="photo-panel-btn" onClick={api.rotateMain} disabled={!main.src || api.rotating}>
-        {api.rotating ? '…' : '↺ Rotate main photo'}
-      </button>
+      <p className="photo-panel-hint center">Drag a photo onto it, click it to browse, or paste (Ctrl+V)</p>
+      <div className="photo-panel-btns">
+        <button type="button" className="photo-panel-btn" onClick={() => mainBrowse.current?.()}>📁 {main.src ? 'Replace' : 'Browse'}</button>
+        <button type="button" className="photo-panel-btn" onClick={api.rotateMain} disabled={!main.src || api.rotating}>
+          {api.rotating ? '…' : '↺ Rotate'}
+        </button>
+      </div>
       <div className="photo-panel-row">
         <DropZone preview={p2.src} label="Photo 2" onFile={f => api.setFile(1, f)} onClear={p2.src ? () => api.putSlot(1, { src: '', file: null }) : undefined} />
         <DropZone preview={p3.src} label="Date label" onFile={f => api.setFile(2, f)} onClear={p3.src ? () => api.putSlot(2, { src: '', file: null }) : undefined} />
       </div>
-      <p className="photo-panel-hint">Click a photo to choose a file, drag one in, or paste with Ctrl+V. A date label photo fills in Best before.</p>
+      <p className="photo-panel-hint">A date label photo fills in Best before.</p>
       <p className="photo-panel-hint">Saved together with the product when you flip its switch.</p>
     </aside>
   );

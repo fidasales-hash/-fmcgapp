@@ -1,11 +1,22 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, type MutableRefObject } from 'react';
 
-// Photo box: click to browse, drag and drop. Used by the Edit photos and Add photos panels.
-export default function DropZone({ preview, label, onFile, onClear }: { preview: string; label: string; onFile: (f: File) => void; onClear?: () => void }) {
+// Photo box: click to browse, or drag a photo onto it. Used by the Edit photos
+// and Add photos panels. `main` = the big main photo: shows a "Click to replace"
+// cover on hover and a "Drop to replace" frame while dragging; its Replace button
+// lives in the panel (browseRef lets the panel open this box's file picker).
+export default function DropZone({ preview, label, onFile, onClear, main, browseRef }: {
+  preview: string;
+  label: string;
+  onFile: (f: File) => void;
+  onClear?: () => void;
+  main?: boolean;
+  browseRef?: MutableRefObject<(() => void) | null>;
+}) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const enterCount = useRef(0);
+  if (browseRef) browseRef.current = () => inputRef.current?.click();
 
   function handleDragEnter(e: React.DragEvent) {
     e.preventDefault();
@@ -27,53 +38,41 @@ export default function DropZone({ preview, label, onFile, onClear }: { preview:
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+    <div className="dz-wrap">
       <div
+        className={`dz${main ? ' dz-main' : ''}${preview ? ' has' : ''}${dragging ? ' dragging' : ''}`}
+        role="button"
+        tabIndex={0}
+        aria-label={preview ? `Replace ${label}` : `Add ${label}`}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click(); } }}
         onDragEnter={handleDragEnter}
         onDragOver={e => e.preventDefault()}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
-        style={{
-          aspectRatio: '1', borderRadius: 8, overflow: 'hidden', cursor: 'pointer',
-          border: preview
-            ? `0.5px solid var(--border, #ddd)`
-            : `1.5px dashed ${dragging ? 'var(--primary, #2563eb)' : 'var(--border, #ddd)'}`,
-          background: dragging ? 'rgba(37,99,235,0.05)' : preview ? 'transparent' : 'var(--surface, #f9f9f9)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 4, position: 'relative', transition: 'border-color 0.15s',
-        }}
       >
         {preview ? (
-          <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
+          <img src={preview} alt="" />
         ) : (
           <>
-            <span style={{ fontSize: '1.25rem', color: '#ccc', pointerEvents: 'none' }}>+</span>
-            <span style={{ fontSize: '0.68rem', color: '#bbb', pointerEvents: 'none' }}>{dragging ? 'Drop' : label}</span>
+            <span className="dz-plus">+</span>
+            <span className="dz-label">{dragging ? 'Drop' : label}</span>
           </>
         )}
-        {dragging && preview && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(37,99,235,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--primary, #2563eb)', fontWeight: 600 }}>Drop</span>
+        {preview && !dragging && (
+          <div className="dz-hover">
+            <span>📁 {main ? 'Click to replace' : 'Replace'}</span>
+            {main && <small>or drop a photo here</small>}
           </div>
+        )}
+        {dragging && preview && (
+          <div className="dz-drop">{main ? '⬇ Drop to replace the main photo' : '⬇ Drop'}</div>
         )}
       </div>
       <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
-      {preview && (
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--primary, #2563eb)', cursor: 'pointer' }}
-            onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}>Replace</span>
-          {onClear && (
-            <span style={{ fontSize: '0.7rem', color: '#bbb', cursor: 'pointer' }}
-              onClick={e => { e.stopPropagation(); onClear(); }}>· Remove</span>
-          )}
-        </div>
-      )}
-      {!preview && (
-        <div style={{ textAlign: 'center' }}>
-          <span style={{ fontSize: '0.7rem', color: '#bbb' }}>{label}</span>
-        </div>
+      {!main && preview && onClear && (
+        <button type="button" className="dz-remove" onClick={e => { e.stopPropagation(); onClear(); }}>✕ remove</button>
       )}
     </div>
   );
