@@ -277,7 +277,7 @@ export function NewProductRow({ api, expired }: { api: Api; expired: boolean }) 
           value={d.price} onChange={e => api.patch({ price: e.target.value, missing: d.missing.filter(m => m !== 'price') })} onKeyDown={onKey} /></td>
         <td><input type="number" min="0" step="0.01" className="inl-input" placeholder="optional"
           value={d.marketPrice} onChange={e => api.patch({ marketPrice: e.target.value })} onKeyDown={onKey} /></td>
-        <td><input type="number" min="0" step="1" className="inl-input" placeholder="—"
+        <td className="qty-cell"><input type="number" min="0" step="1" className="inl-input" placeholder="—"
           value={d.quantity} onChange={e => api.patch({ quantity: e.target.value })} onKeyDown={onKey} /></td>
         <td><DietChips value={{ halal: d.halal, kosher: d.kosher, vegan: d.vegan }} onToggle={k => api.patch({ [k]: !d[k] })} /></td>
         <td>

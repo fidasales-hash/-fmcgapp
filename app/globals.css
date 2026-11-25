@@ -859,7 +859,7 @@ body {
 
 /* ── Admin nav + dashboard ─────────────────────── */
 .admin-nav { background: var(--primary); color: #fff; }
-.admin-nav-inner { max-width: 1120px; margin: 0 auto; padding: 0.75rem 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; }
+.admin-nav-inner { max-width: 1800px; margin: 0 auto; padding: 0.75rem 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; }
 .admin-nav-brand { display: flex; align-items: center; gap: 0.6rem; }
 .admin-nav-brand strong { font-size: 1.1rem; font-weight: 800; }
 .admin-nav-brand span { font-size: 0.8rem; background: rgba(255,255,255,0.18); padding: 0.2rem 0.6rem; border-radius: 999px; }
@@ -1214,3 +1214,7 @@ body {
 .qty-cell .inl-cell { font-weight: 700; }
 .qty-cell.low .inl-cell { color: #E65100; }
 .qty-cell.none .inl-cell { color: #bdbdbd; font-weight: 400; }
+/* No up/down arrows in the Qty box: they took most of the column */
+.qty-cell input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+.qty-cell input[type=number]::-webkit-inner-spin-button,
+.qty-cell input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }

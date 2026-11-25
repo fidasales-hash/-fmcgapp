@@ -443,7 +443,7 @@ export default function AdminPage() {
               <col style={{ width: 176 }} />
               <col style={{ width: 96 }} />
               <col style={{ width: 112 }} />
-              <col style={{ width: 64 }} />
+              <col style={{ width: 72 }} />
               <col style={{ width: 104 }} />
               <col style={{ width: 84 }} />
               <col style={{ width: 72 }} />
@@ -456,7 +456,7 @@ export default function AdminPage() {
                 <th>Size</th>
                 {sortTh('category', 'Category')}
                 {sortTh('price', 'Price')}
-                {sortTh('mkt', 'Normal price')}
+                {sortTh('mkt', 'Deal')}
                 {sortTh('qty', 'Qty')}
                 <th>Dietary</th>
                 {sortTh('stock', 'Status')}
