@@ -515,6 +515,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
   // "View store" link (?from=/admin/...). Remembered for this tab only.
   const [adminBack, setAdminBack] = useState('');
   const [editMode, setEditMode] = useState(false);
+  const frozenOrder = useRef<{ sort: string; order: Map<string, number> } | null>(null);
   const [busy, setBusy] = useState<Record<string, string>>({});
 
   function toggleEditMode() {
@@ -646,7 +647,13 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
   }, [lightboxImgs]);
 
 
+  // While editing, don't reload on window focus: closing the file picker
+  // focuses the window and would overwrite a save that's still going.
+  const editingRef = useRef(false);
+  editingRef.current = !!adminBack && editMode;
+
   const fetchProducts = useCallback(async () => {
+    if (editingRef.current) return;
     const res = await fetch('/api/products');
     setProducts(await res.json());
     setLoading(false);
@@ -696,6 +703,27 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
 
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category))).sort()];
 
+  const sortFn = (a: Product, b: Product) => {
+    // Sold-out items always sit at the end, whatever the chosen sort.
+    const aOut = a.inStock === false ? 1 : 0;
+    const bOut = b.inStock === false ? 1 : 0;
+    if (aOut !== bOut) return aOut - bOut;
+    if (sort === 'popular') return b.orderCount - a.orderCount;
+    if (sort === 'price-asc' || sort === 'under-100') return a.price - b.price;
+    if (sort === 'price-desc') return b.price - a.price;
+    return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
+  };
+
+  // Edit mode freezes the order so a card stays put while you change it
+  // (e.g. flipping Off doesn't send it to the bottom). Re-sorts when Edit is
+  // turned off, or when you pick a different sort.
+  const editing = !!adminBack && editMode;
+  if (!editing) frozenOrder.current = null;
+  else if (!frozenOrder.current || frozenOrder.current.sort !== sort) {
+    frozenOrder.current = { sort, order: new Map([...products].sort(sortFn).map((p, i) => [p.id, i])) };
+  }
+  const order = frozenOrder.current?.order;
+
   const filtered = products
     .filter(p => {
       const expired = isExpired(p.bestBefore);
@@ -706,16 +734,9 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
         (sort !== 'under-100' || p.price < 100)
       );
     })
-    .sort((a, b) => {
-      // Sold-out items always sit at the end, whatever the chosen sort.
-      const aOut = a.inStock === false ? 1 : 0;
-      const bOut = b.inStock === false ? 1 : 0;
-      if (aOut !== bOut) return aOut - bOut;
-      if (sort === 'popular') return b.orderCount - a.orderCount;
-      if (sort === 'price-asc' || sort === 'under-100') return a.price - b.price;
-      if (sort === 'price-desc') return b.price - a.price;
-      return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
-    });
+    .sort(order
+      ? (a, b) => (order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity)
+      : sortFn);
 
   return (
     <>

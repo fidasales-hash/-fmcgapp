@@ -21,10 +21,16 @@ async function removeBackground(input: Buffer): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer());
 }
 
+// Background removal is switched off for now: photos are edited in a photo
+// app before upload, and the Cloud Run service's cold start made every save
+// slow. To turn it back on, set BG_REMOVAL=on in Vercel's environment variables.
+const BG_REMOVAL_ON = process.env.BG_REMOVAL === 'on';
+
 export async function processProductImage(input: Buffer): Promise<Buffer> {
   let layer: Buffer;
 
   try {
+    if (!BG_REMOVAL_ON) throw new Error('skip');
     // Background removed → transparent PNG of just the product
     const noBg = await removeBackground(input);
     layer = await sharp(noBg)
@@ -33,7 +39,7 @@ export async function processProductImage(input: Buffer): Promise<Buffer> {
       .sharpen({ sigma: 1.2 })
       .toBuffer();
   } catch (e) {
-    console.error('removeBackground failed, falling back to white-flatten:', e);
+    if (BG_REMOVAL_ON) console.error('removeBackground failed, falling back to white-flatten:', e);
     // Fallback if Remove.bg fails: use original photo flattened to white
     layer = await sharp(input)
       .rotate()
