@@ -4,6 +4,8 @@ import type { Product } from '@/lib/types';
 import StockSwitch from '@/components/StockSwitch';
 import EditableCell from '@/components/EditableCell';
 import DietChips from '@/components/DietChips';
+import { useNewProduct } from '@/components/NewProductDraft';
+import ShopNewProductCard from '@/components/ShopNewProductCard';
 import { saveProductFields, saveProductPhoto, clearProductPhoto, rotatedPhoto, saveProductQuantity, saveProductStock, removeProduct } from '@/lib/productEdits';
 
 const WHATSAPP_NUMBER = '27615807797';
@@ -128,13 +130,14 @@ type CardEdit = {
   busy: string; // '' or what's being saved, shown over the photo
 };
 
-function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty, edit }: {
+function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty, edit, flash }: {
   product: Product;
   onExpand: (urls: string[], index: number) => void;
   onAddToCart: (product: Product) => void;
   cartQty: number;
   onUpdateQty: (id: string, qty: number) => void;
   edit?: CardEdit;
+  flash?: boolean;
 }) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
@@ -191,7 +194,7 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty, edi
   const hasDeal = product.marketPrice > product.price;
 
   return (
-    <div className={`card ${expired ? 'expired' : 'fresh'}${soldOut ? ' sold-out' : ''}${edit ? ' card-editing' : ''}`}>
+    <div id={`p-${product.id}`} className={`card ${expired ? 'expired' : 'fresh'}${soldOut ? ' sold-out' : ''}${edit ? ' card-editing' : ''}${flash ? ' card-flash' : ''}`}>
       <div
         className={`photo-wrap${dragging ? ' dragging' : ''}`}
         style={{ cursor: 'pointer' }}
@@ -516,6 +519,26 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
   const [adminBack, setAdminBack] = useState('');
   const [editMode, setEditMode] = useState(false);
   const frozenOrder = useRef<{ sort: string; order: Map<string, number> } | null>(null);
+
+  // "+ New product" card (edit mode). A new product goes in right after it;
+  // a barcode that's already in the shop flashes that product's card.
+  const [newNotice, setNewNotice] = useState('');
+  const [flashId, setFlashId] = useState('');
+  const np = useNewProduct(
+    added => {
+      setProducts(prev => [added, ...prev.filter(p => p.id !== added.id)]);
+      frozenOrder.current?.order.set(added.id, -1);
+    },
+    (id, name) => {
+      setNewNotice(`Already in your shop: ${name}`);
+      setTimeout(() => setNewNotice(''), 4000);
+      setFlashId(id);
+      setTimeout(() => setFlashId(''), 2500);
+      setTimeout(() => document.getElementById(`p-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+    },
+  );
+  // Leaving edit mode throws away an unsaved new product (and its Ctrl+V paste handler).
+  useEffect(() => { if (!(adminBack && editMode) && np.draft) np.cancel(); }, [adminBack, editMode]); // eslint-disable-line react-hooks/exhaustive-deps
   const [busy, setBusy] = useState<Record<string, string>>({});
 
   function toggleEditMode() {
@@ -885,6 +908,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
               <p className="empty">{products.length === 0 ? 'No products yet — staff can add via the upload page.' : 'No products match the filters.'}</p>
             )}
             <div className="grid">
+              {adminBack && editMode && <ShopNewProductCard api={np} notice={newNotice} />}
               {filtered.map(product => (
                 <ProductCard
                   key={product.id}
@@ -894,6 +918,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
                   cartQty={cart.find(i => i.product.id === product.id)?.qty ?? 0}
                   onUpdateQty={updateQty}
                   edit={adminBack && editMode ? editApi(product) : undefined}
+                  flash={flashId === product.id}
                 />
               ))}
             </div>

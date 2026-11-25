@@ -1276,3 +1276,39 @@ body {
 .ce-yes, .ce-no { font: inherit; font-size: 0.75rem; font-weight: 700; border-radius: 5px; padding: 0.15rem 0.6rem; cursor: pointer; }
 .ce-yes { background: #CC2020; color: #fff; border: none; }
 .ce-no { background: #fff; color: #616161; border: 1px solid var(--border); }
+
+/* Shop edit mode: "+ New product" card */
+.card.card-new { border: 2px dashed #F9A825; background: #FFFDE7; display: flex; flex-direction: column; min-height: 200px; }
+.card.card-new:hover { transform: none; }
+.cn-barcode { display: flex; align-items: center; gap: 0.4rem; margin: 0.5rem 0.5rem 0; background: #fff; border: 1.5px solid #1565C0; border-radius: 8px; padding: 0.2rem 0.5rem; color: #9e9e9e; }
+.cn-barcode input { flex: 1; min-width: 0; border: none; outline: none; font: inherit; font-size: 0.8rem; background: transparent; color: var(--text); padding: 0.25rem 0; }
+.cn-status { margin: 0.35rem 0.6rem 0; font-size: 0.72rem; color: #757575; }
+.cn-ok { color: var(--green); font-weight: 700; }
+.cn-no { color: #E65100; font-weight: 700; }
+.cn-dup { color: #CC2020; font-weight: 700; }
+.cn-photo { position: relative; aspect-ratio: 1; margin: 0.5rem; background: #fff; border: 2px dashed var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.cn-photo.has { border-style: solid; }
+.cn-photo.dragging { border-color: #1565C0; }
+.cn-photo.ce-bad { border-color: #CC2020; background: #FFEBEE; }
+.cn-photo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cn-empty { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; color: #9e9e9e; font-size: 0.8rem; font-weight: 700; text-align: center; padding: 0 0.5rem; }
+.cn-empty b { font-size: 1.8rem; font-weight: 400; color: #bdbdbd; line-height: 1; }
+.cn-empty small { font-weight: 400; font-size: 0.7rem; }
+.cn-photo .ce-rotate { bottom: 0.4rem; }
+.cn-web { display: flex; gap: 0.3rem; flex-wrap: wrap; margin: 0 0.5rem; }
+.cn-web button { width: 36px; height: 36px; padding: 0; border: 1px solid var(--border); border-radius: 5px; background: #fff; overflow: hidden; cursor: pointer; }
+.cn-web button.on { outline: 2px solid #1565C0; outline-offset: 1px; }
+.cn-web img { width: 100%; height: 100%; object-fit: contain; }
+.cn-body { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; }
+.cn-in { width: 100%; box-sizing: border-box; font: inherit; font-size: 0.8rem; border: 1.5px solid var(--border); border-radius: 6px; background: #fff; padding: 0.25rem 0.4rem; color: var(--text); }
+.cn-in:focus { outline: none; border-color: #1565C0; }
+.cn-in.ce-bad { border-color: #CC2020; background: #FFEBEE; }
+.cn-name { font-weight: 700; }
+.cn-prices { display: flex; gap: 0.3rem; }
+.cn-price { font-weight: 800; color: var(--primary); }
+.cn-bb { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.7rem; color: var(--muted); }
+.cn-error { color: #CC2020; font-size: 0.72rem; font-weight: 700; margin: 0; }
+.cn-qty { width: 3.5rem; }
+.card-new .card-admin .stock-switch-wrap { margin-left: auto; }
+.card.card-flash { animation: cardflash 2.5s; }
+@keyframes cardflash { 0%, 60% { box-shadow: 0 0 0 4px #FDD835; } 100% { box-shadow: var(--shadow); } }
