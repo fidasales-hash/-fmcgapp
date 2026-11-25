@@ -385,6 +385,22 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onClear }: {
 
 
 export default function StorefrontClient({ initialProducts, initialCategory = 'All' }: { initialProducts: Product[]; initialCategory?: string }) {
+  // "← Back to admin" shows only when the shop was opened from the admin's
+  // "View store" link (?from=/admin/...). Remembered for this tab only.
+  const [adminBack, setAdminBack] = useState('');
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      const from = url.searchParams.get('from') ?? '';
+      if (from.startsWith('/admin')) {
+        sessionStorage.setItem('adminBack', from);
+        url.searchParams.delete('from');
+        window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      }
+      const saved = sessionStorage.getItem('adminBack') ?? '';
+      if (saved.startsWith('/admin')) setAdminBack(saved);
+    } catch { /* storage blocked: no button */ }
+  }, []);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState(initialCategory);
@@ -557,6 +573,9 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
             </svg>
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
+          {adminBack && (
+            <a href={adminBack} className="back-to-admin">← <span>Back to </span>admin</a>
+          )}
           <div className="site-wordmark">
             <span className="site-wordmark-text">
               <span className="site-wordmark-super">CLEARANCE</span>

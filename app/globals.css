@@ -1219,3 +1219,12 @@ body {
 .qty-cell input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .qty-cell input[type=number]::-webkit-inner-spin-button,
 .qty-cell input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Shop header: "← Back to admin", only after arriving from the admin's View store */
+.back-to-admin {
+  position: absolute; left: 3.9rem; top: 50%; transform: translateY(-50%);
+  background: #fff; color: #CC2020; border-radius: 8px; padding: 0.45rem 0.75rem;
+  font-size: 0.85rem; font-weight: 700; text-decoration: none; white-space: nowrap; z-index: 2;
+}
+.back-to-admin:hover { background: #FFEBEE; }
+@media (max-width: 600px) { .back-to-admin span { display: none; } }

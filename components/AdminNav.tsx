@@ -29,7 +29,7 @@ export default function AdminNav() {
               {t.label}
             </Link>
           ))}
-          <a href="/">View store ↗</a>
+          <a href={`/?from=${encodeURIComponent(pathname)}`}>View store ↗</a>
         </nav>
       </div>
     </header>
