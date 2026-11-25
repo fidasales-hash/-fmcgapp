@@ -17,7 +17,7 @@ export interface Product {
   addedAt: string; // ISO
   orderCount: number;
   quantity?: number | null; // null = not entered
-  inStock: boolean;   // false = sold out, shown as "Not available"
+  inStock: boolean;   // false = sold out, shown as "Sold out"
   sellerId: string;   // '' = shop's own stock
   sellerName: string; // '' = shop's own stock
 }

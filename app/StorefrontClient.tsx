@@ -157,7 +157,7 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={activeUrl} alt={product.name} loading="lazy" />
-        {soldOut && <div className="sold-out-ribbon">NOT AVAILABLE</div>}
+        {soldOut && <div className="sold-out-ribbon">SOLD OUT</div>}
         <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>
           {expired ? 'Past Best Before' : 'In Date'}
         </span>
@@ -207,7 +207,7 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
         <p className="best-before">Best Before: {formatBB(product.bestBefore)}</p>
         {product.notes && <p className="notes">{product.notes}</p>}
         {soldOut ? (
-          <button className="btn-add-cart btn-sold-out" disabled>Not available</button>
+          <button className="btn-add-cart btn-sold-out" disabled>Sold out</button>
         ) : cartQty === 0 ? (
           <button className="btn-add-cart" onClick={() => onAddToCart(product)}>+ Add to Order</button>
         ) : (
