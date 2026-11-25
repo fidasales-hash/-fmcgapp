@@ -1,6 +1,10 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Product } from '@/lib/types';
+import StockSwitch from '@/components/StockSwitch';
+import EditableCell from '@/components/EditableCell';
+import DietChips from '@/components/DietChips';
+import { saveProductFields, saveProductPhoto, clearProductPhoto, rotatedPhoto, saveProductQuantity, saveProductStock, removeProduct } from '@/lib/productEdits';
 
 const WHATSAPP_NUMBER = '27615807797';
 
@@ -110,21 +114,47 @@ function formatBB(bestBefore: string) {
 }
 
 
-function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
+const EDIT_CATEGORIES = ['Drinks', 'Tinned & Canned', 'Snacks & Confectionery', 'Bakery & Cereals', 'Home & Cleaning', 'Health & Beauty', 'Baby & Toddler', 'Pet', 'Electronics', 'Other'];
+
+// Shop edit mode (admin only): every card edits in place and saves as you go.
+type CardEdit = {
+  save: (changes: Partial<Product>) => Promise<boolean>;
+  photo: (slot: 1 | 2 | 3, file: File) => Promise<void>;
+  clearPhoto: (slot: 2 | 3) => Promise<void>;
+  rotate: (slot: 1 | 2 | 3) => Promise<void>;
+  qty: (v: string) => Promise<boolean>;
+  stock: () => void;
+  remove: () => void;
+  busy: string; // '' or what's being saved, shown over the photo
+};
+
+function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty, edit }: {
   product: Product;
   onExpand: (urls: string[], index: number) => void;
   onAddToCart: (product: Product) => void;
   cartQty: number;
   onUpdateQty: (id: string, qty: number) => void;
+  edit?: CardEdit;
 }) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const didSwipe = useRef(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const dragDepth = useRef(0);
+  const [dragging, setDragging] = useState(false);
+  const [askRemove, setAskRemove] = useState(false);
 
   const expired = isExpired(product.bestBefore);
   const soldOut = product.inStock === false;
   const photos = [product.photoUrl, product.photoUrl2, product.photoUrl3].filter(Boolean) as string[];
-  const activeUrl = photos[photoIndex] ?? product.photoUrl;
+
+  // Edit mode works on the three real photo slots, plus one empty "+ Photo N" slot.
+  const slotUrls = [product.photoUrl, product.photoUrl2, product.photoUrl3];
+  const lastFilled = slotUrls.reduce((n, u, i) => (u ? i : n), 0);
+  const count = edit ? Math.min(3, lastFilled + 2) : photos.length;
+  const idx = Math.min(photoIndex, Math.max(count - 1, 0));
+  const shownUrl = edit ? (slotUrls[idx] ?? '') : (photos[idx] ?? product.photoUrl);
+  const slot = (idx + 1) as 1 | 2 | 3;
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -132,92 +162,188 @@ function ProductCard({ product, onExpand, onAddToCart, cartQty, onUpdateQty }: {
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
-    if (photos.length < 2 || touchStartX.current === null) return;
+    if (count < 2 || touchStartX.current === null) return;
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(deltaX) > 40) {
       didSwipe.current = true;
-      setPhotoIndex(i => deltaX < 0 ? Math.min(i + 1, photos.length - 1) : Math.max(i - 1, 0));
+      setPhotoIndex(i => deltaX < 0 ? Math.min(i + 1, count - 1) : Math.max(i - 1, 0));
     }
     touchStartX.current = null;
   }
 
   function handlePhotoClick() {
     if (didSwipe.current) { didSwipe.current = false; return; }
-    onExpand(photos, photoIndex);
+    if (edit) { if (!edit.busy) fileRef.current?.click(); return; }
+    onExpand(photos, idx);
   }
 
+  const dropProps = edit ? {
+    onDragEnter: (e: React.DragEvent) => { e.preventDefault(); dragDepth.current++; setDragging(true); },
+    onDragOver: (e: React.DragEvent) => e.preventDefault(),
+    onDragLeave: () => { dragDepth.current--; if (dragDepth.current <= 0) { dragDepth.current = 0; setDragging(false); } },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault(); dragDepth.current = 0; setDragging(false);
+      const f = e.dataTransfer.files[0];
+      if (f?.type.startsWith('image/') && !edit.busy) edit.photo(slot, f);
+    },
+  } : {};
+
+  const hasDeal = product.marketPrice > product.price;
+
   return (
-    <div className={`card ${expired ? 'expired' : 'fresh'}${soldOut ? ' sold-out' : ''}`}>
+    <div className={`card ${expired ? 'expired' : 'fresh'}${soldOut ? ' sold-out' : ''}${edit ? ' card-editing' : ''}`}>
       <div
-        className="photo-wrap"
+        className={`photo-wrap${dragging ? ' dragging' : ''}`}
         style={{ cursor: 'pointer' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onClick={handlePhotoClick}
+        {...dropProps}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={activeUrl} alt={product.name} loading="lazy" />
+        {shownUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={shownUrl} alt={product.name} loading="lazy" />
+        ) : (
+          <div className="photo-empty">+ Photo {slot}</div>
+        )}
         {soldOut && <div className="sold-out-ribbon">SOLD OUT</div>}
         <span className={`badge ${expired ? 'badge-expired' : 'badge-fresh'}`}>
           {expired ? 'Past Best Before' : 'In Date'}
         </span>
-        {photos.length > 1 && (
+        {count > 1 && (
           <>
-            {photoIndex > 0 && (
+            {idx > 0 && (
               <button className="photo-arrow" style={{ left: '0.4rem' }}
-                onClick={e => { e.stopPropagation(); setPhotoIndex(i => i - 1); }}
+                onClick={e => { e.stopPropagation(); setPhotoIndex(idx - 1); }}
                 aria-label="Previous photo">‹</button>
             )}
-            {photoIndex < photos.length - 1 && (
+            {idx < count - 1 && (
               <button className="photo-arrow" style={{ right: '0.4rem' }}
-                onClick={e => { e.stopPropagation(); setPhotoIndex(i => i + 1); }}
+                onClick={e => { e.stopPropagation(); setPhotoIndex(idx + 1); }}
                 aria-label="Next photo">›</button>
             )}
-            <div style={{ position: 'absolute', bottom: '0.4rem', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '0.3rem', pointerEvents: 'none' }}>
-              {photos.map((_, i) => (
-                <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === photoIndex ? '#fff' : 'rgba(255,255,255,0.45)' }} />
-              ))}
-            </div>
+            {!edit && (
+              <div style={{ position: 'absolute', bottom: '0.4rem', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '0.3rem', pointerEvents: 'none' }}>
+                {photos.map((_, i) => (
+                  <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === idx ? '#fff' : 'rgba(255,255,255,0.45)' }} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        {edit && (
+          <>
+            {shownUrl && (
+              <button type="button" className="ce-rotate" title="Rotate" aria-label="Rotate photo"
+                onClick={e => { e.stopPropagation(); if (!edit.busy) edit.rotate(slot); }}>↺</button>
+            )}
+            {idx > 0 && shownUrl && <span className="ce-which">Photo {slot} of {count}</span>}
+            {idx > 0 && shownUrl && (
+              <button type="button" className="ce-photo-x"
+                onClick={e => { e.stopPropagation(); if (!edit.busy && confirm(`Remove photo ${slot}?`)) edit.clearPhoto(slot as 2 | 3); }}>✕ remove</button>
+            )}
+            {edit.busy
+              ? <div className="ce-busy">{edit.busy}</div>
+              : dragging
+                ? <div className="ce-drop">⬇ Drop to replace</div>
+                : <div className="ce-hint">Drop a photo, or click to browse</div>}
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+              onClick={e => e.stopPropagation()}
+              onChange={e => { const f = e.target.files?.[0]; if (f) edit.photo(slot, f); e.target.value = ''; }} />
           </>
         )}
       </div>
-      <div className="card-body">
-        <span className="cat-label">{product.category}</span>
-        <h2>{product.name}</h2>
-        {product.size && <p className="size">{product.size}</p>}
-        {product.sellerName && <p style={{ fontSize: '0.75rem', color: 'var(--muted)', margin: '0 0 0.3rem' }}>Sold by {product.sellerName}</p>}
-        {(product.halal || product.kosher || product.vegan) && (
-          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
-            {product.halal  && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dcfce7', color: '#15803d' }}>☪ Halal</span>}
-            {product.kosher && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dbeafe', color: '#1d4ed8' }}>✡ Kosher</span>}
-            {product.vegan  && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dcfce7', color: '#15803d' }}>🌱 Vegan</span>}
+      {edit ? (
+        <div className="card-body ce-body">
+          <select className="ce-cat" value={product.category} aria-label="Category"
+            onChange={e => edit.save({ category: e.target.value })}>
+            {(EDIT_CATEGORIES.includes(product.category) ? EDIT_CATEGORIES : [product.category, ...EDIT_CATEGORIES]).map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <div className="ce-name">
+            <EditableCell value={product.name} display={product.name}
+              onSave={v => v ? edit.save({ name: v }) : Promise.resolve(false)} />
           </div>
-        )}
-        {product.price > 0 && (
-          <div className="price-wrap">
-            {product.marketPrice > product.price && (
-              <span className="market-price">R {Number(product.marketPrice).toFixed(2)}</span>
-            )}
-            <p className="price">R {Number(product.price).toFixed(2)}</p>
-            {product.marketPrice > product.price && (
-              <span className="savings-badge">{Math.round((1 - product.price / product.marketPrice) * 100)}% off</span>
-            )}
+          <div className="ce-size">
+            <EditableCell value={product.size ?? ''} display={product.size || '+ Size'} onSave={v => edit.save({ size: v })} />
           </div>
-        )}
-        <p className="best-before">Best Before: {formatBB(product.bestBefore)}</p>
-        {product.notes && <p className="notes">{product.notes}</p>}
-        {soldOut ? (
-          <button className="btn-add-cart btn-sold-out" disabled>Sold out</button>
-        ) : cartQty === 0 ? (
-          <button className="btn-add-cart" onClick={() => onAddToCart(product)}>+ Add to Order</button>
-        ) : (
-          <div className="card-stepper">
-            <button onClick={() => onUpdateQty(product.id, cartQty - 1)}>−</button>
-            <span>{cartQty}</span>
-            <button onClick={() => onUpdateQty(product.id, cartQty + 1)}>+</button>
+          <div className="ce-price">
+            <span className="ce-deal">
+              <EditableCell type="number" value={product.marketPrice ? String(Number(product.marketPrice)) : ''}
+                display={product.marketPrice ? `R ${Number(product.marketPrice).toFixed(2)}` : '+ Deal'}
+                onSave={v => edit.save({ marketPrice: parseFloat(v) || 0 })} />
+            </span>
+            <span className="ce-now">
+              <EditableCell type="number" value={String(Number(product.price ?? 0))} display={`R ${Number(product.price ?? 0).toFixed(2)}`}
+                onSave={v => edit.save({ price: parseFloat(v) || 0 })} />
+            </span>
+            {hasDeal && <span className="savings-badge">{Math.round((1 - product.price / product.marketPrice) * 100)}% off</span>}
           </div>
-        )}
-      </div>
+          <div className="ce-bb">
+            <span>Best Before:</span>
+            <EditableCell type="date" value={product.bestBefore ?? ''} display={formatBB(product.bestBefore)}
+              onSave={v => edit.save({ bestBefore: v })} />
+          </div>
+          <DietChips value={{ halal: !!product.halal, kosher: !!product.kosher, vegan: !!product.vegan }}
+            onToggle={d => edit.save({ [d]: !product[d] })} />
+        </div>
+      ) : (
+        <div className="card-body">
+          <span className="cat-label">{product.category}</span>
+          <h2>{product.name}</h2>
+          {product.size && <p className="size">{product.size}</p>}
+          {product.sellerName && <p style={{ fontSize: '0.75rem', color: 'var(--muted)', margin: '0 0 0.3rem' }}>Sold by {product.sellerName}</p>}
+          {(product.halal || product.kosher || product.vegan) && (
+            <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
+              {product.halal  && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dcfce7', color: '#15803d' }}>☪ Halal</span>}
+              {product.kosher && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dbeafe', color: '#1d4ed8' }}>✡ Kosher</span>}
+              {product.vegan  && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 10, background: '#dcfce7', color: '#15803d' }}>🌱 Vegan</span>}
+            </div>
+          )}
+          {product.price > 0 && (
+            <div className="price-wrap">
+              {hasDeal && (
+                <span className="market-price">R {Number(product.marketPrice).toFixed(2)}</span>
+              )}
+              <p className="price">R {Number(product.price).toFixed(2)}</p>
+              {hasDeal && (
+                <span className="savings-badge">{Math.round((1 - product.price / product.marketPrice) * 100)}% off</span>
+              )}
+            </div>
+          )}
+          <p className="best-before">Best Before: {formatBB(product.bestBefore)}</p>
+          {product.notes && <p className="notes">{product.notes}</p>}
+          {soldOut ? (
+            <button className="btn-add-cart btn-sold-out" disabled>Sold out</button>
+          ) : cartQty === 0 ? (
+            <button className="btn-add-cart" onClick={() => onAddToCart(product)}>+ Add to Order</button>
+          ) : (
+            <div className="card-stepper">
+              <button onClick={() => onUpdateQty(product.id, cartQty - 1)}>−</button>
+              <span>{cartQty}</span>
+              <button onClick={() => onUpdateQty(product.id, cartQty + 1)}>+</button>
+            </div>
+          )}
+        </div>
+      )}
+      {edit && (
+        <div className="card-admin">
+          {askRemove ? (
+            <span className="ce-ask">Remove?
+              <button type="button" className="ce-yes" onClick={() => { setAskRemove(false); edit.remove(); }}>Yes</button>
+              <button type="button" className="ce-no" onClick={() => setAskRemove(false)}>No</button>
+            </span>
+          ) : (
+            <>
+              <span className="ce-qty">Qty
+                <EditableCell type="number" value={product.quantity != null ? String(product.quantity) : ''}
+                  display={product.quantity != null ? String(product.quantity) : '—'} onSave={edit.qty} />
+              </span>
+              <StockSwitch compact inStock={!soldOut} onToggle={edit.stock} />
+              <button type="button" className="ce-del" title="Remove product" aria-label="Remove product" onClick={() => setAskRemove(true)}>🗑</button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -388,6 +514,75 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
   // "← Back to admin" shows only when the shop was opened from the admin's
   // "View store" link (?from=/admin/...). Remembered for this tab only.
   const [adminBack, setAdminBack] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [busy, setBusy] = useState<Record<string, string>>({});
+
+  function toggleEditMode() {
+    setEditMode(on => {
+      try { sessionStorage.setItem('shopEdit', on ? '' : '1'); } catch {}
+      return !on;
+    });
+  }
+
+  // Edit mode saves. Everything goes through the same admin routes as the
+  // Products page and needs the admin sign-in, so customers can't save.
+  const SIGN_IN = 'Open the admin, sign in, then try again.';
+  function replaceProduct(next: Product) {
+    setProducts(prev => prev.map(p => p.id === next.id ? next : p));
+  }
+  async function editSave(p: Product, changes: Partial<Product>): Promise<boolean> {
+    const next = { ...p, ...changes };
+    replaceProduct(next);
+    try { await saveProductFields(next); return true; }
+    catch (e) { replaceProduct(p); alert(`Couldn't save. ${e instanceof Error && e.message !== 'Save failed' ? e.message : SIGN_IN}`); return false; }
+  }
+  async function withPhotoBusy(p: Product, label: string, run: () => Promise<{ photoUrl?: string; photoUrl2?: string; photoUrl3?: string }>) {
+    setBusy(b => ({ ...b, [p.id]: label }));
+    try {
+      const urls = await run();
+      setProducts(prev => prev.map(x => x.id === p.id ? {
+        ...x,
+        photoUrl: urls.photoUrl ?? x.photoUrl,
+        photoUrl2: urls.photoUrl2 ?? x.photoUrl2,
+        photoUrl3: urls.photoUrl3 ?? x.photoUrl3,
+      } : x));
+    } catch (e) {
+      alert(`Couldn't save the photo. ${e instanceof Error && e.message !== 'Save failed' && e.message !== 'load' && e.message !== 'rotate' ? e.message : SIGN_IN}`);
+    } finally {
+      setBusy(b => { const n = { ...b }; delete n[p.id]; return n; });
+    }
+  }
+  function editApi(p: Product) {
+    return {
+      busy: busy[p.id] ?? '',
+      save: (changes: Partial<Product>) => editSave(p, changes),
+      photo: (slot: 1 | 2 | 3, file: File) => withPhotoBusy(p, 'Saving photo…', () => saveProductPhoto(p, slot, file)),
+      clearPhoto: (slot: 2 | 3) => withPhotoBusy(p, 'Removing…', () => clearProductPhoto(p, slot)),
+      rotate: (slot: 1 | 2 | 3) => withPhotoBusy(p, 'Rotating…', async () => {
+        const url = [p.photoUrl, p.photoUrl2, p.photoUrl3][slot - 1];
+        return saveProductPhoto(p, slot, await rotatedPhoto(url));
+      }),
+      qty: async (v: string) => {
+        const n = v === '' ? null : parseInt(v, 10);
+        if (n !== null && (isNaN(n) || n < 0)) return false;
+        replaceProduct({ ...p, quantity: n });
+        try { await saveProductQuantity(p.id, n); return true; }
+        catch { replaceProduct(p); alert(`Couldn't save. ${SIGN_IN}`); return false; }
+      },
+      stock: async () => {
+        const inStock = p.inStock === false;
+        replaceProduct({ ...p, inStock });
+        try { await saveProductStock(p.id, inStock); }
+        catch { replaceProduct(p); alert(`Couldn't save. ${SIGN_IN}`); }
+      },
+      remove: async () => {
+        setBusy(b => ({ ...b, [p.id]: 'Removing…' }));
+        try { await removeProduct(p.id); setProducts(prev => prev.filter(x => x.id !== p.id)); }
+        catch { alert(`Couldn't remove it. ${SIGN_IN}`); }
+        finally { setBusy(b => { const n = { ...b }; delete n[p.id]; return n; }); }
+      },
+    };
+  }
   useEffect(() => {
     try {
       const url = new URL(window.location.href);
@@ -398,7 +593,10 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
         window.history.replaceState(null, '', url.pathname + url.search + url.hash);
       }
       const saved = sessionStorage.getItem('adminBack') ?? '';
-      if (saved.startsWith('/admin')) setAdminBack(saved);
+      if (saved.startsWith('/admin')) {
+        setAdminBack(saved);
+        if (sessionStorage.getItem('shopEdit') === '1') setEditMode(true);
+      }
     } catch { /* storage blocked: no button */ }
   }, []);
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -574,7 +772,12 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
           {adminBack && (
-            <a href={adminBack} className="back-to-admin">← <span>Back to </span>admin</a>
+            <div className="admin-tools">
+              <a href={adminBack} className="back-to-admin">← <span>Back to </span>admin</a>
+              <button type="button" role="switch" aria-checked={editMode} className="edit-mode-btn" onClick={toggleEditMode}>
+                <span className={`stock-switch${editMode ? '' : ' off'}`} aria-hidden="true" />✎ Edit
+              </button>
+            </div>
           )}
           <div className="site-wordmark">
             <span className="site-wordmark-text">
@@ -599,6 +802,9 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
             </button>
           </div>
         </header>
+        {adminBack && editMode && (
+          <div className="edit-tip">Edit mode: click any text to change it (Enter saves) · drop a photo on a picture to replace it · flip Edit off when you&apos;re done</div>
+        )}
 
         <div className="mobile-filters">
           <select className="mobile-select" value={category} onChange={e => selectCategory(e.target.value)}>
@@ -666,6 +872,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
                   onAddToCart={addToCart}
                   cartQty={cart.find(i => i.product.id === product.id)?.qty ?? 0}
                   onUpdateQty={updateQty}
+                  edit={adminBack && editMode ? editApi(product) : undefined}
                 />
               ))}
             </div>
