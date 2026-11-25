@@ -6,7 +6,6 @@ const TABS = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/products', label: 'Products' },
   { href: '/admin/sellers', label: 'Sellers' },
-  { href: '/upload', label: 'Add product' },
 ];
 
 export default function AdminNav() {

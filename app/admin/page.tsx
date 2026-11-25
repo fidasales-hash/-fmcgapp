@@ -74,7 +74,7 @@ export default function AdminDashboard() {
           <button type="button" className="dash-btn" onClick={() => exportCSV(products)} disabled={products.length === 0}>
             Export CSV
           </button>
-          <Link href="/upload" className="dash-btn dash-btn-primary">+ Add product</Link>
+          <Link href="/admin/products" className="dash-btn dash-btn-primary">+ Add product</Link>
         </div>
       </div>
 

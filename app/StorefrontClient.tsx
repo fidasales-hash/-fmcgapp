@@ -905,7 +905,7 @@ export default function StorefrontClient({ initialProducts, initialCategory = 'A
           <main className="main-content">
             {loading && <p className="loading">Loading products…</p>}
             {!loading && filtered.length === 0 && (
-              <p className="empty">{products.length === 0 ? 'No products yet — staff can add via the upload page.' : 'No products match the filters.'}</p>
+              <p className="empty">{products.length === 0 ? 'No products yet.' : 'No products match the filters.'}</p>
             )}
             <div className="grid">
               {adminBack && editMode && <ShopNewProductCard api={np} notice={newNotice} />}
